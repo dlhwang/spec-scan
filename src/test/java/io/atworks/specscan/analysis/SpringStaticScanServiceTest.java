@@ -65,7 +65,9 @@ class SpringStaticScanServiceTest {
             
                 @GetMapping("/{id}")
                 public ResponseEntity<UserDto> getUser(
-                        @RequestHeader("X-Auth-Token") String token,
+                        @io.swagger.v3.oas.annotations.Parameter(description = "Access token", example = "Bearer abc")
+                        @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {"ko-KR", "en-US"}, example = "ko-KR")
+                        @RequestHeader(value = "X-Auth-Token", defaultValue = "demo-token") String token,
                         @PathVariable("id") Long userId,
                         @RequestParam(value = "search", required = false) String searchKeyword) {
                     return null;
@@ -146,6 +148,10 @@ class SpringStaticScanServiceTest {
         assertThat(headerBinding.targetLocation()).isEqualTo(BindingLocation.HEADER);
         assertThat(headerBinding.isRequired()).isTrue();
         assertThat(headerBinding.type()).isEqualTo("String");
+        assertThat(headerBinding.description()).isEqualTo("Access token");
+        assertThat(headerBinding.example()).isEqualTo("Bearer abc");
+        assertThat(headerBinding.defaultValue()).isEqualTo("demo-token");
+        assertThat(headerBinding.enumValues()).containsExactly("ko-KR", "en-US");
 
         RequestBinding pathBinding = getBindings.stream().filter(b -> b.parameterName().equals("userId")).findFirst().orElseThrow();
         assertThat(pathBinding.targetLocation()).isEqualTo(BindingLocation.PATH);
@@ -155,6 +161,7 @@ class SpringStaticScanServiceTest {
         RequestBinding queryBinding = getBindings.stream().filter(b -> b.parameterName().equals("searchKeyword")).findFirst().orElseThrow();
         assertThat(queryBinding.targetLocation()).isEqualTo(BindingLocation.QUERY);
         assertThat(queryBinding.isRequired()).isFalse();
+        assertThat(queryBinding.defaultValue()).isNull();
 
         // 4. POST /api/v1/users 엔드포인트 세부 검증
         ApiEndpoint postEndpoint = endpoints.stream()

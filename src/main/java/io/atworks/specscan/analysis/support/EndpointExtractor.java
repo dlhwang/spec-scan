@@ -7,8 +7,8 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.MemberValuePair;
-import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import com.github.javaparser.ast.expr.NormalAnnotationExpr;
+import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
 import io.atworks.specscan.analysis.domain.ApiEndpoint;
 import io.atworks.specscan.analysis.domain.BindingLocation;
 import io.atworks.specscan.analysis.domain.RequestBinding;
@@ -19,8 +19,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public class EndpointExtractor {
 
@@ -101,7 +103,6 @@ public class EndpointExtractor {
             case "DeleteMapping": return "DELETE";
             case "PatchMapping": return "PATCH";
             default:
-                // RequestMapping인 경우 method 속성을 읽음
                 if (mappingAnn instanceof NormalAnnotationExpr normal) {
                     for (MemberValuePair pair : normal.getPairs()) {
                         if (pair.getNameAsString().equals("method")) {
@@ -113,7 +114,7 @@ public class EndpointExtractor {
                         }
                     }
                 }
-                return "GET"; // 기본값 GET
+                return "GET";
         }
     }
 
@@ -125,7 +126,6 @@ public class EndpointExtractor {
         if (annotation instanceof SingleMemberAnnotationExpr single) {
             return Optional.of(cleanStringLiteral(single.getMemberValue().toString()));
         } else if (annotation instanceof NormalAnnotationExpr normal) {
-            // value 또는 path 속성 탐색
             for (MemberValuePair pair : normal.getPairs()) {
                 String name = pair.getNameAsString();
                 if (name.equals("value") || name.equals("path")) {
@@ -167,34 +167,54 @@ public class EndpointExtractor {
         for (Parameter param : method.getParameters()) {
             String paramName = param.getNameAsString();
             String paramType = param.getType().asString();
-            BindingLocation location = BindingLocation.QUERY; // 기본값
-            boolean isRequired = true; // 기본값
+            BindingLocation location = BindingLocation.QUERY;
+            boolean isRequired = true;
+            String description = null;
+            String example = null;
+            String defaultValue = null;
+            Set<String> enumValues = new LinkedHashSet<>();
 
             if (param.isAnnotationPresent("RequestHeader")) {
+                AnnotationExpr requestHeader = param.getAnnotationByName("RequestHeader").orElseThrow();
                 location = BindingLocation.HEADER;
-                isRequired = resolveRequiredAttribute(param.getAnnotationByName("RequestHeader").get());
+                isRequired = resolveRequiredAttribute(requestHeader);
+                defaultValue = resolveDefaultValue(requestHeader);
             } else if (param.isAnnotationPresent("PathVariable")) {
                 location = BindingLocation.PATH;
-                // PathVariable은 항상 required = true가 기본
-                isRequired = resolveRequiredAttribute(param.getAnnotationByName("PathVariable").get());
+                isRequired = resolveRequiredAttribute(param.getAnnotationByName("PathVariable").orElseThrow());
             } else if (param.isAnnotationPresent("RequestParam")) {
+                AnnotationExpr requestParam = param.getAnnotationByName("RequestParam").orElseThrow();
                 location = BindingLocation.QUERY;
-                isRequired = resolveRequiredAttribute(param.getAnnotationByName("RequestParam").get());
+                isRequired = resolveRequiredAttribute(requestParam);
+                defaultValue = resolveDefaultValue(requestParam);
             } else if (param.isAnnotationPresent("RequestBody")) {
                 location = BindingLocation.BODY;
-                isRequired = resolveRequiredAttribute(param.getAnnotationByName("RequestBody").get());
+                isRequired = resolveRequiredAttribute(param.getAnnotationByName("RequestBody").orElseThrow());
+            } else if (isPrimitiveOrSimpleType(paramType)) {
+                location = BindingLocation.QUERY;
             } else {
-                // 애노테이션이 없는 경우
-                if (isPrimitiveOrSimpleType(paramType)) {
-                    location = BindingLocation.QUERY;
-                } else {
-                    // 사용자 정의 DTO(POJO)인 경우
-                    location = BindingLocation.QUERY; // Spring MVC @ModelAttribute 성격 반영
-                }
+                location = BindingLocation.QUERY;
             }
 
+            description = resolveAnnotationMemberValue(param, "Parameter", "description")
+                    .orElseGet(() -> resolveAnnotationMemberValue(param, "Schema", "description").orElse(null));
+            example = resolveAnnotationMemberValue(param, "Parameter", "example")
+                    .orElseGet(() -> resolveAnnotationMemberValue(param, "Schema", "example").orElse(null));
+            enumValues.addAll(resolveAnnotationArrayValues(param, "Schema", "allowableValues"));
+            enumValues.addAll(resolveAnnotationArrayValues(param, "Schema", "enumeration"));
+
             SourceTrace trace = SourceTraceResolver.resolve(param, workspaceRoot, file);
-            bindings.add(new RequestBinding(paramName, location, paramType, isRequired, trace));
+            bindings.add(new RequestBinding(
+                paramName,
+                location,
+                paramType,
+                isRequired,
+                description,
+                example,
+                defaultValue,
+                List.copyOf(enumValues),
+                trace
+            ));
         }
         return bindings;
     }
@@ -208,6 +228,63 @@ public class EndpointExtractor {
             }
         }
         return true;
+    }
+
+    private String resolveDefaultValue(AnnotationExpr annotation) {
+        if (!(annotation instanceof NormalAnnotationExpr normal)) {
+            return null;
+        }
+        for (MemberValuePair pair : normal.getPairs()) {
+            if (!pair.getNameAsString().equals("defaultValue")) {
+                continue;
+            }
+            String value = cleanStringLiteral(pair.getValue().toString());
+            if (value.contains("ValueConstants.DEFAULT_NONE")) {
+                return null;
+            }
+            return value;
+        }
+        return null;
+    }
+
+    private Optional<String> resolveAnnotationMemberValue(Parameter parameter, String annotationName, String memberName) {
+        Optional<AnnotationExpr> annotationOpt = parameter.getAnnotationByName(annotationName);
+        if (annotationOpt.isEmpty() || !(annotationOpt.get() instanceof NormalAnnotationExpr normal)) {
+            return Optional.empty();
+        }
+        for (MemberValuePair pair : normal.getPairs()) {
+            if (pair.getNameAsString().equals(memberName)) {
+                return Optional.of(cleanStringLiteral(pair.getValue().toString()));
+            }
+        }
+        return Optional.empty();
+    }
+
+    private List<String> resolveAnnotationArrayValues(Parameter parameter, String annotationName, String memberName) {
+        Optional<AnnotationExpr> annotationOpt = parameter.getAnnotationByName(annotationName);
+        if (annotationOpt.isEmpty() || !(annotationOpt.get() instanceof NormalAnnotationExpr normal)) {
+            return List.of();
+        }
+        for (MemberValuePair pair : normal.getPairs()) {
+            if (!pair.getNameAsString().equals(memberName)) {
+                continue;
+            }
+            String raw = pair.getValue().toString().trim();
+            if (!raw.startsWith("{") || !raw.endsWith("}")) {
+                return List.of(cleanStringLiteral(raw));
+            }
+            String inner = raw.substring(1, raw.length() - 1).trim();
+            if (inner.isEmpty()) {
+                return List.of();
+            }
+            String[] tokens = inner.split(",");
+            List<String> values = new ArrayList<>();
+            for (String token : tokens) {
+                values.add(cleanStringLiteral(token.trim()));
+            }
+            return values;
+        }
+        return List.of();
     }
 
     private boolean isPrimitiveOrSimpleType(String typeStr) {

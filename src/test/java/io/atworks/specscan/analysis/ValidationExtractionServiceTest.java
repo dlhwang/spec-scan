@@ -122,7 +122,7 @@ class ValidationExtractionServiceTest {
 
         // Mock StaticScanResult 셋업
         SourceTrace dummyTrace = new SourceTrace("src/main/java/io/atworks/controller/UserController.java", 10, 15);
-        RequestBinding bodyBinding = new RequestBinding("user", BindingLocation.BODY, "UserDto", true, dummyTrace);
+        RequestBinding bodyBinding = new RequestBinding("user", BindingLocation.BODY, "UserDto", true, null, null, null, List.of(), dummyTrace);
         ResponseBinding responseBinding = new ResponseBinding("void", dummyTrace);
         
         ApiEndpoint endpoint = new ApiEndpoint(

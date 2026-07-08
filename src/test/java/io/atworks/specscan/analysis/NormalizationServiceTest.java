@@ -36,7 +36,7 @@ class NormalizationServiceTest {
         List<ValidationCandidate> candidates = List.of(cand1, cand2, candInvalid);
 
         // Mock Endpoint
-        RequestBinding bodyBinding = new RequestBinding("user", BindingLocation.BODY, "UserDto", true, trace1);
+        RequestBinding bodyBinding = new RequestBinding("user", BindingLocation.BODY, "UserDto", true, null, null, null, List.of(), trace1);
         ResponseBinding responseBinding = new ResponseBinding("void", trace1);
         ApiEndpoint endpoint = new ApiEndpoint(
             "POST",

@@ -46,8 +46,26 @@ public class OpenApiGenerator {
                         sb.append("        - name: ").append(param.parameterName()).append("\n");
                         sb.append("          in: ").append(param.targetLocation().name().toLowerCase()).append("\n");
                         sb.append("          required: ").append(param.isRequired()).append("\n");
+                        if (param.description() != null && !param.description().isBlank()) {
+                            sb.append("          description: ").append(param.description()).append("\n");
+                        }
+                        if (param.example() != null && !param.example().isBlank()) {
+                            sb.append("          example: ").append(param.example()).append("\n");
+                        }
                         sb.append("          schema:\n");
                         sb.append("            type: ").append(resolvePrimitiveYamlType(param.type())).append("\n");
+                        if (param.defaultValue() != null && !param.defaultValue().isBlank()) {
+                            sb.append("            default: ").append(param.defaultValue()).append("\n");
+                        }
+                        if (!param.enumValues().isEmpty()) {
+                            sb.append("            enum:\n");
+                            for (String enumValue : param.enumValues()) {
+                                sb.append("              - ").append(enumValue).append("\n");
+                            }
+                        }
+                        if (param.example() != null && !param.example().isBlank()) {
+                            sb.append("            example: ").append(param.example()).append("\n");
+                        }
                     }
                 }
 
