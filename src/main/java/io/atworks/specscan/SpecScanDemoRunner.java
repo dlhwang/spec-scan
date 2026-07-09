@@ -202,6 +202,9 @@ public class SpecScanDemoRunner {
             System.out.println("[Step 4] Normalizing Candidates & Assembling OpenAPI 3.0 Document...");
             OpenApiAssemblyService assemblyService = new OpenApiAssemblyService();
             Path outputPath = Paths.get("build/openapi.yaml");
+            if (args.length > 1) {
+                outputPath = Paths.get(args[1]);
+            }
             assemblyService.assemble(scanResult, extractionResult, repositorySource, outputPath);
 
             System.out.println("\n=================================================");
