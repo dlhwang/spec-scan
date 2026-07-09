@@ -143,13 +143,35 @@ public class SpecScanDemoRunner {
                     }
                 """);
 
+                // Exception Handler (ControllerAdvice)
+                Path adviceDir = srcRoot.resolve("io/atworks/advice");
+                Files.createDirectories(adviceDir);
+                Files.writeString(adviceDir.resolve("GlobalExceptionHandler.java"), """
+                    package io.atworks.advice;
+                    
+                    import org.springframework.http.HttpStatus;
+                    import org.springframework.web.bind.annotation.ExceptionHandler;
+                    import org.springframework.web.bind.annotation.ResponseStatus;
+                    import org.springframework.web.bind.annotation.RestControllerAdvice;
+                    
+                    @RestControllerAdvice
+                    public class GlobalExceptionHandler {
+                    
+                        @ExceptionHandler(IllegalArgumentException.class)
+                        @ResponseStatus(HttpStatus.BAD_REQUEST)
+                        public String handleIllegalArgument(IllegalArgumentException ex) {
+                            return ex.getMessage();
+                        }
+                    }
+                """);
+
                 // RepositorySource 생성
                 RepositoryIdentity identity = new RepositoryIdentity("local", "owner", "demo-repo", "local-path", "main");
                 WorkspaceContext workspace = new WorkspaceContext("demo-exec", dummyTempDir.toAbsolutePath().toString(), java.time.Instant.now(), "demo-cache", false);
                 List<SourceRootCandidate> sourceRoots = List.of(
-                    new SourceRootCandidate("root", "src/main/java", "Gradle", true, 5, 5, 1, "DETECTED")
+                    new SourceRootCandidate("root", "src/main/java", "Gradle", true, 6, 6, 1, "DETECTED")
                 );
-                JavaInventorySummary javaSummary = new JavaInventorySummary(5, 1, 1, true, 0);
+                JavaInventorySummary javaSummary = new JavaInventorySummary(6, 1, 1, true, 0);
                 repositorySource = new RepositorySource(
                     identity,
                     workspace,
@@ -159,7 +181,7 @@ public class SpecScanDemoRunner {
                     List.of(),
                     List.of(),
                     new SafetyPolicyHint(List.of(), List.of(), "1.0"),
-                    new IngestionMetadata(java.time.Instant.now(), java.time.Instant.now(), 5, "LOCAL", "main", 0)
+                    new IngestionMetadata(java.time.Instant.now(), java.time.Instant.now(), 6, "LOCAL", "main", 0)
                 );
             }
 
@@ -190,6 +212,16 @@ public class SpecScanDemoRunner {
             // 최종 생성된 YAML 콘솔에 출력
             String yaml = Files.readString(outputPath);
             System.out.println(yaml);
+
+            // 최종 생성된 Validation Evidence Graph 출력
+            Path graphPath = outputPath.getParent().resolve("validation-evidence-graph.json");
+            if (Files.exists(graphPath)) {
+                System.out.println("\n=================================================");
+                System.out.println("📊 Validation Evidence Graph JSON Output:");
+                System.out.println("=================================================\n");
+                String graphJson = Files.readString(graphPath);
+                System.out.println(graphJson);
+            }
 
         } catch (Exception e) {
             System.err.println("❌ ERROR: Demo Execution Failed!");
