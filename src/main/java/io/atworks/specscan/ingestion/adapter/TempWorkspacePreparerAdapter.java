@@ -17,6 +17,9 @@ import java.util.UUID;
 
 public class TempWorkspacePreparerAdapter implements WorkspacePreparerPort {
 
+    private static final int DELETE_RETRY_COUNT = 5;
+    private static final long DELETE_RETRY_DELAY_MILLIS = 150L;
+
     @Override
     public WorkspaceContext prepare() throws IngestionException {
         try {
@@ -57,19 +60,52 @@ public class TempWorkspacePreparerAdapter implements WorkspacePreparerPort {
             Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.delete(file);
+                    deleteWithRetry(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
+                    deleteWithRetry(file);
                     return FileVisitResult.CONTINUE;
                 }
 
                 @Override
                 public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    Files.delete(dir);
+                    deleteWithRetry(dir);
                     return FileVisitResult.CONTINUE;
                 }
             });
         } catch (IOException e) {
             // non-fatal warning
             System.err.println("Warning: Failed to cleanly delete workspace " + context.workspacePath() + ": " + e.getMessage());
+        }
+    }
+
+    private void deleteWithRetry(Path path) throws IOException {
+        IOException lastException = null;
+        for (int attempt = 1; attempt <= DELETE_RETRY_COUNT; attempt++) {
+            try {
+                path.toFile().setWritable(true);
+                Files.deleteIfExists(path);
+                return;
+            } catch (IOException e) {
+                lastException = e;
+                sleepBeforeRetry(attempt);
+            }
+        }
+        throw lastException;
+    }
+
+    private void sleepBeforeRetry(int attempt) throws IOException {
+        if (attempt >= DELETE_RETRY_COUNT) {
+            return;
+        }
+        try {
+            Thread.sleep(DELETE_RETRY_DELAY_MILLIS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Interrupted while retrying workspace cleanup", e);
         }
     }
 }

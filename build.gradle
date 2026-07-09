@@ -28,6 +28,8 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
     testImplementation 'org.assertj:assertj-core:3.24.2'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    runtimeOnly 'org.slf4j:slf4j-simple:1.7.36'
 }
 
 tasks.register('gitSpecScanJar', Jar) {
@@ -36,6 +38,27 @@ tasks.register('gitSpecScanJar', Jar) {
     exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
     manifest {
         attributes 'Main-Class': 'io.atworks.specscan.GitSpecScanMain'
+    }
+    from sourceSets.main.output
+    dependsOn configurations.runtimeClasspath
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+tasks.register('runWeb', JavaExec) {
+    group = 'application'
+    description = 'Runs the Spec Scan web UI.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'io.atworks.specscan.SpecScanWebServer'
+}
+
+tasks.register('webSpecScanJar', Jar) {
+    archiveClassifier = 'web'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+    manifest {
+        attributes 'Main-Class': 'io.atworks.specscan.SpecScanWebServer'
     }
     from sourceSets.main.output
     dependsOn configurations.runtimeClasspath

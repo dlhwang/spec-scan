@@ -32,11 +32,23 @@ class OpenApiAssemblyServiceTest {
     void testOpenApiAssemblyAndYamlGeneration(@TempDir Path tempDir) throws IOException, IngestionException {
         // Given
         Path outputPath = tempDir.resolve("openapi.yaml");
+        Path srcRoot = tempDir.resolve("src/main/java");
+        Path dtoDir = srcRoot.resolve("io/atworks/dto");
+        Files.createDirectories(dtoDir);
+        Files.writeString(dtoDir.resolve("UserDto.java"), """
+            package io.atworks.dto;
+            public class UserDto {
+                private String username;
+                private String nickname;
+                private String email;
+                private int age;
+            }
+        """);
 
         // 1. Mock StaticScanResult
         SourceTrace dummyTrace = new SourceTrace("src/main/java/io/atworks/controller/UserController.java", 10, 15);
         RequestBinding bodyBinding = new RequestBinding("user", BindingLocation.BODY, "UserDto", true, null, null, null, List.of(), dummyTrace);
-        ResponseBinding responseBinding = new ResponseBinding("void", dummyTrace);
+        ResponseBinding responseBinding = new ResponseBinding("UserDto", dummyTrace);
         
         ApiEndpoint endpoint = new ApiEndpoint(
             "POST",
@@ -98,8 +110,11 @@ class OpenApiAssemblyServiceTest {
         assertThat(outputPath).exists();
         Path structuredOutputPath = tempDir.resolve("api-spec-analysis.json");
         assertThat(structuredOutputPath).exists();
+        Path executionOutputPath = tempDir.resolve("api-execution-model.json");
+        assertThat(executionOutputPath).exists();
         String yamlContent = Files.readString(outputPath);
         JsonNode structuredJson = objectMapper.readTree(Files.readString(structuredOutputPath));
+        JsonNode executionJson = objectMapper.readTree(Files.readString(executionOutputPath));
 
         // 2. Structural checks in YAML
         assertThat(yamlContent)
@@ -130,5 +145,16 @@ class OpenApiAssemblyServiceTest {
         assertThat(structuredJson.at("/valueValidations/0/jsonPath").asText()).isEqualTo("$.username");
         assertThat(structuredJson.at("/valueValidations/1/condition").asText()).isEqualTo("SIZE");
         assertThat(structuredJson.at("/valueValidations/3/condition").asText()).isEqualTo("MIN_AGE");
+
+        assertThat(executionJson.at("/operations/0/request/bodySchema/type").asText()).isEqualTo("object");
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/username/type").asText()).isEqualTo("string");
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/nickname/minLength").asInt()).isEqualTo(5);
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/nickname/maxLength").asInt()).isEqualTo(20);
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/email/format").asText()).isEqualTo("email");
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/age/minimum").asInt()).isEqualTo(19);
+        assertThat(executionJson.at("/operations/0/request/bodyExample/username").asText()).isEmpty();
+        assertThat(executionJson.at("/operations/0/response200/schema/properties/age/type").asText()).isEqualTo("integer");
+        assertThat(executionJson.at("/operations/0/validationConditions").isArray()).isTrue();
+        assertThat(executionJson.at("/operations/0/validationConditions").size()).isGreaterThanOrEqualTo(4);
     }
 }
