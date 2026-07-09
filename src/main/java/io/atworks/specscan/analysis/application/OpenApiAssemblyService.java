@@ -1,13 +1,17 @@
 package io.atworks.specscan.analysis.application;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.atworks.specscan.analysis.domain.CandidateChunk;
 import io.atworks.specscan.analysis.domain.NormalizedResult;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
 import io.atworks.specscan.analysis.domain.ValidationCandidate;
 import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
+import io.atworks.specscan.analysis.domain.ValidationEvidenceGraph;
 import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
 import io.atworks.specscan.analysis.support.OpenApiGenerator;
 import io.atworks.specscan.analysis.support.StructuredSpecExporter;
+import io.atworks.specscan.analysis.support.ValidationEvidenceGraphBuilder;
 import io.atworks.specscan.ingestion.domain.IngestionErrorCode;
 import io.atworks.specscan.ingestion.domain.IngestionException;
 import io.atworks.specscan.ingestion.domain.IngestionWarning;
@@ -25,12 +29,14 @@ public class OpenApiAssemblyService {
     private final OpenApiGenerator openApiGenerator;
     private final StructuredSpecExporter structuredSpecExporter;
     private final ExecutionSpecExporter executionSpecExporter;
+    private final ObjectMapper objectMapper;
 
     public OpenApiAssemblyService() {
         this.normalizationService = new NormalizationService();
         this.openApiGenerator = new OpenApiGenerator();
         this.structuredSpecExporter = new StructuredSpecExporter();
         this.executionSpecExporter = new ExecutionSpecExporter();
+        this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     }
 
     public void assemble(
@@ -110,6 +116,17 @@ public class OpenApiAssemblyService {
             );
         }
 
+        ValidationEvidenceGraph graph = new ValidationEvidenceGraphBuilder().build(scanResult, extractResult, source);
+        String graphJson;
+        try {
+            graphJson = objectMapper.writeValueAsString(graph);
+        } catch (Exception e) {
+            throw new IngestionException(
+                IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
+                "Failed to serialize validation evidence graph to JSON: " + e.getMessage()
+            );
+        }
+
         try {
             if (outputPath.getParent() != null) {
                 Files.createDirectories(outputPath.getParent());
@@ -117,6 +134,7 @@ public class OpenApiAssemblyService {
             Files.writeString(outputPath, yamlContent);
             Files.writeString(resolveStructuredOutputPath(outputPath), structuredJson);
             Files.writeString(resolveExecutionOutputPath(outputPath), executionJson);
+            Files.writeString(resolveGraphOutputPath(outputPath), graphJson);
         } catch (IOException e) {
             throw new IngestionException(
                 IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
@@ -139,5 +157,13 @@ public class OpenApiAssemblyService {
             return Path.of("api-execution-model.json");
         }
         return parent.resolve("api-execution-model.json");
+    }
+
+    private Path resolveGraphOutputPath(Path outputPath) {
+        Path parent = outputPath.getParent();
+        if (parent == null) {
+            return Path.of("validation-evidence-graph.json");
+        }
+        return parent.resolve("validation-evidence-graph.json");
     }
 }
