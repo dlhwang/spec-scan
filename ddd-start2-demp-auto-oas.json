@@ -1,0 +1,558 @@
+﻿{
+    "operations":  [
+                       {
+                           "operationId":  "orders",
+                           "method":  "GET",
+                           "path":  "/admin/orders",
+                           "controllerClass":  "com.myshop.admin.ui.AdminOrderController",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "page",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "integer"
+                                                                              },
+                                                                   "defaultValue":  "1"
+                                                               },
+                                                               {
+                                                                   "name":  "modelMap",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "string"
+                                                          },
+                                               "example":  ""
+                                           },
+                           "validationConditions":  [
+
+                                                    ]
+                       },
+                       {
+                           "operationId":  "orderDetail",
+                           "method":  "GET",
+                           "path":  "/admin/orders/{orderNo}",
+                           "controllerClass":  "com.myshop.admin.ui.AdminOrderController",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+                                                              {
+                                                                  "name":  "orderNo",
+                                                                  "required":  true,
+                                                                  "schema":  {
+                                                                                 "type":  "string"
+                                                                             }
+                                                              }
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "modelMap",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "string"
+                                                          },
+                                               "example":  ""
+                                           },
+                           "validationConditions":  [
+
+                                                    ]
+                       },
+                       {
+                           "operationId":  "startShippingOrder",
+                           "method":  "POST",
+                           "path":  "/admin/orders/{orderNo}/shipping",
+                           "controllerClass":  "com.myshop.admin.ui.AdminOrderController",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+                                                              {
+                                                                  "name":  "orderNo",
+                                                                  "required":  true,
+                                                                  "schema":  {
+                                                                                 "type":  "string"
+                                                                             }
+                                                              }
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "version",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "integer"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "string"
+                                                          },
+                                               "example":  ""
+                                           },
+                           "validationConditions":  [
+                                                        {
+                                                            "targetLocation":  "QUERY",
+                                                            "targetPath":  "$.version",
+                                                            "operator":  "BUSINESS_CONSTRAINT",
+                                                            "expected":  "validated",
+                                                            "source":  "SERVICE_LOGIC_HINT"
+                                                        }
+                                                    ]
+                       },
+                       {
+                           "operationId":  "categories",
+                           "method":  "GET",
+                           "path":  "/categories",
+                           "controllerClass":  "com.myshop.catalog.ui.ProductController",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "model",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "string"
+                                                          },
+                                               "example":  ""
+                                           },
+                           "validationConditions":  [
+
+                                                    ]
+                       },
+                       {
+                           "operationId":  "list",
+                           "method":  "GET",
+                           "path":  "/categories/{categoryId}",
+                           "controllerClass":  "com.myshop.catalog.ui.ProductController",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+                                                              {
+                                                                  "name":  "categoryId",
+                                                                  "required":  true,
+                                                                  "schema":  {
+                                                                                 "type":  "integer"
+                                                                             }
+                                                              }
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "page",
+                                                                   "required":  false,
+                                                                   "schema":  {
+                                                                                  "type":  "integer"
+                                                                              },
+                                                                   "defaultValue":  "1"
+                                                               },
+                                                               {
+                                                                   "name":  "model",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "string"
+                                                          },
+                                               "example":  ""
+                                           },
+                           "validationConditions":  [
+
+                                                    ]
+                       },
+                       {
+                           "operationId":  "detail",
+                           "method":  "GET",
+                           "path":  "/products/{productId}",
+                           "controllerClass":  "com.myshop.catalog.ui.ProductController",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+                                                              {
+                                                                  "name":  "productId",
+                                                                  "required":  true,
+                                                                  "schema":  {
+                                                                                 "type":  "string"
+                                                                             }
+                                                              }
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "model",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               },
+                                                               {
+                                                                   "name":  "response",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "string"
+                                                          },
+                                               "example":  ""
+                                           },
+                           "validationConditions":  [
+
+                                                    ]
+                       },
+                       {
+                           "operationId":  "list",
+                           "method":  "GET",
+                           "path":  "/api/events",
+                           "controllerClass":  "com.myshop.eventstore.ui.EventApi",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "offset",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "integer"
+                                                                              }
+                                                               },
+                                                               {
+                                                                   "name":  "limit",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "integer"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "array",
+                                                              "items":  {
+                                                                            "type":  "object",
+                                                                            "properties":  {
+                                                                                               "id":  {
+                                                                                                          "type":  "integer"
+                                                                                                      },
+                                                                                               "type":  {
+                                                                                                            "type":  "string"
+                                                                                                        },
+                                                                                               "contentType":  {
+                                                                                                                   "type":  "string"
+                                                                                                               },
+                                                                                               "payload":  {
+                                                                                                               "type":  "string"
+                                                                                                           },
+                                                                                               "timestamp":  {
+                                                                                                                 "type":  "integer"
+                                                                                                             }
+                                                                                           }
+                                                                        }
+                                                          },
+                                               "example":  [
+                                                               {
+                                                                   "id":  0,
+                                                                   "type":  "",
+                                                                   "contentType":  "",
+                                                                   "payload":  "",
+                                                                   "timestamp":  0
+                                                               }
+                                                           ]
+                                           },
+                           "validationConditions":  [
+
+                                                    ]
+                       },
+                       {
+                           "operationId":  "orderDetail",
+                           "method":  "GET",
+                           "path":  "/my/orders/{orderNo}/cancel",
+                           "controllerClass":  "com.myshop.order.ui.CancelOrderController",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+                                                              {
+                                                                  "name":  "orderNo",
+                                                                  "required":  true,
+                                                                  "schema":  {
+                                                                                 "type":  "string"
+                                                                             }
+                                                              }
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "modelMap",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "string"
+                                                          },
+                                               "example":  ""
+                                           },
+                           "validationConditions":  [
+
+                                                    ]
+                       },
+                       {
+                           "operationId":  "orders",
+                           "method":  "GET",
+                           "path":  "/my/orders",
+                           "controllerClass":  "com.myshop.order.ui.MyOrderController",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "modelMap",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "string"
+                                                          },
+                                               "example":  ""
+                                           },
+                           "validationConditions":  [
+
+                                                    ]
+                       },
+                       {
+                           "operationId":  "orderDetail",
+                           "method":  "GET",
+                           "path":  "/my/orders/{orderNo}",
+                           "controllerClass":  "com.myshop.order.ui.MyOrderController",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+                                                              {
+                                                                  "name":  "orderNo",
+                                                                  "required":  true,
+                                                                  "schema":  {
+                                                                                 "type":  "string"
+                                                                             }
+                                                              }
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "modelMap",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "string"
+                                                          },
+                                               "example":  ""
+                                           },
+                           "validationConditions":  [
+
+                                                    ]
+                       },
+                       {
+                           "operationId":  "orderConfirm",
+                           "method":  "POST",
+                           "path":  "/orders/orderConfirm",
+                           "controllerClass":  "com.myshop.order.ui.OrderController",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "orderRequest",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               },
+                                                               {
+                                                                   "name":  "modelMap",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "string"
+                                                          },
+                                               "example":  ""
+                                           },
+                           "validationConditions":  [
+
+                                                    ]
+                       },
+                       {
+                           "operationId":  "order",
+                           "method":  "POST",
+                           "path":  "/orders/order",
+                           "controllerClass":  "com.myshop.order.ui.OrderController",
+                           "request":  {
+                                           "contentType":  null,
+                                           "pathParams":  [
+
+                                                          ],
+                                           "queryParams":  [
+                                                               {
+                                                                   "name":  "orderRequest",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               },
+                                                               {
+                                                                   "name":  "bindingResult",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               },
+                                                               {
+                                                                   "name":  "modelMap",
+                                                                   "required":  true,
+                                                                   "schema":  {
+                                                                                  "type":  "string"
+                                                                              }
+                                                               }
+                                                           ],
+                                           "headers":  [
+
+                                                       ],
+                                           "bodySchema":  null,
+                                           "bodyExample":  null
+                                       },
+                           "response200":  {
+                                               "contentType":  "application/json",
+                                               "schema":  {
+                                                              "type":  "string"
+                                                          },
+                                               "example":  ""
+                                           },
+                           "validationConditions":  [
+
+                                                    ]
+                       }
+                   ],
+    "warningCount":  0
+}

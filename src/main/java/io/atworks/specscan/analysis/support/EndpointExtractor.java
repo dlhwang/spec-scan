@@ -1,5 +1,6 @@
 package io.atworks.specscan.analysis.support;
 
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -23,13 +24,42 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class EndpointExtractor {
 
+    static final String MVC_VIEW_RESPONSE = "__mvc_view__";
+
     private final Path workspaceRoot;
+    private static final Pattern PATH_PLACEHOLDER_PATTERN = Pattern.compile("\\{([^}/]+)}");
+    private static final Set<String> FRAMEWORK_PARAMETER_TYPES = Set.of(
+        "BindingResult",
+        "Errors",
+        "HttpServletRequest",
+        "HttpServletResponse",
+        "HttpSession",
+        "InputStream",
+        "Locale",
+        "Model",
+        "ModelMap",
+        "NativeWebRequest",
+        "OutputStream",
+        "Principal",
+        "RedirectAttributes",
+        "ServletRequest",
+        "ServletResponse",
+        "SessionStatus",
+        "TimeZone",
+        "UriComponentsBuilder",
+        "WebRequest",
+        "Writer",
+        "ZoneId"
+    );
 
     public EndpointExtractor(Path workspaceRoot) {
         this.workspaceRoot = workspaceRoot;
+        StaticJavaParser.getConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17);
     }
 
     public List<ApiEndpoint> extract(Path file) {
@@ -48,7 +78,7 @@ public class EndpointExtractor {
                             String methodPath = getMappingPath(mappingAnn);
                             String finalPath = combinePaths(basePath, methodPath);
 
-                            List<RequestBinding> requestBindings = extractRequestBindings(method, file);
+                            List<RequestBinding> requestBindings = alignPathBindings(finalPath, extractRequestBindings(method, file));
                             ResponseBinding responseBinding = extractResponseBinding(method, file);
                             SourceTrace methodTrace = SourceTraceResolver.resolve(method, workspaceRoot, file);
 
@@ -165,6 +195,9 @@ public class EndpointExtractor {
     private List<RequestBinding> extractRequestBindings(MethodDeclaration method, Path file) {
         List<RequestBinding> bindings = new ArrayList<>();
         for (Parameter param : method.getParameters()) {
+            if (isFrameworkParameter(param)) {
+                continue;
+            }
             String paramName = param.getNameAsString();
             String paramType = param.getType().asString();
             BindingLocation location = BindingLocation.QUERY;
@@ -177,19 +210,28 @@ public class EndpointExtractor {
             if (param.isAnnotationPresent("RequestHeader")) {
                 AnnotationExpr requestHeader = param.getAnnotationByName("RequestHeader").orElseThrow();
                 location = BindingLocation.HEADER;
+                paramName = resolveExplicitBindingName(requestHeader).orElse(paramName);
                 isRequired = resolveRequiredAttribute(requestHeader);
                 defaultValue = resolveDefaultValue(requestHeader);
             } else if (param.isAnnotationPresent("PathVariable")) {
+                AnnotationExpr pathVariable = param.getAnnotationByName("PathVariable").orElseThrow();
                 location = BindingLocation.PATH;
-                isRequired = resolveRequiredAttribute(param.getAnnotationByName("PathVariable").orElseThrow());
+                paramName = resolveExplicitBindingName(pathVariable).orElse(paramName);
+                isRequired = resolveRequiredAttribute(pathVariable);
             } else if (param.isAnnotationPresent("RequestParam")) {
                 AnnotationExpr requestParam = param.getAnnotationByName("RequestParam").orElseThrow();
                 location = BindingLocation.QUERY;
+                paramName = resolveExplicitBindingName(requestParam).orElse(paramName);
                 isRequired = resolveRequiredAttribute(requestParam);
                 defaultValue = resolveDefaultValue(requestParam);
             } else if (param.isAnnotationPresent("RequestBody")) {
                 location = BindingLocation.BODY;
                 isRequired = resolveRequiredAttribute(param.getAnnotationByName("RequestBody").orElseThrow());
+            } else if (param.isAnnotationPresent("ModelAttribute")) {
+                AnnotationExpr modelAttribute = param.getAnnotationByName("ModelAttribute").orElseThrow();
+                location = BindingLocation.BODY;
+                paramName = resolveExplicitBindingName(modelAttribute).orElse(paramName);
+                isRequired = resolveRequiredAttribute(modelAttribute);
             } else if (isPrimitiveOrSimpleType(paramType)) {
                 location = BindingLocation.QUERY;
             } else {
@@ -219,6 +261,42 @@ public class EndpointExtractor {
         return bindings;
     }
 
+    private List<RequestBinding> alignPathBindings(String path, List<RequestBinding> bindings) {
+        Set<String> placeholders = extractPathPlaceholders(path);
+        if (placeholders.isEmpty()) {
+            return bindings;
+        }
+
+        List<RequestBinding> aligned = new ArrayList<>();
+        for (RequestBinding binding : bindings) {
+            if (binding.targetLocation() == BindingLocation.QUERY && placeholders.contains(binding.parameterName())) {
+                aligned.add(new RequestBinding(
+                    binding.parameterName(),
+                    BindingLocation.PATH,
+                    binding.type(),
+                    binding.isRequired(),
+                    binding.description(),
+                    binding.example(),
+                    binding.defaultValue(),
+                    binding.enumValues(),
+                    binding.sourceTrace()
+                ));
+                continue;
+            }
+            aligned.add(binding);
+        }
+        return aligned;
+    }
+
+    private Set<String> extractPathPlaceholders(String path) {
+        Set<String> placeholders = new LinkedHashSet<>();
+        Matcher matcher = PATH_PLACEHOLDER_PATTERN.matcher(path);
+        while (matcher.find()) {
+            placeholders.add(matcher.group(1));
+        }
+        return placeholders;
+    }
+
     private boolean resolveRequiredAttribute(AnnotationExpr annotation) {
         if (annotation instanceof NormalAnnotationExpr normal) {
             for (MemberValuePair pair : normal.getPairs()) {
@@ -245,6 +323,25 @@ public class EndpointExtractor {
             return value;
         }
         return null;
+    }
+
+    private Optional<String> resolveExplicitBindingName(AnnotationExpr annotation) {
+        if (annotation instanceof SingleMemberAnnotationExpr single) {
+            return Optional.of(cleanStringLiteral(single.getMemberValue().toString()));
+        }
+        if (!(annotation instanceof NormalAnnotationExpr normal)) {
+            return Optional.empty();
+        }
+        for (MemberValuePair pair : normal.getPairs()) {
+            String name = pair.getNameAsString();
+            if (name.equals("value") || name.equals("name")) {
+                String value = cleanStringLiteral(pair.getValue().toString());
+                if (!value.isBlank()) {
+                    return Optional.of(value);
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     private Optional<String> resolveAnnotationMemberValue(Parameter parameter, String annotationName, String memberName) {
@@ -296,17 +393,89 @@ public class EndpointExtractor {
 
     private ResponseBinding extractResponseBinding(MethodDeclaration method, Path file) {
         String rawType = method.getType().asString();
-        String unwrappedType = unwrapResponseType(rawType);
+        String unwrappedType = classifyResponseType(method, rawType);
         SourceTrace trace = SourceTraceResolver.resolve(method.getType(), workspaceRoot, file);
         return new ResponseBinding(unwrappedType, trace);
     }
 
+    private boolean isFrameworkParameter(Parameter parameter) {
+        if (parameter.isAnnotationPresent("RequestParam")
+            || parameter.isAnnotationPresent("PathVariable")
+            || parameter.isAnnotationPresent("RequestHeader")
+            || parameter.isAnnotationPresent("RequestBody")
+            || parameter.isAnnotationPresent("ModelAttribute")) {
+            return false;
+        }
+
+        String typeName = parameter.getType().asString();
+        if (FRAMEWORK_PARAMETER_TYPES.contains(typeName)) {
+            return true;
+        }
+
+        return typeName.endsWith("BindingResult")
+            || typeName.endsWith("Errors")
+            || typeName.endsWith("HttpServletRequest")
+            || typeName.endsWith("HttpServletResponse")
+            || typeName.endsWith("HttpSession")
+            || typeName.endsWith("Model")
+            || typeName.endsWith("ModelMap")
+            || typeName.endsWith("NativeWebRequest")
+            || typeName.endsWith("RedirectAttributes")
+            || typeName.endsWith("ServletRequest")
+            || typeName.endsWith("ServletResponse")
+            || typeName.endsWith("SessionStatus")
+            || typeName.endsWith("UriComponentsBuilder")
+            || typeName.endsWith("WebRequest");
+    }
+
+    private String classifyResponseType(MethodDeclaration method, String rawType) {
+        String unwrappedType = unwrapResponseType(rawType);
+        if (isMvcViewResponse(method, rawType, unwrappedType)) {
+            return MVC_VIEW_RESPONSE;
+        }
+        return unwrappedType;
+    }
+
+    private boolean isMvcViewResponse(MethodDeclaration method, String rawType, String unwrappedType) {
+        if (producesResponseBody(method, rawType)) {
+            return false;
+        }
+        return "ModelAndView".equals(unwrappedType)
+            || unwrappedType.endsWith(".ModelAndView")
+            || "View".equals(unwrappedType)
+            || unwrappedType.endsWith(".View")
+            || "String".equals(unwrappedType);
+    }
+
+    private boolean producesResponseBody(MethodDeclaration method, String rawType) {
+        if (method.isAnnotationPresent("ResponseBody")) {
+            return true;
+        }
+        Optional<ClassOrInterfaceDeclaration> parentClass = method.findAncestor(ClassOrInterfaceDeclaration.class);
+        if (parentClass.isPresent()) {
+            ClassOrInterfaceDeclaration clazz = parentClass.orElseThrow();
+            if (clazz.isAnnotationPresent("RestController") || clazz.isAnnotationPresent("ResponseBody")) {
+                return true;
+            }
+        }
+        return rawType.startsWith("ResponseEntity<")
+            || rawType.startsWith("HttpEntity<")
+            || rawType.startsWith("Mono<ResponseEntity<")
+            || rawType.startsWith("Mono<HttpEntity<");
+    }
+
     private String unwrapResponseType(String typeStr) {
         if (typeStr.startsWith("ResponseEntity<") && typeStr.endsWith(">")) {
-            return typeStr.substring("ResponseEntity<".length(), typeStr.length() - 1);
+            return unwrapResponseType(typeStr.substring("ResponseEntity<".length(), typeStr.length() - 1));
         }
         if (typeStr.startsWith("HttpEntity<") && typeStr.endsWith(">")) {
-            return typeStr.substring("HttpEntity<".length(), typeStr.length() - 1);
+            return unwrapResponseType(typeStr.substring("HttpEntity<".length(), typeStr.length() - 1));
+        }
+        if (typeStr.startsWith("Mono<") && typeStr.endsWith(">")) {
+            return unwrapResponseType(typeStr.substring("Mono<".length(), typeStr.length() - 1));
+        }
+        if (typeStr.startsWith("Flux<") && typeStr.endsWith(">")) {
+            return "List<" + unwrapResponseType(typeStr.substring("Flux<".length(), typeStr.length() - 1)) + ">";
         }
         return typeStr;
     }

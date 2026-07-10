@@ -79,7 +79,37 @@ class SpringStaticScanServiceTest {
                 }
                 
                 @PutMapping("/update")
-                public void updateUser(UserDto userDto) {
+                public void updateUser(@ModelAttribute("userDto") UserDto userDto) {
+                }
+            }
+        """);
+
+        Path mvcControllerFile = controllerDir.resolve("PageController.java");
+        Files.writeString(mvcControllerFile, """
+            package io.atworks.controller;
+
+            import jakarta.servlet.http.HttpServletRequest;
+            import org.springframework.stereotype.Controller;
+            import org.springframework.ui.Model;
+            import org.springframework.web.bind.annotation.GetMapping;
+            import org.springframework.web.bind.annotation.RequestParam;
+            import org.springframework.web.bind.annotation.ResponseBody;
+
+            @Controller
+            public class PageController {
+
+                @GetMapping("/pages/home")
+                public String home(
+                        Model model,
+                        HttpServletRequest request,
+                        @RequestParam(value = "page", required = false) Integer page) {
+                    return "home";
+                }
+
+                @GetMapping("/pages/ping")
+                @ResponseBody
+                public String ping() {
+                    return "pong";
                 }
             }
         """);
@@ -100,9 +130,9 @@ class SpringStaticScanServiceTest {
         RepositoryIdentity identity = new RepositoryIdentity("github.com", "owner", "repo", "https://github.com/owner/repo.git", "main");
         WorkspaceContext workspace = new WorkspaceContext("exec-123", tempDir.toAbsolutePath().toString(), Instant.now(), "cache-key", false);
         List<SourceRootCandidate> sourceRoots = List.of(
-            new SourceRootCandidate("root", "src/main/java", "Gradle", true, 3, 3, 1, "DETECTED")
+            new SourceRootCandidate("root", "src/main/java", "Gradle", true, 4, 4, 1, "DETECTED")
         );
-        JavaInventorySummary javaSummary = new JavaInventorySummary(3, 1, 1, true, 0);
+        JavaInventorySummary javaSummary = new JavaInventorySummary(4, 1, 1, true, 0);
         IngestionMetadata ingestionMetadata = new IngestionMetadata(Instant.now(), Instant.now(), 10, "BRANCH", "main", 0);
 
         RepositorySource repositorySource = new RepositorySource(
@@ -127,11 +157,11 @@ class SpringStaticScanServiceTest {
 
         // 2. 스캔 성공 엔드포인트 개수 검증
         List<ApiEndpoint> endpoints = result.endpoints();
-        assertThat(endpoints).hasSize(3);
+        assertThat(endpoints).hasSize(5);
 
         // 3. GET /api/v1/users/{id} 엔드포인트 세부 검증
         ApiEndpoint getEndpoint = endpoints.stream()
-                .filter(e -> e.httpMethod().equals("GET"))
+                .filter(e -> e.path().equals("/api/v1/users/{id}"))
                 .findFirst()
                 .orElseThrow();
         assertThat(getEndpoint.path()).isEqualTo("/api/v1/users/{id}");
@@ -144,7 +174,7 @@ class SpringStaticScanServiceTest {
         List<RequestBinding> getBindings = getEndpoint.requestBindings();
         assertThat(getBindings).hasSize(3);
 
-        RequestBinding headerBinding = getBindings.stream().filter(b -> b.parameterName().equals("token")).findFirst().orElseThrow();
+        RequestBinding headerBinding = getBindings.stream().filter(b -> b.parameterName().equals("X-Auth-Token")).findFirst().orElseThrow();
         assertThat(headerBinding.targetLocation()).isEqualTo(BindingLocation.HEADER);
         assertThat(headerBinding.isRequired()).isTrue();
         assertThat(headerBinding.type()).isEqualTo("String");
@@ -153,19 +183,19 @@ class SpringStaticScanServiceTest {
         assertThat(headerBinding.defaultValue()).isEqualTo("demo-token");
         assertThat(headerBinding.enumValues()).containsExactly("ko-KR", "en-US");
 
-        RequestBinding pathBinding = getBindings.stream().filter(b -> b.parameterName().equals("userId")).findFirst().orElseThrow();
+        RequestBinding pathBinding = getBindings.stream().filter(b -> b.parameterName().equals("id")).findFirst().orElseThrow();
         assertThat(pathBinding.targetLocation()).isEqualTo(BindingLocation.PATH);
         assertThat(pathBinding.isRequired()).isTrue();
         assertThat(pathBinding.type()).isEqualTo("Long");
 
-        RequestBinding queryBinding = getBindings.stream().filter(b -> b.parameterName().equals("searchKeyword")).findFirst().orElseThrow();
+        RequestBinding queryBinding = getBindings.stream().filter(b -> b.parameterName().equals("search")).findFirst().orElseThrow();
         assertThat(queryBinding.targetLocation()).isEqualTo(BindingLocation.QUERY);
         assertThat(queryBinding.isRequired()).isFalse();
         assertThat(queryBinding.defaultValue()).isNull();
 
         // 4. POST /api/v1/users 엔드포인트 세부 검증
         ApiEndpoint postEndpoint = endpoints.stream()
-                .filter(e -> e.httpMethod().equals("POST"))
+                .filter(e -> e.path().equals("/api/v1/users"))
                 .findFirst()
                 .orElseThrow();
         assertThat(postEndpoint.path()).isEqualTo("/api/v1/users");
@@ -176,16 +206,32 @@ class SpringStaticScanServiceTest {
         assertThat(postBindings.get(0).targetLocation()).isEqualTo(BindingLocation.BODY);
         assertThat(postBindings.get(0).type()).isEqualTo("UserDto");
 
-        // 5. PUT /api/v1/users/update 엔드포인트 세부 검증 (어노테이션 없는 사용자 정의 POJO DTO -> QUERY 분류 검증)
+        // 5. PUT /api/v1/users/update 엔드포인트 세부 검증 (@ModelAttribute 복합 객체 -> BODY 분류 검증)
         ApiEndpoint putEndpoint = endpoints.stream()
-                .filter(e -> e.httpMethod().equals("PUT"))
+                .filter(e -> e.path().equals("/api/v1/users/update"))
                 .findFirst()
                 .orElseThrow();
         assertThat(putEndpoint.path()).isEqualTo("/api/v1/users/update");
         List<RequestBinding> putBindings = putEndpoint.requestBindings();
         assertThat(putBindings).hasSize(1);
-        assertThat(putBindings.get(0).targetLocation()).isEqualTo(BindingLocation.QUERY);
+        assertThat(putBindings.get(0).targetLocation()).isEqualTo(BindingLocation.BODY);
         assertThat(putBindings.get(0).type()).isEqualTo("UserDto");
+
+        ApiEndpoint mvcViewEndpoint = endpoints.stream()
+                .filter(e -> e.path().equals("/pages/home"))
+                .findFirst()
+                .orElseThrow();
+        assertThat(mvcViewEndpoint.responseBinding().type()).isEqualTo("__mvc_view__");
+        assertThat(mvcViewEndpoint.requestBindings()).hasSize(1);
+        assertThat(mvcViewEndpoint.requestBindings().get(0).parameterName()).isEqualTo("page");
+        assertThat(mvcViewEndpoint.requestBindings().get(0).targetLocation()).isEqualTo(BindingLocation.QUERY);
+
+        ApiEndpoint bodyStringEndpoint = endpoints.stream()
+                .filter(e -> e.path().equals("/pages/ping"))
+                .findFirst()
+                .orElseThrow();
+        assertThat(bodyStringEndpoint.responseBinding().type()).isEqualTo("String");
+        assertThat(bodyStringEndpoint.requestBindings()).isEmpty();
 
         // 6. TypeResolver를 통한 DTO 구조 해석 검증
         TypeResolver typeResolver = new TypeResolver(List.of(srcRoot));

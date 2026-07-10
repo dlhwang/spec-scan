@@ -1,7 +1,6 @@
 package io.atworks.specscan.analysis.application;
 
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.expr.MethodCallExpr;
 import io.atworks.specscan.analysis.domain.*;
 import io.atworks.specscan.analysis.support.*;
@@ -55,7 +54,7 @@ public class ValidationExtractionService {
             for (RequestBinding binding : endpoint.requestBindings()) {
                 String typeStr = binding.type();
                 typeResolver.resolveClassDeclaration(typeStr).ifPresent(dtoClass -> {
-                    Path dtoFile = getFilePath(dtoClass, workspacePath);
+                    Path dtoFile = AstLookupUtils.getFilePath(dtoClass, workspacePath);
                     AnnotationConditionExtractor annotationExtractor = new AnnotationConditionExtractor(workspacePath, dtoFile);
 
                     try {
@@ -96,7 +95,7 @@ public class ValidationExtractionService {
                         call.getScope().ifPresent(scope -> {
                             String scopeVar = scope.toString();
                             // 컨트롤러 내 필드 선언 목록에서 scopeVar(예: userService)의 타입 획득
-                            String serviceType = findFieldType(controllerDecl, scopeVar);
+                            String serviceType = AstLookupUtils.findFieldType(controllerDecl, scopeVar);
                             if (serviceType != null) {
                                 try {
                                     List<ValidationCandidate> serviceHints = serviceExtractor.extractFromServiceMethod(serviceType, calledMethod);
@@ -121,21 +120,5 @@ public class ValidationExtractionService {
             candidates,
             warnings
         );
-    }
-
-    private String findFieldType(ClassOrInterfaceDeclaration clazz, String fieldName) {
-        for (FieldDeclaration field : clazz.getFields()) {
-            if (field.getVariables().stream().anyMatch(v -> v.getNameAsString().equals(fieldName))) {
-                return field.getElementType().asString();
-            }
-        }
-        return null;
-    }
-
-    private Path getFilePath(ClassOrInterfaceDeclaration clazz, Path workspacePath) {
-        if (clazz.findCompilationUnit().isPresent() && clazz.findCompilationUnit().get().getStorage().isPresent()) {
-            return clazz.findCompilationUnit().get().getStorage().get().getPath();
-        }
-        return workspacePath;
     }
 }

@@ -46,10 +46,11 @@ public class OpenApiAssemblyService {
         Path outputPath
     ) throws IngestionException {
         List<IngestionWarning> warnings = new ArrayList<>(extractResult.warnings());
+        ValidationEvidenceGraph graph = new ValidationEvidenceGraphBuilder().build(scanResult, extractResult, source);
 
         NormalizedResult normalizedResult;
         try {
-            normalizedResult = normalizationService.normalize(extractResult.candidates(), scanResult.endpoints());
+            normalizedResult = normalizationService.normalize(extractResult.candidates(), scanResult.endpoints(), graph);
             for (ValidationCandidate reject : normalizedResult.rejected()) {
                 warnings.add(new IngestionWarning(
                     "NORMALIZATION_REJECTED",
@@ -116,7 +117,6 @@ public class OpenApiAssemblyService {
             );
         }
 
-        ValidationEvidenceGraph graph = new ValidationEvidenceGraphBuilder().build(scanResult, extractResult, source);
         String graphJson;
         try {
             graphJson = objectMapper.writeValueAsString(graph);

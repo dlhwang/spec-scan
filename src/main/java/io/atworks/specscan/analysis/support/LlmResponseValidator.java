@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.atworks.specscan.analysis.domain.ApiCondition;
 import io.atworks.specscan.analysis.domain.CandidateChunk;
+import io.atworks.specscan.analysis.domain.ConditionLocation;
 import io.atworks.specscan.analysis.domain.ValidationCandidate;
 
 import java.util.*;
@@ -52,6 +53,7 @@ public class LlmResponseValidator {
                 }
 
                 list.add(new ApiCondition(
+                    ConditionLocation.UNKNOWN,
                     matched.targetPath(),
                     operator,
                     expected,

@@ -9,9 +9,14 @@ public class PromptBuilder {
      * CandidateChunk 정보를 포함한 LLM 전송용 정규화 프롬프트를 조립합니다.
      */
     public String buildPrompt(CandidateChunk chunk) {
+        return buildPrompt(chunk, new GraphContextSelector.GraphContext(java.util.List.of(), java.util.List.of(), 0, 0));
+    }
+
+    public String buildPrompt(CandidateChunk chunk, GraphContextSelector.GraphContext graphContext) {
         StringBuilder sb = new StringBuilder();
         sb.append("System Instructions:\n");
         sb.append("You are an expert API contract extractor. Parse the following validation candidates and normalize them into a structured JSON array.\n");
+        sb.append("Use only the candidate evidence and the supplied graph context. Ignore unrelated framework annotations or disconnected code paths.\n");
         sb.append("Each item in the array MUST follow this JSON Schema:\n");
         sb.append("{\n");
         sb.append("  \"candidateId\": \"string\",\n");
@@ -27,6 +32,21 @@ public class PromptBuilder {
         sb.append("  ChunkId: ").append(chunk.chunkId()).append("\n");
         sb.append("  EndpointPath: ").append(chunk.endpointPath()).append("\n");
         sb.append("  SourceType: ").append(chunk.sourceType()).append("\n\n");
+
+        if (graphContext != null && graphContext.hasContext()) {
+            sb.append("Relevant Code Graph Context (token-optimized subgraph):\n");
+            sb.append("  SelectedNodes: ").append(graphContext.nodeSummaries().size())
+                .append(" / TotalNodes: ").append(graphContext.totalNodeCount()).append("\n");
+            for (String nodeSummary : graphContext.nodeSummaries()) {
+                sb.append("  - Node: ").append(nodeSummary).append("\n");
+            }
+            sb.append("  SelectedEdges: ").append(graphContext.edgeSummaries().size())
+                .append(" / TotalEdges: ").append(graphContext.totalEdgeCount()).append("\n");
+            for (String edgeSummary : graphContext.edgeSummaries()) {
+                sb.append("  - Edge: ").append(edgeSummary).append("\n");
+            }
+            sb.append("\n");
+        }
 
         sb.append("Candidates to parse:\n");
         for (ValidationCandidate candidate : chunk.candidates()) {

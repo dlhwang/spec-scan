@@ -59,7 +59,7 @@ public class SpecScanWebServer {
             String revisionType = optionalText(request, "revisionType");
             String revision = optionalText(request, "revision");
 
-            String result = new GitExecutionSpecScanService().scan(repositoryUrl, revisionType, revision);
+            String result = new GitExecutionSpecScanService().scanWithArtifacts(repositoryUrl, revisionType, revision);
             send(exchange, 200, "application/json; charset=utf-8", result);
         } catch (IllegalArgumentException e) {
             sendJson(exchange, 400, Map.of("error", e.getMessage()));

@@ -3,13 +3,26 @@ package io.atworks.specscan.analysis.support;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
-import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.MemberValuePair;
+import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NormalAnnotationExpr;
 import com.github.javaparser.ast.stmt.IfStmt;
+import com.github.javaparser.ast.stmt.ReturnStmt;
+import com.github.javaparser.ast.stmt.Statement;
 import com.github.javaparser.ast.stmt.ThrowStmt;
-import io.atworks.specscan.analysis.domain.*;
+import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
+import io.atworks.specscan.analysis.domain.ApiEndpoint;
+import io.atworks.specscan.analysis.domain.GraphEdge;
+import io.atworks.specscan.analysis.domain.GraphEdgeType;
+import io.atworks.specscan.analysis.domain.GraphNode;
+import io.atworks.specscan.analysis.domain.GraphNodeType;
+import io.atworks.specscan.analysis.domain.RequestBinding;
+import io.atworks.specscan.analysis.domain.StaticScanResult;
+import io.atworks.specscan.analysis.domain.ValidationEvidenceGraph;
+import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
 import io.atworks.specscan.ingestion.domain.RepositorySource;
 import io.atworks.specscan.ingestion.domain.WorkspaceContext;
 
@@ -17,11 +30,19 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class ValidationEvidenceGraphBuilder {
+
+    private static final int DEFAULT_TRAVERSAL_BUDGET = 12;
 
     public ValidationEvidenceGraph build(
         StaticScanResult scanResult,
@@ -39,16 +60,13 @@ public class ValidationEvidenceGraphBuilder {
 
         Path workspacePath = Paths.get(workspace.workspacePath());
         List<Path> sourceRoots = source.sourceRoots().stream()
-                .map(r -> workspacePath.resolve(r.rootPath()))
-                .filter(Files::exists)
-                .collect(Collectors.toList());
+            .map(r -> workspacePath.resolve(r.rootPath()))
+            .filter(Files::exists)
+            .collect(Collectors.toList());
 
         TypeResolver typeResolver = new TypeResolver(sourceRoots);
-        
-        // 1. Scan exception handlers in the workspace
         Map<String, ExceptionHandlerInfo> exceptionHandlers = scanExceptionHandlers(sourceRoots);
 
-        // 2. Loop through endpoints
         for (ApiEndpoint endpoint : scanResult.endpoints()) {
             String endpointId = "ENDPOINT:" + endpoint.httpMethod() + ":" + endpoint.path();
             String endpointLabel = endpoint.httpMethod() + " " + endpoint.path();
@@ -57,134 +75,265 @@ public class ValidationEvidenceGraphBuilder {
             String epSnippet = endpoint.controllerClass() + "." + endpoint.controllerMethod();
 
             addNode(nodes, nodeIds, endpointId, GraphNodeType.ENDPOINT, endpointLabel, epFile, epLine, epSnippet);
+            addRequestBindingNodes(endpoint, typeResolver, workspacePath, sourceRoots, nodes, edges, nodeIds);
 
-            // 2.1 Endpoint -> DTO Field -> Validator relationships
-            for (RequestBinding binding : endpoint.requestBindings()) {
-                String typeStr = binding.type();
-                typeResolver.resolveClassDeclaration(typeStr).ifPresent(dtoClass -> {
-                    Path dtoFile = getFilePath(dtoClass, workspacePath);
-                    String dtoRelFile = workspacePath.relativize(dtoFile).toString().replace("\\", "/");
-                    String dtoClassSimpleName = dtoClass.getNameAsString();
+            typeResolver.resolveClassDeclaration(endpoint.controllerClass()).ifPresent(controllerDecl ->
+                controllerDecl.getMethodsByName(endpoint.controllerMethod()).forEach(controllerMethod -> {
+                    Set<String> visitedMethods = new HashSet<>();
+                    controllerMethod.findAll(MethodCallExpr.class).forEach(call ->
+                        resolveSourceMethod(call, typeResolver, workspacePath).ifPresent(target -> {
+                            addMethodNode(target, nodes, nodeIds);
+                            addEdge(edges, endpointId, target.nodeId(), GraphEdgeType.CALLS, call.toString());
+                            traceMethodEvidence(
+                                target,
+                                nodes,
+                                nodeIds,
+                                edges,
+                                exceptionHandlers,
+                                workspacePath,
+                                sourceRoots,
+                                typeResolver,
+                                DEFAULT_TRAVERSAL_BUDGET - 1,
+                                visitedMethods
+                            );
+                        })
+                    );
+                })
+            );
+        }
 
-                    dtoClass.getFields().forEach(field -> {
-                        if (field.getVariables().isEmpty()) return;
-                        String fieldName = field.getVariable(0).getNameAsString();
-                        String fieldId = "DTO_FIELD:" + dtoClassSimpleName + "." + fieldName;
-                        String fieldLabel = dtoClassSimpleName + "." + fieldName;
-                        int fieldLine = field.getBegin().map(pos -> pos.line).orElse(0);
-                        String fieldSnippet = field.toString().trim();
+        return new ValidationEvidenceGraph(nodes, edges);
+    }
 
-                        addNode(nodes, nodeIds, fieldId, GraphNodeType.DTO_FIELD, fieldLabel, dtoRelFile, fieldLine, fieldSnippet);
-                        addEdge(edges, endpointId, fieldId, GraphEdgeType.ACCEPTS, binding.parameterName());
+    private void addRequestBindingNodes(
+        ApiEndpoint endpoint,
+        TypeResolver typeResolver,
+        Path workspacePath,
+        List<Path> sourceRoots,
+        List<GraphNode> nodes,
+        List<GraphEdge> edges,
+        Set<String> nodeIds
+    ) {
+        String endpointId = "ENDPOINT:" + endpoint.httpMethod() + ":" + endpoint.path();
+        for (RequestBinding binding : endpoint.requestBindings()) {
+            typeResolver.resolveClassDeclaration(binding.type()).ifPresent(dtoClass -> {
+                Path dtoFile = getFilePath(dtoClass, workspacePath);
+                String dtoRelFile = workspacePath.relativize(dtoFile).toString().replace("\\", "/");
+                String dtoClassSimpleName = dtoClass.getNameAsString();
 
-                        field.getAnnotations().forEach(ann -> {
-                            String annName = ann.getNameAsString();
-                            if (isIgnoredAnnotation(annName)) return;
+                dtoClass.getFields().forEach(field -> {
+                    if (field.getVariables().isEmpty()) {
+                        return;
+                    }
+                    String fieldName = field.getVariable(0).getNameAsString();
+                    String fieldId = "DTO_FIELD:" + dtoClassSimpleName + "." + fieldName;
+                    String fieldLabel = dtoClassSimpleName + "." + fieldName;
+                    int fieldLine = field.getBegin().map(pos -> pos.line).orElse(0);
+                    String fieldSnippet = field.toString().trim();
 
-                            String validatorId = "VALIDATOR:" + annName;
-                            int annLine = ann.getBegin().map(pos -> pos.line).orElse(0);
-                            addNode(nodes, nodeIds, validatorId, GraphNodeType.VALIDATOR, annName, dtoRelFile, annLine, ann.toString());
-                            addEdge(edges, fieldId, validatorId, GraphEdgeType.ANNOTATED_WITH, ann.toString());
+                    addNode(nodes, nodeIds, fieldId, GraphNodeType.DTO_FIELD, fieldLabel, dtoRelFile, fieldLine, fieldSnippet);
+                    addEdge(edges, endpointId, fieldId, GraphEdgeType.ACCEPTS, binding.parameterName());
 
-                            // Check custom validation -> validator mapping
-                            if (!isStandardValidationAnnotation(annName)) {
-                                findTypeInSourceRoots(annName, sourceRoots).ifPresent(annDecl -> {
-                                    annDecl.getAnnotationByName("Constraint").ifPresent(constraintAnn -> {
-                                        String validatorClassName = resolveConstraintValidatorClass(constraintAnn);
-                                        if (validatorClassName != null) {
-                                            findTypeInSourceRoots(validatorClassName, sourceRoots).ifPresent(validatorDecl -> {
-                                                Path valFile = getFilePath(validatorDecl, workspacePath);
-                                                String valRelFile = workspacePath.relativize(valFile).toString().replace("\\", "/");
-                                                
-                                                String valNodeId = "VALIDATOR:" + validatorClassName;
-                                                int valLine = validatorDecl.getBegin().map(pos -> pos.line).orElse(0);
-                                                addNode(nodes, nodeIds, valNodeId, GraphNodeType.VALIDATOR, validatorClassName, valRelFile, valLine, validatorDecl.getNameAsString());
-                                                addEdge(edges, validatorId, valNodeId, GraphEdgeType.EVALUATES, "Constraint(validatedBy = " + validatorClassName + ".class)");
+                    field.getAnnotations().forEach(ann -> {
+                        String annName = ann.getNameAsString();
+                        if (isIgnoredAnnotation(annName)) {
+                            return;
+                        }
 
-                                                // Parse isValid implementation in Custom Validator
-                                                if (validatorDecl instanceof ClassOrInterfaceDeclaration classDecl) {
-                                                    classDecl.getMethodsByName("isValid").forEach(method -> {
-                                                        int methodLine = method.getBegin().map(pos -> pos.line).orElse(0);
-                                                        String methodSnippet = method.toString().trim();
-                                                        String ruleId = "BUSINESS_RULE:" + validatorClassName + ".isValid";
-                                                        addNode(nodes, nodeIds, ruleId, GraphNodeType.BUSINESS_RULE, "isValid implementation", valRelFile, methodLine, methodSnippet);
-                                                        addEdge(edges, valNodeId, ruleId, GraphEdgeType.EVALUATES, "isValid()");
-                                                    });
-                                                }
+                        String validatorId = "VALIDATOR:" + annName;
+                        int annLine = ann.getBegin().map(pos -> pos.line).orElse(0);
+                        addNode(nodes, nodeIds, validatorId, GraphNodeType.VALIDATOR, annName, dtoRelFile, annLine, ann.toString());
+                        addEdge(edges, fieldId, validatorId, GraphEdgeType.ANNOTATED_WITH, ann.toString());
+
+                        if (!isStandardValidationAnnotation(annName)) {
+                            findTypeInSourceRoots(annName, sourceRoots).ifPresent(annDecl ->
+                                annDecl.getAnnotationByName("Constraint").ifPresent(constraintAnn -> {
+                                    String validatorClassName = resolveConstraintValidatorClass(constraintAnn);
+                                    if (validatorClassName == null) {
+                                        return;
+                                    }
+                                    findTypeInSourceRoots(validatorClassName, sourceRoots).ifPresent(validatorDecl -> {
+                                        Path valFile = getFilePath(validatorDecl, workspacePath);
+                                        String valRelFile = workspacePath.relativize(valFile).toString().replace("\\", "/");
+                                        String valNodeId = "VALIDATOR:" + validatorClassName;
+                                        int valLine = validatorDecl.getBegin().map(pos -> pos.line).orElse(0);
+
+                                        addNode(nodes, nodeIds, valNodeId, GraphNodeType.VALIDATOR, validatorClassName, valRelFile, valLine, validatorDecl.getNameAsString());
+                                        addEdge(edges, validatorId, valNodeId, GraphEdgeType.EVALUATES, "Constraint(validatedBy = " + validatorClassName + ".class)");
+
+                                        if (validatorDecl instanceof ClassOrInterfaceDeclaration classDecl) {
+                                            classDecl.getMethodsByName("isValid").forEach(method -> {
+                                                int methodLine = method.getBegin().map(pos -> pos.line).orElse(0);
+                                                String methodSnippet = method.toString().trim();
+                                                String ruleId = "BUSINESS_RULE:" + validatorClassName + ".isValid";
+                                                addNode(nodes, nodeIds, ruleId, GraphNodeType.BUSINESS_RULE, "isValid implementation", valRelFile, methodLine, methodSnippet);
+                                                addEdge(edges, valNodeId, ruleId, GraphEdgeType.EVALUATES, "isValid()");
                                             });
                                         }
                                     });
-                                });
-                            }
-                        });
-                    });
-                });
-            }
-
-            // 2.2 Endpoint -> Service Method -> Business Rule -> Exception -> HTTP Status relationships
-            Optional<ClassOrInterfaceDeclaration> controllerClassOpt = typeResolver.resolveClassDeclaration(endpoint.controllerClass());
-            controllerClassOpt.ifPresent(controllerDecl -> {
-                controllerDecl.getMethodsByName(endpoint.controllerMethod()).forEach(method -> {
-                    method.findAll(MethodCallExpr.class).forEach(call -> {
-                        String calledMethod = call.getNameAsString();
-                        call.getScope().ifPresent(scope -> {
-                            String scopeVar = scope.toString();
-                            String serviceType = findFieldType(controllerDecl, scopeVar);
-                            if (serviceType != null) {
-                                findTypeInSourceRoots(serviceType, sourceRoots).ifPresent(serviceDecl -> {
-                                    Path svcFile = getFilePath(serviceDecl, workspacePath);
-                                    String svcRelFile = workspacePath.relativize(svcFile).toString().replace("\\", "/");
-
-                                    String svcMethodId = "SERVICE_METHOD:" + serviceType + "." + calledMethod;
-                                    String svcMethodLabel = serviceType + "." + calledMethod;
-                                    
-                                    if (serviceDecl instanceof ClassOrInterfaceDeclaration classDecl) {
-                                        classDecl.getMethodsByName(calledMethod).forEach(svcMethod -> {
-                                            int svcLine = svcMethod.getBegin().map(pos -> pos.line).orElse(0);
-                                            String svcSnippet = svcMethod.toString().trim();
-                                            addNode(nodes, nodeIds, svcMethodId, GraphNodeType.SERVICE_METHOD, svcMethodLabel, svcRelFile, svcLine, svcSnippet);
-                                            addEdge(edges, endpointId, svcMethodId, GraphEdgeType.CALLS, call.toString());
-
-                                            // Trace internal throw/reject conditions
-                                            svcMethod.findAll(IfStmt.class).forEach(ifStmt -> {
-                                                ifStmt.findFirst(ThrowStmt.class).ifPresent(throwStmt -> {
-                                                    String ruleId = "BUSINESS_RULE:" + serviceType + "." + calledMethod + ":" + Math.abs(ifStmt.getCondition().toString().hashCode());
-                                                    String ruleLabel = ifStmt.getCondition().toString();
-                                                    int ruleLine = ifStmt.getBegin().map(pos -> pos.line).orElse(0);
-                                                    String ruleSnippet = ifStmt.toString().trim();
-
-                                                    addNode(nodes, nodeIds, ruleId, GraphNodeType.BUSINESS_RULE, ruleLabel, svcRelFile, ruleLine, ruleSnippet);
-                                                    addEdge(edges, svcMethodId, ruleId, GraphEdgeType.EVALUATES, "if statement");
-
-                                                    // Extract Exception thrown
-                                                    String exceptionName = resolveThrownExceptionName(throwStmt);
-                                                    String excId = "EXCEPTION:" + exceptionName;
-                                                    int excLine = throwStmt.getBegin().map(pos -> pos.line).orElse(0);
-                                                    addNode(nodes, nodeIds, excId, GraphNodeType.EXCEPTION, exceptionName, svcRelFile, excLine, throwStmt.toString().trim());
-                                                    addEdge(edges, ruleId, excId, GraphEdgeType.THROWS, throwStmt.toString().trim());
-
-                                                    // Map Exception to HTTP status if handler exists
-                                                    if (exceptionHandlers.containsKey(exceptionName)) {
-                                                        ExceptionHandlerInfo handlerInfo = exceptionHandlers.get(exceptionName);
-                                                        String handlerRelFile = workspacePath.relativize(handlerInfo.file()).toString().replace("\\", "/");
-                                                        
-                                                        String statusId = "HTTP_STATUS:" + handlerInfo.httpStatus();
-                                                        addNode(nodes, nodeIds, statusId, GraphNodeType.HTTP_STATUS, handlerInfo.httpStatus(), handlerRelFile, handlerInfo.line(), handlerInfo.snippet());
-                                                        addEdge(edges, excId, statusId, GraphEdgeType.MAPS_TO, "ExceptionHandler: " + exceptionName);
-                                                    }
-                                                });
-                                            });
-                                        });
-                                    }
-                                });
-                            }
-                        });
+                                })
+                            );
+                        }
                     });
                 });
             });
         }
+    }
 
-        return new ValidationEvidenceGraph(nodes, edges);
+    private void traceMethodEvidence(
+        ResolvedSourceMethod methodRef,
+        List<GraphNode> nodes,
+        Set<String> nodeIds,
+        List<GraphEdge> edges,
+        Map<String, ExceptionHandlerInfo> exceptionHandlers,
+        Path workspacePath,
+        List<Path> sourceRoots,
+        TypeResolver typeResolver,
+        int remainingBudget,
+        Set<String> visitedMethods
+    ) {
+        if (!visitedMethods.add(methodRef.qualifiedSignature())) {
+            return;
+        }
+
+        addValidationRules(methodRef, nodes, nodeIds, edges, exceptionHandlers, workspacePath);
+
+        if (remainingBudget <= 0) {
+            return;
+        }
+
+        methodRef.methodDecl().findAll(MethodCallExpr.class).forEach(call ->
+            resolveSourceMethod(call, typeResolver, workspacePath).ifPresent(target -> {
+                addMethodNode(target, nodes, nodeIds);
+                addEdge(edges, methodRef.nodeId(), target.nodeId(), GraphEdgeType.CALLS, call.toString());
+                traceMethodEvidence(
+                    target,
+                    nodes,
+                    nodeIds,
+                    edges,
+                    exceptionHandlers,
+                    workspacePath,
+                    sourceRoots,
+                    typeResolver,
+                    remainingBudget - 1,
+                    visitedMethods
+                );
+            })
+        );
+    }
+
+    private void addValidationRules(
+        ResolvedSourceMethod methodRef,
+        List<GraphNode> nodes,
+        Set<String> nodeIds,
+        List<GraphEdge> edges,
+        Map<String, ExceptionHandlerInfo> exceptionHandlers,
+        Path workspacePath
+    ) {
+        methodRef.methodDecl().findAll(IfStmt.class).forEach(ifStmt -> {
+            List<ValidationOutcome> outcomes = collectValidationOutcomes(ifStmt);
+            if (outcomes.isEmpty()) {
+                return;
+            }
+
+            String ruleId = "BUSINESS_RULE:" + methodRef.qualifiedSignature() + ":" + Math.abs(ifStmt.getCondition().toString().hashCode());
+            String ruleLabel = ifStmt.getCondition().toString();
+            int ruleLine = ifStmt.getBegin().map(pos -> pos.line).orElse(0);
+            String ruleSnippet = ifStmt.toString().trim();
+
+            addNode(nodes, nodeIds, ruleId, GraphNodeType.BUSINESS_RULE, ruleLabel, methodRef.relativeFile(), ruleLine, ruleSnippet);
+            addEdge(edges, methodRef.nodeId(), ruleId, GraphEdgeType.EVALUATES, "if statement");
+
+            for (ValidationOutcome outcome : outcomes) {
+                if (outcome.throwStmt() != null) {
+                    addThrowEvidence(outcome.throwStmt(), ruleId, methodRef.relativeFile(), nodes, nodeIds, edges, exceptionHandlers, workspacePath);
+                }
+            }
+        });
+    }
+
+    private List<ValidationOutcome> collectValidationOutcomes(IfStmt ifStmt) {
+        List<ValidationOutcome> outcomes = new ArrayList<>();
+        collectOutcomesFromBranch(ifStmt.getThenStmt(), outcomes);
+        ifStmt.getElseStmt().ifPresent(elseStmt -> collectOutcomesFromBranch(elseStmt, outcomes));
+        return outcomes;
+    }
+
+    private void collectOutcomesFromBranch(Statement branch, List<ValidationOutcome> outcomes) {
+        branch.findAll(ThrowStmt.class).forEach(throwStmt -> outcomes.add(ValidationOutcome.throwing(throwStmt)));
+        branch.findAll(ReturnStmt.class).forEach(returnStmt -> outcomes.add(ValidationOutcome.returning(returnStmt)));
+    }
+
+    private void addThrowEvidence(
+        ThrowStmt throwStmt,
+        String ruleId,
+        String relativeFile,
+        List<GraphNode> nodes,
+        Set<String> nodeIds,
+        List<GraphEdge> edges,
+        Map<String, ExceptionHandlerInfo> exceptionHandlers,
+        Path workspacePath
+    ) {
+        String exceptionName = resolveThrownExceptionName(throwStmt);
+        String excId = "EXCEPTION:" + exceptionName;
+        int excLine = throwStmt.getBegin().map(pos -> pos.line).orElse(0);
+        addNode(nodes, nodeIds, excId, GraphNodeType.EXCEPTION, exceptionName, relativeFile, excLine, throwStmt.toString().trim());
+        addEdge(edges, ruleId, excId, GraphEdgeType.THROWS, throwStmt.toString().trim());
+
+        if (!exceptionHandlers.containsKey(exceptionName)) {
+            return;
+        }
+
+        ExceptionHandlerInfo handlerInfo = exceptionHandlers.get(exceptionName);
+        String handlerRelFile = workspacePath.relativize(handlerInfo.file()).toString().replace("\\", "/");
+        String statusId = "HTTP_STATUS:" + handlerInfo.httpStatus();
+        addNode(nodes, nodeIds, statusId, GraphNodeType.HTTP_STATUS, handlerInfo.httpStatus(), handlerRelFile, handlerInfo.line(), handlerInfo.snippet());
+        addEdge(edges, excId, statusId, GraphEdgeType.MAPS_TO, "ExceptionHandler: " + exceptionName);
+    }
+
+    private Optional<ResolvedSourceMethod> resolveSourceMethod(
+        MethodCallExpr call,
+        TypeResolver typeResolver,
+        Path workspacePath
+    ) {
+        return typeResolver.resolveMethodCall(call)
+            .flatMap(resolvedMethod -> resolveSourceMethod(resolvedMethod, typeResolver, workspacePath));
+    }
+
+    private Optional<ResolvedSourceMethod> resolveSourceMethod(
+        ResolvedMethodDeclaration resolvedMethod,
+        TypeResolver typeResolver,
+        Path workspacePath
+    ) {
+        Optional<ClassOrInterfaceDeclaration> ownerDeclOpt = typeResolver.resolveClassDeclaration(resolvedMethod.declaringType());
+        Optional<MethodDeclaration> methodDeclOpt = typeResolver.resolveMethodDeclaration(resolvedMethod);
+        if (ownerDeclOpt.isEmpty() || methodDeclOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        ClassOrInterfaceDeclaration ownerDecl = ownerDeclOpt.get();
+        MethodDeclaration methodDecl = methodDeclOpt.get();
+        String qualifiedSignature = resolvedMethod.getQualifiedSignature();
+        Path methodFile = getFilePath(ownerDecl, workspacePath);
+        String relativeFile = workspacePath.relativize(methodFile).toString().replace("\\", "/");
+        String displayOwner = ownerDecl.getNameAsString();
+        String displayLabel = displayOwner + "." + methodDecl.getNameAsString();
+        String nodeId = "SERVICE_METHOD:" + qualifiedSignature;
+
+        return Optional.of(new ResolvedSourceMethod(
+            qualifiedSignature,
+            nodeId,
+            displayLabel,
+            relativeFile,
+            ownerDecl,
+            methodDecl
+        ));
+    }
+
+    private void addMethodNode(ResolvedSourceMethod methodRef, List<GraphNode> nodes, Set<String> nodeIds) {
+        int line = methodRef.methodDecl().getBegin().map(pos -> pos.line).orElse(0);
+        String snippet = methodRef.methodDecl().toString().trim();
+        addNode(nodes, nodeIds, methodRef.nodeId(), GraphNodeType.SERVICE_METHOD, methodRef.displayLabel(), methodRef.relativeFile(), line, snippet);
     }
 
     private void addNode(List<GraphNode> nodes, Set<String> nodeIds, String id, GraphNodeType type, String label, String filepath, int line, String snippet) {
@@ -198,16 +347,16 @@ public class ValidationEvidenceGraphBuilder {
     }
 
     private boolean isStandardValidationAnnotation(String name) {
-        return name.equals("NotNull") || name.equals("NotEmpty") || name.equals("NotBlank") ||
-               name.equals("Size") || name.equals("Min") || name.equals("Max") ||
-               name.equals("Pattern") || name.equals("Email") ||
-               name.equals("AssertTrue") || name.equals("AssertFalse");
+        return name.equals("NotNull") || name.equals("NotEmpty") || name.equals("NotBlank")
+            || name.equals("Size") || name.equals("Min") || name.equals("Max")
+            || name.equals("Pattern") || name.equals("Email")
+            || name.equals("AssertTrue") || name.equals("AssertFalse");
     }
 
     private boolean isIgnoredAnnotation(String name) {
-        return name.equals("Getter") || name.equals("Setter") || name.equals("Builder") ||
-               name.equals("NoArgsConstructor") || name.equals("AllArgsConstructor") ||
-               name.equals("Override") || name.equals("Deprecated");
+        return name.equals("Getter") || name.equals("Setter") || name.equals("Builder")
+            || name.equals("NoArgsConstructor") || name.equals("AllArgsConstructor")
+            || name.equals("Override") || name.equals("Deprecated");
     }
 
     private String resolveConstraintValidatorClass(AnnotationExpr constraintAnn) {
@@ -215,8 +364,7 @@ public class ValidationEvidenceGraphBuilder {
             for (MemberValuePair pair : normal.getPairs()) {
                 if (pair.getNameAsString().equals("validatedBy")) {
                     String val = pair.getValue().toString();
-                    val = val.replace("{", "").replace("}", "").replace(".class", "").trim();
-                    return val;
+                    return val.replace("{", "").replace("}", "").replace(".class", "").trim();
                 }
             }
         }
@@ -233,15 +381,6 @@ public class ValidationEvidenceGraphBuilder {
             return expr.substring(4).trim();
         }
         return "Exception";
-    }
-
-    private String findFieldType(ClassOrInterfaceDeclaration clazz, String fieldName) {
-        for (FieldDeclaration field : clazz.getFields()) {
-            if (field.getVariables().stream().anyMatch(v -> v.getNameAsString().equals(fieldName))) {
-                return field.getElementType().asString();
-            }
-        }
-        return null;
     }
 
     private Path getFilePath(TypeDeclaration<?> clazz, Path workspacePath) {
@@ -276,7 +415,8 @@ public class ValidationEvidenceGraphBuilder {
                         return Optional.of(cu.getType(0));
                     }
                 }
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }
         return Optional.empty();
     }
@@ -290,7 +430,7 @@ public class ValidationEvidenceGraphBuilder {
                     .forEach(file -> {
                         try {
                             CompilationUnit cu = StaticJavaParser.parse(file);
-                            cu.findAll(MethodDeclaration.class).forEach(method -> {
+                            cu.findAll(MethodDeclaration.class).forEach(method ->
                                 method.getAnnotationByName("ExceptionHandler").ifPresent(ann -> {
                                     String exceptionName = resolveHandledException(ann, method);
                                     if (exceptionName != null) {
@@ -303,18 +443,20 @@ public class ValidationEvidenceGraphBuilder {
                                             method.toString().trim()
                                         ));
                                     }
-                                });
-                            });
-                        } catch (Exception ignored) {}
+                                })
+                            );
+                        } catch (Exception ignored) {
+                        }
                     });
-            } catch (IOException ignored) {}
+            } catch (IOException ignored) {
+            }
         }
         return handlers;
     }
 
     private String resolveHandledException(AnnotationExpr ann, MethodDeclaration method) {
         String val = null;
-        if (ann instanceof SingleMemberAnnotationExpr single) {
+        if (ann instanceof com.github.javaparser.ast.expr.SingleMemberAnnotationExpr single) {
             val = single.getMemberValue().toString();
         } else if (ann instanceof NormalAnnotationExpr normal) {
             for (MemberValuePair pair : normal.getPairs()) {
@@ -350,63 +492,70 @@ public class ValidationEvidenceGraphBuilder {
     private String resolveHttpStatus(MethodDeclaration method, CompilationUnit cu) {
         Optional<AnnotationExpr> statusAnnOpt = method.getAnnotationByName("ResponseStatus");
         if (statusAnnOpt.isPresent()) {
-            return parseResponseStatusValue(statusAnnOpt.get());
-        }
-
-        Optional<ClassOrInterfaceDeclaration> classDeclOpt = method.findAncestor(ClassOrInterfaceDeclaration.class);
-        if (classDeclOpt.isPresent()) {
-            Optional<AnnotationExpr> classStatusAnnOpt = classDeclOpt.get().getAnnotationByName("ResponseStatus");
-            if (classStatusAnnOpt.isPresent()) {
-                return parseResponseStatusValue(classStatusAnnOpt.get());
+            String statusExpr = extractStatusValue(statusAnnOpt.get());
+            if (statusExpr != null) {
+                return statusExpr;
             }
         }
 
-        String bodyStr = method.getBody().map(Object::toString).orElse("");
-        if (bodyStr.contains("BAD_REQUEST") || bodyStr.contains("400")) {
-            return "400 BAD_REQUEST";
+        if (cu.getType(0).getAnnotationByName("ResponseStatus").isPresent()) {
+            return extractStatusValue(cu.getType(0).getAnnotationByName("ResponseStatus").get());
         }
-        if (bodyStr.contains("UNAUTHORIZED") || bodyStr.contains("401")) {
-            return "401 UNAUTHORIZED";
-        }
-        if (bodyStr.contains("FORBIDDEN") || bodyStr.contains("403")) {
-            return "403 FORBIDDEN";
-        }
-        if (bodyStr.contains("NOT_FOUND") || bodyStr.contains("404")) {
-            return "404 NOT_FOUND";
-        }
-        if (bodyStr.contains("CONFLICT") || bodyStr.contains("409")) {
-            return "409 CONFLICT";
-        }
-        
-        return "500 INTERNAL_SERVER_ERROR";
+
+        return "UNKNOWN";
     }
 
-    private String parseResponseStatusValue(AnnotationExpr statusAnn) {
-        String val = statusAnn.toString();
-        if (val.contains("BAD_REQUEST") || val.contains("400")) return "400 BAD_REQUEST";
-        if (val.contains("UNAUTHORIZED") || val.contains("401")) return "401 UNAUTHORIZED";
-        if (val.contains("FORBIDDEN") || val.contains("403")) return "403 FORBIDDEN";
-        if (val.contains("NOT_FOUND") || val.contains("404")) return "404 NOT_FOUND";
-        if (val.contains("CONFLICT") || val.contains("409")) return "409 CONFLICT";
-        if (val.contains("INTERNAL_SERVER_ERROR") || val.contains("500")) return "500 INTERNAL_SERVER_ERROR";
-        
-        if (statusAnn instanceof SingleMemberAnnotationExpr single) {
-            return single.getMemberValue().toString().replace("HttpStatus.", "");
-        } else if (statusAnn instanceof NormalAnnotationExpr normal) {
-            for (MemberValuePair pair : normal.getPairs()) {
-                if (pair.getNameAsString().equals("value") || pair.getNameAsString().equals("code")) {
-                    return pair.getValue().toString().replace("HttpStatus.", "");
-                }
+    private String extractStatusValue(AnnotationExpr ann) {
+        String raw = ann.toString();
+        if (raw.contains("HttpStatus.")) {
+            int idx = raw.indexOf("HttpStatus.") + "HttpStatus.".length();
+            int end = raw.indexOf(')', idx);
+            if (end == -1) {
+                end = raw.length();
             }
+            String enumName = raw.substring(idx, end).replace("}", "").replace(")", "").trim();
+            return mapHttpStatus(enumName);
         }
-        return "500 INTERNAL_SERVER_ERROR";
+        return null;
     }
 
-    private static record ExceptionHandlerInfo(
+    private String mapHttpStatus(String enumName) {
+        return switch (enumName) {
+            case "BAD_REQUEST" -> "400 BAD_REQUEST";
+            case "CONFLICT" -> "409 CONFLICT";
+            case "NOT_FOUND" -> "404 NOT_FOUND";
+            case "UNAUTHORIZED" -> "401 UNAUTHORIZED";
+            case "FORBIDDEN" -> "403 FORBIDDEN";
+            default -> enumName;
+        };
+    }
+
+    private record ResolvedSourceMethod(
+        String qualifiedSignature,
+        String nodeId,
+        String displayLabel,
+        String relativeFile,
+        ClassOrInterfaceDeclaration ownerDecl,
+        MethodDeclaration methodDecl
+    ) {
+    }
+
+    private record ValidationOutcome(ThrowStmt throwStmt, ReturnStmt returnStmt) {
+        private static ValidationOutcome throwing(ThrowStmt throwStmt) {
+            return new ValidationOutcome(throwStmt, null);
+        }
+
+        private static ValidationOutcome returning(ReturnStmt returnStmt) {
+            return new ValidationOutcome(null, returnStmt);
+        }
+    }
+
+    private record ExceptionHandlerInfo(
         String exceptionName,
         String httpStatus,
         Path file,
         int line,
         String snippet
-    ) {}
+    ) {
+    }
 }

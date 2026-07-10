@@ -1,0 +1,691 @@
+{
+  "project": "ddd-start2-demp",
+  "sourceRepository": {
+    "localPath": "D:\\workspace\\ddd-start2-demp",
+    "originUrl": "https://github.com/madvirus/ddd-start2.git",
+    "branch": "main"
+  },
+  "generatedAt": "2026-07-09",
+  "generatedBy": "manual-code-reading",
+  "notes": [
+    "This file was produced by manually reading controller, DTO, validator, service, and selected domain code.",
+    "Most endpoints in this repository are Spring MVC view endpoints, not JSON REST endpoints.",
+    "Validation conditions are listed per endpoint and may include request-shape rules, existence rules, authorization rules, and domain-state rules."
+  ],
+  "operations": [
+    {
+      "operationId": "adminOrders",
+      "method": "GET",
+      "path": "/admin/orders",
+      "controllerClass": "com.myshop.admin.ui.AdminOrderController",
+      "responseKind": "VIEW",
+      "response": {
+        "viewName": "admin/adminOrders"
+      },
+      "request": {
+        "pathParams": [],
+        "queryParams": [
+          {
+            "name": "p",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "defaultValue": 1
+          }
+        ],
+        "bodySchema": null
+      },
+      "validationConditions": []
+    },
+    {
+      "operationId": "adminOrderDetail",
+      "method": "GET",
+      "path": "/admin/orders/{orderNo}",
+      "controllerClass": "com.myshop.admin.ui.AdminOrderController",
+      "responseKind": "VIEW",
+      "response": {
+        "successViewName": "admin/adminOrderDetail",
+        "notFoundViewName": "admin/noOrder"
+      },
+      "request": {
+        "pathParams": [
+          {
+            "name": "orderNo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "queryParams": [],
+        "bodySchema": null
+      },
+      "validationConditions": [
+        {
+          "targetLocation": "PATH",
+          "targetPath": "$.orderNo",
+          "operator": "EXISTS_IN_REPOSITORY",
+          "expected": true,
+          "source": "SERVICE_LOGIC"
+        }
+      ]
+    },
+    {
+      "operationId": "startShippingOrder",
+      "method": "POST",
+      "path": "/admin/orders/{orderNo}/shipping",
+      "controllerClass": "com.myshop.admin.ui.AdminOrderController",
+      "responseKind": "VIEW",
+      "response": {
+        "successViewName": "admin/adminOrderShipped",
+        "conflictViewName": "admin/adminOrderLockFail"
+      },
+      "request": {
+        "pathParams": [
+          {
+            "name": "orderNo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "queryParams": [
+          {
+            "name": "version",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "bodySchema": null
+      },
+      "validationConditions": [
+        {
+          "targetLocation": "PATH",
+          "targetPath": "$.orderNo",
+          "operator": "EXISTS_IN_REPOSITORY",
+          "expected": true,
+          "source": "SERVICE_LOGIC"
+        },
+        {
+          "targetLocation": "QUERY",
+          "targetPath": "$.version",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SPRING_REQUEST_PARAM"
+        },
+        {
+          "targetLocation": "QUERY",
+          "targetPath": "$.version",
+          "operator": "OPTIMISTIC_LOCK_MATCH",
+          "expected": "must match current order version",
+          "source": "SERVICE_LOGIC"
+        },
+        {
+          "targetLocation": "RESOURCE",
+          "targetPath": "$.order.state",
+          "operator": "STATE_IN",
+          "expected": [
+            "PAYMENT_WAITING",
+            "PREPARING"
+          ],
+          "source": "DOMAIN_LOGIC"
+        },
+        {
+          "targetLocation": "RESOURCE",
+          "targetPath": "$.order.state",
+          "operator": "NOT_EQUALS",
+          "expected": "CANCELED",
+          "source": "DOMAIN_LOGIC"
+        }
+      ],
+      "warnings": [
+        "StartShippingService uses `if (order.matchVersion(req.getVersion())) throw new VersionConflictException();`, which appears semantically inverted."
+      ]
+    },
+    {
+      "operationId": "categories",
+      "method": "GET",
+      "path": "/categories",
+      "controllerClass": "com.myshop.catalog.ui.ProductController",
+      "responseKind": "VIEW",
+      "response": {
+        "viewName": "category/categoryList"
+      },
+      "request": {
+        "pathParams": [],
+        "queryParams": [],
+        "bodySchema": null
+      },
+      "validationConditions": []
+    },
+    {
+      "operationId": "categoryProducts",
+      "method": "GET",
+      "path": "/categories/{categoryId}",
+      "controllerClass": "com.myshop.catalog.ui.ProductController",
+      "responseKind": "VIEW",
+      "response": {
+        "viewName": "category/productList"
+      },
+      "request": {
+        "pathParams": [
+          {
+            "name": "categoryId",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "queryParams": [
+          {
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "defaultValue": 1
+          }
+        ],
+        "bodySchema": null
+      },
+      "validationConditions": [
+        {
+          "targetLocation": "PATH",
+          "targetPath": "$.categoryId",
+          "operator": "EXISTS_IN_REPOSITORY",
+          "expected": true,
+          "source": "SERVICE_LOGIC"
+        }
+      ]
+    },
+    {
+      "operationId": "productDetail",
+      "method": "GET",
+      "path": "/products/{productId}",
+      "controllerClass": "com.myshop.catalog.ui.ProductController",
+      "responseKind": "VIEW_OR_HTTP_ERROR",
+      "response": {
+        "successViewName": "category/productDetail",
+        "notFoundStatus": 404
+      },
+      "request": {
+        "pathParams": [
+          {
+            "name": "productId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "queryParams": [],
+        "bodySchema": null
+      },
+      "validationConditions": [
+        {
+          "targetLocation": "PATH",
+          "targetPath": "$.productId",
+          "operator": "EXISTS_IN_REPOSITORY",
+          "expected": true,
+          "source": "SERVICE_LOGIC"
+        }
+      ]
+    },
+    {
+      "operationId": "eventList",
+      "method": "GET",
+      "path": "/api/events",
+      "controllerClass": "com.myshop.eventstore.ui.EventApi",
+      "responseKind": "JSON",
+      "response": {
+        "contentType": "application/json",
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "type": {
+                "type": "string"
+              },
+              "contentType": {
+                "type": "string"
+              },
+              "payload": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "request": {
+        "pathParams": [],
+        "queryParams": [
+          {
+            "name": "offset",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "bodySchema": null
+      },
+      "validationConditions": [
+        {
+          "targetLocation": "QUERY",
+          "targetPath": "$.offset",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SPRING_REQUEST_PARAM"
+        },
+        {
+          "targetLocation": "QUERY",
+          "targetPath": "$.limit",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SPRING_REQUEST_PARAM"
+        }
+      ]
+    },
+    {
+      "operationId": "cancelOrder",
+      "method": "GET",
+      "path": "/my/orders/{orderNo}/cancel",
+      "controllerClass": "com.myshop.order.ui.CancelOrderController",
+      "responseKind": "VIEW",
+      "response": {
+        "viewName": "my/orderCanceled"
+      },
+      "request": {
+        "pathParams": [
+          {
+            "name": "orderNo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "queryParams": [],
+        "bodySchema": null
+      },
+      "validationConditions": [
+        {
+          "targetLocation": "PATH",
+          "targetPath": "$.orderNo",
+          "operator": "EXISTS_IN_REPOSITORY",
+          "expected": true,
+          "source": "SERVICE_LOGIC"
+        },
+        {
+          "targetLocation": "AUTH",
+          "targetPath": "$.currentUser",
+          "operator": "HAS_CANCELLATION_PERMISSION",
+          "expected": "orderer or ROLE_ADMIN",
+          "source": "SERVICE_LOGIC"
+        },
+        {
+          "targetLocation": "RESOURCE",
+          "targetPath": "$.order.state",
+          "operator": "STATE_IN",
+          "expected": [
+            "PAYMENT_WAITING",
+            "PREPARING"
+          ],
+          "source": "DOMAIN_LOGIC"
+        }
+      ],
+      "warnings": [
+        "This endpoint changes state via GET."
+      ]
+    },
+    {
+      "operationId": "myOrders",
+      "method": "GET",
+      "path": "/my/orders",
+      "controllerClass": "com.myshop.order.ui.MyOrderController",
+      "responseKind": "VIEW",
+      "response": {
+        "viewName": "my/orders"
+      },
+      "request": {
+        "pathParams": [],
+        "queryParams": [],
+        "bodySchema": null
+      },
+      "validationConditions": [
+        {
+          "targetLocation": "AUTH",
+          "targetPath": "$.currentUser",
+          "operator": "AUTHENTICATED",
+          "expected": true,
+          "source": "CONTROLLER_LOGIC"
+        }
+      ]
+    },
+    {
+      "operationId": "myOrderDetail",
+      "method": "GET",
+      "path": "/my/orders/{orderNo}",
+      "controllerClass": "com.myshop.order.ui.MyOrderController",
+      "responseKind": "VIEW",
+      "response": {
+        "successViewName": "my/orderDetail",
+        "notOwnerViewName": "my/notYourOrder",
+        "notFoundViewName": "my/noOrder"
+      },
+      "request": {
+        "pathParams": [
+          {
+            "name": "orderNo",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "queryParams": [],
+        "bodySchema": null
+      },
+      "validationConditions": [
+        {
+          "targetLocation": "PATH",
+          "targetPath": "$.orderNo",
+          "operator": "EXISTS_IN_REPOSITORY",
+          "expected": true,
+          "source": "SERVICE_LOGIC"
+        },
+        {
+          "targetLocation": "AUTH",
+          "targetPath": "$.currentUser",
+          "operator": "EQUALS_RESOURCE_OWNER",
+          "expected": true,
+          "source": "CONTROLLER_LOGIC"
+        }
+      ]
+    },
+    {
+      "operationId": "orderConfirm",
+      "method": "POST",
+      "path": "/orders/orderConfirm",
+      "controllerClass": "com.myshop.order.ui.OrderController",
+      "responseKind": "VIEW",
+      "response": {
+        "viewName": "order/confirm"
+      },
+      "request": {
+        "bindingStyle": "MODEL_ATTRIBUTE",
+        "pathParams": [],
+        "queryParams": [],
+        "bodySchema": {
+          "type": "object",
+          "properties": {
+            "orderProducts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "productId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "ordererMemberId": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              }
+            },
+            "shippingInfo": {
+              "type": "object",
+              "properties": {
+                "address": {
+                  "type": "object",
+                  "properties": {
+                    "zipCode": {
+                      "type": "string"
+                    },
+                    "address1": {
+                      "type": "string"
+                    },
+                    "address2": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "message": {
+                  "type": "string"
+                },
+                "receiver": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "validationConditions": [
+        {
+          "targetLocation": "AUTH",
+          "targetPath": "$.ordererMemberId",
+          "operator": "OVERWRITTEN_BY_AUTHENTICATED_USER",
+          "expected": true,
+          "source": "CONTROLLER_LOGIC"
+        }
+      ]
+    },
+    {
+      "operationId": "order",
+      "method": "POST",
+      "path": "/orders/order",
+      "controllerClass": "com.myshop.order.ui.OrderController",
+      "responseKind": "VIEW",
+      "response": {
+        "successViewName": "order/orderComplete",
+        "validationFailureViewName": "order/confirm",
+        "productMissingViewName": "order/noProduct"
+      },
+      "request": {
+        "bindingStyle": "MODEL_ATTRIBUTE",
+        "pathParams": [],
+        "queryParams": [],
+        "bodySchema": {
+          "type": "object",
+          "properties": {
+            "orderProducts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "productId": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": "integer"
+                  }
+                }
+              }
+            },
+            "ordererMemberId": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              }
+            },
+            "shippingInfo": {
+              "type": "object",
+              "properties": {
+                "address": {
+                  "type": "object",
+                  "properties": {
+                    "zipCode": {
+                      "type": "string"
+                    },
+                    "address1": {
+                      "type": "string"
+                    },
+                    "address2": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "message": {
+                  "type": "string"
+                },
+                "receiver": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "validationConditions": [
+        {
+          "targetLocation": "AUTH",
+          "targetPath": "$.ordererMemberId",
+          "operator": "OVERWRITTEN_BY_AUTHENTICATED_USER",
+          "expected": true,
+          "source": "CONTROLLER_LOGIC"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.orderProducts",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SERVICE_VALIDATOR"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.orderProducts",
+          "operator": "NON_EMPTY",
+          "expected": true,
+          "source": "SERVICE_VALIDATOR"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.shippingInfo",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SERVICE_VALIDATOR"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.shippingInfo.receiver",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SERVICE_VALIDATOR"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.shippingInfo.receiver.name",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SERVICE_VALIDATOR"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.shippingInfo.receiver.phone",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SERVICE_VALIDATOR"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.shippingInfo.address",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SERVICE_VALIDATOR"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.shippingInfo.address.zipCode",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SERVICE_VALIDATOR"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.shippingInfo.address.address1",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SERVICE_VALIDATOR"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.shippingInfo.address.address2",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SERVICE_VALIDATOR"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.orderProducts[*].productId",
+          "operator": "REQUIRED",
+          "expected": true,
+          "source": "SPRING_VALIDATOR_DEFINED_NOT_WIRED"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.orderProducts[*].quantity",
+          "operator": "GREATER_THAN",
+          "expected": 0,
+          "source": "SPRING_VALIDATOR_DEFINED_NOT_WIRED"
+        },
+        {
+          "targetLocation": "BODY",
+          "targetPath": "$.orderProducts[*].productId",
+          "operator": "EXISTS_IN_REPOSITORY",
+          "expected": true,
+          "source": "SERVICE_LOGIC"
+        }
+      ],
+      "warnings": [
+        "OrderRequestValidator calls `orderRequest.getOrderProducts().isEmpty()` even when `orderProducts` may be null, which can throw NullPointerException.",
+        "OrderRequestValidator4Spring is present but not wired from the inspected controller code."
+      ]
+    }
+  ]
+}

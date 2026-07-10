@@ -57,12 +57,14 @@ class NormalizationServiceTest {
         assertThat(result.conditions()).hasSize(2);
         
         ApiCondition emailCond = result.conditions().stream()
-                .filter(c -> c.targetPath().equals("email")).findFirst().orElseThrow();
+                .filter(c -> c.targetPath().equals("$.email")).findFirst().orElseThrow();
+        assertThat(emailCond.targetLocation()).isEqualTo(ConditionLocation.BODY);
         assertThat(emailCond.operator()).isEqualTo("EMAIL");
         assertThat(emailCond.expected()).isEqualTo("email pattern");
 
         ApiCondition ageCond = result.conditions().stream()
-                .filter(c -> c.targetPath().equals("age")).findFirst().orElseThrow();
+                .filter(c -> c.targetPath().equals("$.age")).findFirst().orElseThrow();
+        assertThat(ageCond.targetLocation()).isEqualTo(ConditionLocation.BODY);
         assertThat(ageCond.operator()).isEqualTo("MIN_AGE");
         assertThat(ageCond.expected()).isEqualTo("19");
         assertThat(ageCond.confidence()).isEqualTo(0.5);
@@ -75,5 +77,177 @@ class NormalizationServiceTest {
         // 3. Rejected verification
         assertThat(result.rejected()).hasSize(1);
         assertThat(result.rejected().get(0).candidateId()).isEqualTo("cand-3");
+    }
+
+    @Test
+    void graphAwareNormalizationPreservesBehavior() throws IngestionException {
+        SourceTrace trace = new SourceTrace("src/main/java/io/atworks/controller/UserController.java", 10, 12);
+        ValidationCandidate candidate = new ValidationCandidate("cand-1", "SERVICE_HINT", "age", "user.getAge() < 19", 0.5, trace);
+
+        RequestBinding bodyBinding = new RequestBinding("user", BindingLocation.BODY, "UserDto", true, null, null, null, List.of(), trace);
+        ResponseBinding responseBinding = new ResponseBinding("void", trace);
+        ApiEndpoint endpoint = new ApiEndpoint(
+            "POST",
+            "/users",
+            "io.atworks.controller.UserController",
+            "createUser",
+            List.of(bodyBinding),
+            responseBinding,
+            trace
+        );
+
+        ValidationEvidenceGraph graph = new ValidationEvidenceGraph(
+            List.of(
+                new GraphNode("ENDPOINT:POST:/users", GraphNodeType.ENDPOINT, "POST /users", "UserController.java", 10,
+                    "UserController.createUser"),
+                new GraphNode("SERVICE_METHOD:UserService.register", GraphNodeType.SERVICE_METHOD, "UserService.register",
+                    "UserService.java", 20, "public void register(UserDto user)"),
+                new GraphNode("BUSINESS_RULE:UserService.register:age", GraphNodeType.BUSINESS_RULE, "user.getAge() < 19",
+                    "UserService.java", 22, "if (user.getAge() < 19) throw new IllegalArgumentException();")
+            ),
+            List.of(
+                new GraphEdge("ENDPOINT:POST:/users", "SERVICE_METHOD:UserService.register", GraphEdgeType.CALLS,
+                    "userService.register(user)"),
+                new GraphEdge("SERVICE_METHOD:UserService.register", "BUSINESS_RULE:UserService.register:age",
+                    GraphEdgeType.EVALUATES, "if statement")
+            )
+        );
+
+        NormalizedResult result = normalizationService.normalize(List.of(candidate), List.of(endpoint), graph);
+
+        assertThat(result.conditions()).hasSize(1);
+        ApiCondition condition = result.conditions().get(0);
+        assertThat(condition.targetLocation()).isEqualTo(ConditionLocation.BODY);
+        assertThat(condition.targetPath()).isEqualTo("$.age");
+        assertThat(condition.operator()).isEqualTo("MIN_AGE");
+        assertThat(condition.llmReason()).contains("Rule-based");
+    }
+
+    @Test
+    void serviceHintMapsVersionConflictToQueryCondition() throws IngestionException {
+        SourceTrace trace = new SourceTrace("src/main/java/io/atworks/service/ShippingService.java", 20, 24);
+        ValidationCandidate candidate = new ValidationCandidate(
+            "cand-1",
+            "SERVICE_HINT",
+            "version",
+            "if (order.matchVersion(req.getVersion())) { throw new VersionConflictException(); }",
+            0.5,
+            trace
+        );
+
+        ApiEndpoint endpoint = new ApiEndpoint(
+            "POST",
+            "/admin/orders/{orderNo}/shipping",
+            "io.atworks.controller.AdminOrderController",
+            "startShippingOrder",
+            List.of(
+                new RequestBinding("orderNo", BindingLocation.PATH, "String", true, null, null, null, List.of(), trace),
+                new RequestBinding("version", BindingLocation.QUERY, "long", true, null, null, null, List.of(), trace)
+            ),
+            new ResponseBinding("String", trace),
+            trace
+        );
+
+        ValidationEvidenceGraph graph = new ValidationEvidenceGraph(
+            List.of(
+                new GraphNode("ENDPOINT:POST:/admin/orders/{orderNo}/shipping", GraphNodeType.ENDPOINT,
+                    "POST /admin/orders/{orderNo}/shipping", "AdminOrderController.java", 10, "AdminOrderController.startShippingOrder"),
+                new GraphNode("SERVICE_METHOD:StartShippingService.startShipping", GraphNodeType.SERVICE_METHOD,
+                    "StartShippingService.startShipping", "StartShippingService.java", 20, "void startShipping()")
+            ),
+            List.of(
+                new GraphEdge("ENDPOINT:POST:/admin/orders/{orderNo}/shipping", "SERVICE_METHOD:StartShippingService.startShipping",
+                    GraphEdgeType.CALLS, "startShippingService.startShipping(...)")
+            )
+        );
+
+        NormalizedResult result = normalizationService.normalize(List.of(candidate), List.of(endpoint), graph);
+
+        assertThat(result.conditions()).hasSize(1);
+        ApiCondition condition = result.conditions().get(0);
+        assertThat(condition.targetLocation()).isEqualTo(ConditionLocation.QUERY);
+        assertThat(condition.targetPath()).isEqualTo("$.version");
+        assertThat(condition.operator()).isEqualTo("OPTIMISTIC_LOCK_MATCH");
+    }
+
+    @Test
+    void serviceHintMapsPermissionRuleToAuthCondition() throws IngestionException {
+        SourceTrace trace = new SourceTrace("src/main/java/io/atworks/service/CancelOrderService.java", 20, 24);
+        ValidationCandidate candidate = new ValidationCandidate(
+            "cand-1",
+            "SERVICE_HINT",
+            "hasCancellationPermission",
+            "if (!cancelPolicy.hasCancellationPermission(order, canceller)) { throw new NoCancellablePermission(); }",
+            0.5,
+            trace
+        );
+
+        ApiEndpoint endpoint = new ApiEndpoint(
+            "GET",
+            "/my/orders/{orderNo}/cancel",
+            "io.atworks.controller.CancelOrderController",
+            "cancelOrder",
+            List.of(new RequestBinding("orderNo", BindingLocation.PATH, "String", true, null, null, null, List.of(), trace)),
+            new ResponseBinding("String", trace),
+            trace
+        );
+
+        ValidationEvidenceGraph graph = new ValidationEvidenceGraph(
+            List.of(
+                new GraphNode("ENDPOINT:GET:/my/orders/{orderNo}/cancel", GraphNodeType.ENDPOINT,
+                    "GET /my/orders/{orderNo}/cancel", "CancelOrderController.java", 10, "CancelOrderController.cancelOrder"),
+                new GraphNode("SERVICE_METHOD:CancelOrderService.cancel", GraphNodeType.SERVICE_METHOD,
+                    "CancelOrderService.cancel", "CancelOrderService.java", 20, "void cancel()")
+            ),
+            List.of(
+                new GraphEdge("ENDPOINT:GET:/my/orders/{orderNo}/cancel", "SERVICE_METHOD:CancelOrderService.cancel",
+                    GraphEdgeType.CALLS, "cancelOrderService.cancel(...)")
+            )
+        );
+
+        NormalizedResult result = normalizationService.normalize(List.of(candidate), List.of(endpoint), graph);
+
+        assertThat(result.conditions()).hasSize(1);
+        ApiCondition condition = result.conditions().get(0);
+        assertThat(condition.targetLocation()).isEqualTo(ConditionLocation.AUTH);
+        assertThat(condition.targetPath()).isEqualTo("$.currentUser");
+        assertThat(condition.operator()).isEqualTo("HAS_CANCELLATION_PERMISSION");
+    }
+
+    @Test
+    void serviceHintWithoutGraphEvidenceIsRejected() throws IngestionException {
+        SourceTrace trace = new SourceTrace("src/main/java/io/atworks/service/VisitService.java", 20, 24);
+        ValidationCandidate candidate = new ValidationCandidate(
+            "cand-1",
+            "SERVICE_HINT",
+            "petId",
+            "if (visit.getPetId() <= 0) { throw new IllegalArgumentException(\"invalid\"); }",
+            0.5,
+            trace
+        );
+
+        RequestBinding bodyBinding = new RequestBinding("visit", BindingLocation.BODY, "Visit", true, null, null, null, List.of(), trace);
+        ResponseBinding responseBinding = new ResponseBinding("void", trace);
+        ApiEndpoint endpoint = new ApiEndpoint(
+            "POST",
+            "/owners/*/pets/{petId}/visits",
+            "io.atworks.controller.VisitController",
+            "create",
+            List.of(bodyBinding, new RequestBinding("petId", BindingLocation.PATH, "Integer", true, null, null, null, List.of(), trace)),
+            responseBinding,
+            trace
+        );
+
+        ValidationEvidenceGraph graph = new ValidationEvidenceGraph(
+            List.of(
+                new GraphNode("ENDPOINT:GET:/other", GraphNodeType.ENDPOINT, "GET /other", "OtherController.java", 5,
+                    "OtherController.read")
+            ),
+            List.of()
+        );
+        NormalizedResult result = normalizationService.normalize(List.of(candidate), List.of(endpoint), graph);
+
+        assertThat(result.conditions()).isEmpty();
+        assertThat(result.rejected()).hasSize(1);
     }
 }

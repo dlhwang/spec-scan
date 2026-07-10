@@ -567,3 +567,35 @@
 **Context**: MAINTENANCE - JavaParser Bug Fix
 
 ---
+
+## Validation Condition Improvement Analysis
+**Timestamp**: 2026-07-09T14:48:30.3055655+09:00
+**User Input**: "어떻게 개선할 수 있겠니 D:\\workspace\\auto-oas\\.agents\\AGENTS.md를 숙지하여, Using AI-DLC를 사용하여 진행하시오"
+**AI Response**: "AI-DLC 규칙과 현재 aidlc-state 및 관련 설계 문서를 검토한 뒤, ValidationEvidenceGraph가 최종 validationConditions로 승격되지 못하는 원인을 코드 레벨로 분석하였다. 그 결과를 바탕으로 construction planning 아티팩트 `aidlc-docs/construction/plans/validation-condition-improvement-plan.md`를 작성하고, graph 확장, endpoint rule projection, exporter semantic 보정, 회귀 테스트 강화의 4단계 개선 방향을 문서화하였다."
+**Context**: CONSTRUCTION - Validation Condition Improvement Planning
+
+---
+
+## Validation Condition Improvement Implementation Approval
+**Timestamp**: 2026-07-09T15:00:00+09:00
+**User Input**: "오키 승인"
+**AI Response**: "계획 승인에 따라 Phase 1 최소 구현을 시작하였다. `ApiCondition` 위치 계약 보강, `ExecutionSpecExporter`의 조기 조건 드롭 제거, `RuleBasedConditionNormalizer`의 endpoint 스코프 위치 해석 추가, `@ModelAttribute` BODY 분류 보강, 관련 테스트 추가/수정을 진행하였다."
+**Context**: CONSTRUCTION - Validation Condition Improvement Implementation
+
+---
+
+## Validation Condition Improvement Verification
+**Timestamp**: 2026-07-09T15:10:00+09:00
+**User Input**: "오키 승인"
+**AI Response**: "구현 후 `./gradlew test`를 실행하여 전체 테스트가 통과함을 확인했다. 이번 라운드에서 shipping/version, cancel/auth, ModelAttribute BODY 분류, exporter의 non-body endpoint 조건 보존 경로를 우선 반영하였다."
+**Context**: CONSTRUCTION - Validation Condition Improvement Verification
+
+---
+
+## Validation Condition Improvement Next Phase With Subagents
+**Timestamp**: 2026-07-09T15:25:00+09:00
+**User Input**: "다음단계도 SKILL 이나 Subagent를 활용해"
+**AI Response**: "read-only 분석에 이어 worker subagent 2개를 사용해 다음 단계를 병렬 진행했다. 한쪽은 ValidationEvidenceGraphBuilder의 service->domain 1-hop 추적과 graph 테스트를 보강했고, 다른 한쪽은 MVC response semantic 분류와 framework parameter 필터링을 보강했다. 이후 전체 `./gradlew test`를 다시 통과시켰고, `ddd-start2` 재스캔으로 `/admin/orders/{orderNo}/shipping`에 non-empty validationConditions가 반영됨을 확인했다."
+**Context**: CONSTRUCTION - Validation Condition Improvement Parallel Implementation
+
+---

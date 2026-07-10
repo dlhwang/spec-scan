@@ -210,12 +210,14 @@ public class ValidationEvidenceGraphBuilderTest {
 
         // 5. Service Method Node should exist
         boolean hasServiceMethod = graph.nodes().stream()
-                .anyMatch(node -> node.type() == GraphNodeType.SERVICE_METHOD && node.id().equals("SERVICE_METHOD:UserService.register"));
+                .anyMatch(node -> node.type() == GraphNodeType.SERVICE_METHOD
+                        && node.id().startsWith("SERVICE_METHOD:io.atworks.service.UserService.register("));
         assertThat(hasServiceMethod).isTrue();
 
         // 6. Business Rule Node (if-throw condition in Service) should exist
         boolean hasBusinessRule = graph.nodes().stream()
-                .anyMatch(node -> node.type() == GraphNodeType.BUSINESS_RULE && node.id().startsWith("BUSINESS_RULE:UserService.register:"));
+                .anyMatch(node -> node.type() == GraphNodeType.BUSINESS_RULE
+                        && node.id().startsWith("BUSINESS_RULE:io.atworks.service.UserService.register("));
         assertThat(hasBusinessRule).isTrue();
 
         // 7. Exception Node should exist
@@ -246,22 +248,382 @@ public class ValidationEvidenceGraphBuilderTest {
 
         // Endpoint calls Service Method
         boolean endpointToService = graph.edges().stream()
-                .anyMatch(edge -> edge.sourceId().startsWith("ENDPOINT:POST:/users") && edge.targetId().equals("SERVICE_METHOD:UserService.register") && edge.type() == GraphEdgeType.CALLS);
+                .anyMatch(edge -> edge.sourceId().startsWith("ENDPOINT:POST:/users")
+                        && edge.targetId().startsWith("SERVICE_METHOD:io.atworks.service.UserService.register(")
+                        && edge.type() == GraphEdgeType.CALLS);
         assertThat(endpointToService).isTrue();
 
         // Service evaluates Business Rule
         boolean serviceToRule = graph.edges().stream()
-                .anyMatch(edge -> edge.sourceId().equals("SERVICE_METHOD:UserService.register") && edge.targetId().startsWith("BUSINESS_RULE:UserService.register:") && edge.type() == GraphEdgeType.EVALUATES);
+                .anyMatch(edge -> edge.sourceId().startsWith("SERVICE_METHOD:io.atworks.service.UserService.register(")
+                        && edge.targetId().startsWith("BUSINESS_RULE:io.atworks.service.UserService.register(")
+                        && edge.type() == GraphEdgeType.EVALUATES);
         assertThat(serviceToRule).isTrue();
 
         // Business Rule throws Exception
         boolean ruleToException = graph.edges().stream()
-                .anyMatch(edge -> edge.sourceId().startsWith("BUSINESS_RULE:UserService.register:") && edge.targetId().equals("EXCEPTION:IllegalArgumentException") && edge.type() == GraphEdgeType.THROWS);
+                .anyMatch(edge -> edge.sourceId().startsWith("BUSINESS_RULE:io.atworks.service.UserService.register(")
+                        && edge.targetId().equals("EXCEPTION:IllegalArgumentException")
+                        && edge.type() == GraphEdgeType.THROWS);
         assertThat(ruleToException).isTrue();
 
         // Exception maps to HTTP Status
         boolean exceptionToStatus = graph.edges().stream()
                 .anyMatch(edge -> edge.sourceId().equals("EXCEPTION:IllegalArgumentException") && edge.targetId().equals("HTTP_STATUS:400 BAD_REQUEST") && edge.type() == GraphEdgeType.MAPS_TO);
         assertThat(exceptionToStatus).isTrue();
+    }
+
+    @Test
+    public void testBuildEvidenceGraphTraversesServiceToDomainGuards() throws Exception {
+        Path srcRoot = tempDir.resolve("src/main/java");
+
+        Path domainDir = srcRoot.resolve("io/atworks/order");
+        Files.createDirectories(domainDir);
+        Files.writeString(domainDir.resolve("Order.java"), """
+            package io.atworks.order;
+
+            public class Order {
+                private final String status;
+                private final CancelPolicy cancelPolicy;
+
+                public Order(String status, CancelPolicy cancelPolicy) {
+                    this.status = status;
+                    this.cancelPolicy = cancelPolicy;
+                }
+
+                public void startShipping() {
+                    if (!"PAYED".equals(status)) {
+                        throw new IllegalStateException("Order is not ready for shipping");
+                    }
+                }
+
+                public void cancel(User canceller) {
+                    if (!cancelPolicy.hasCancellationPermission(this, canceller)) {
+                        throw new IllegalArgumentException("No cancellation permission");
+                    }
+                }
+            }
+        """);
+        Files.writeString(domainDir.resolve("CancelPolicy.java"), """
+            package io.atworks.order;
+
+            public class CancelPolicy {
+                public boolean hasCancellationPermission(Order order, User canceller) {
+                    return canceller.isAdmin();
+                }
+            }
+        """);
+        Files.writeString(domainDir.resolve("User.java"), """
+            package io.atworks.order;
+
+            public class User {
+                public boolean isAdmin() {
+                    return false;
+                }
+            }
+        """);
+
+        Path repoDir = srcRoot.resolve("io/atworks/repository");
+        Files.createDirectories(repoDir);
+        Files.writeString(repoDir.resolve("OrderRepository.java"), """
+            package io.atworks.repository;
+
+            import io.atworks.order.CancelPolicy;
+            import io.atworks.order.Order;
+
+            public class OrderRepository {
+                public Order findById(String orderNo) {
+                    return new Order("CREATED", new CancelPolicy());
+                }
+            }
+        """);
+
+        Path serviceDir = srcRoot.resolve("io/atworks/shipping");
+        Files.createDirectories(serviceDir);
+        Files.writeString(serviceDir.resolve("ShippingService.java"), """
+            package io.atworks.shipping;
+
+            import io.atworks.order.Order;
+            import io.atworks.repository.OrderRepository;
+
+            public class ShippingService {
+                private OrderRepository orderRepository;
+
+                public void startShipping(String orderNo) {
+                    Order order = orderRepository.findById(orderNo);
+                    order.startShipping();
+                }
+            }
+        """);
+        Files.writeString(serviceDir.resolve("CancelOrderService.java"), """
+            package io.atworks.shipping;
+
+            import io.atworks.order.Order;
+            import io.atworks.order.User;
+            import io.atworks.repository.OrderRepository;
+
+            public class CancelOrderService {
+                private OrderRepository orderRepository;
+
+                public void cancel(String orderNo, User canceller) {
+                    Order order = orderRepository.findById(orderNo);
+                    order.cancel(canceller);
+                }
+            }
+        """);
+
+        Path controllerDir = srcRoot.resolve("io/atworks/shipping");
+        Files.writeString(controllerDir.resolve("ShippingController.java"), """
+            package io.atworks.shipping;
+
+            import io.atworks.order.User;
+            import org.springframework.web.bind.annotation.PathVariable;
+            import org.springframework.web.bind.annotation.PostMapping;
+            import org.springframework.web.bind.annotation.RestController;
+
+            @RestController
+            public class ShippingController {
+                private ShippingService shippingService;
+                private CancelOrderService cancelOrderService;
+
+                @PostMapping("/admin/orders/{orderNo}/shipping")
+                public void startShipping(@PathVariable String orderNo) {
+                    shippingService.startShipping(orderNo);
+                }
+
+                @PostMapping("/my/orders/{orderNo}/cancel")
+                public void cancel(@PathVariable String orderNo) {
+                    cancelOrderService.cancel(orderNo, new User());
+                }
+            }
+        """);
+
+        Path adviceDir = srcRoot.resolve("io/atworks/shipping");
+        Files.writeString(adviceDir.resolve("OrderExceptionHandler.java"), """
+            package io.atworks.shipping;
+
+            import org.springframework.http.HttpStatus;
+            import org.springframework.web.bind.annotation.ExceptionHandler;
+            import org.springframework.web.bind.annotation.ResponseStatus;
+            import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+            @RestControllerAdvice
+            public class OrderExceptionHandler {
+                @ExceptionHandler(IllegalStateException.class)
+                @ResponseStatus(HttpStatus.CONFLICT)
+                public String handleIllegalState(IllegalStateException ex) {
+                    return ex.getMessage();
+                }
+            }
+        """);
+
+        SpringStaticScanService scanService = new SpringStaticScanService();
+        StaticScanResult scanResult = scanService.scan(repositorySource);
+
+        ValidationExtractionService extractionService = new ValidationExtractionService();
+        ValidationExtractionResult extractionResult = extractionService.extract(scanResult, repositorySource);
+
+        ValidationEvidenceGraphBuilder graphBuilder = new ValidationEvidenceGraphBuilder();
+        ValidationEvidenceGraph graph = graphBuilder.build(scanResult, extractionResult, repositorySource);
+
+        assertThat(graph.nodes()).anyMatch(node -> node.id().startsWith("SERVICE_METHOD:io.atworks.shipping.ShippingService.startShipping("));
+        assertThat(graph.nodes()).anyMatch(node -> node.id().startsWith("SERVICE_METHOD:io.atworks.order.Order.startShipping("));
+        assertThat(graph.nodes()).anyMatch(node -> node.id().startsWith("BUSINESS_RULE:io.atworks.order.Order.startShipping(") && node.label().contains("PAYED"));
+        assertThat(graph.nodes()).anyMatch(node -> node.id().equals("EXCEPTION:IllegalStateException"));
+        assertThat(graph.nodes()).anyMatch(node -> node.id().equals("HTTP_STATUS:409 CONFLICT"));
+
+        assertThat(graph.edges()).anyMatch(edge ->
+            edge.sourceId().startsWith("SERVICE_METHOD:io.atworks.shipping.ShippingService.startShipping(")
+                && edge.targetId().startsWith("SERVICE_METHOD:io.atworks.order.Order.startShipping(")
+                && edge.type() == GraphEdgeType.CALLS
+        );
+        assertThat(graph.edges()).anyMatch(edge ->
+            edge.sourceId().startsWith("SERVICE_METHOD:io.atworks.order.Order.startShipping(")
+                && edge.targetId().startsWith("BUSINESS_RULE:io.atworks.order.Order.startShipping(")
+                && edge.type() == GraphEdgeType.EVALUATES
+        );
+        assertThat(graph.edges()).anyMatch(edge ->
+            edge.sourceId().startsWith("BUSINESS_RULE:io.atworks.order.Order.startShipping(")
+                && edge.targetId().equals("EXCEPTION:IllegalStateException")
+                && edge.type() == GraphEdgeType.THROWS
+        );
+        assertThat(graph.edges()).anyMatch(edge ->
+            edge.sourceId().equals("ENDPOINT:POST:/my/orders/{orderNo}/cancel")
+                && edge.targetId().startsWith("SERVICE_METHOD:io.atworks.shipping.CancelOrderService.cancel(")
+                && edge.type() == GraphEdgeType.CALLS
+        );
+        assertThat(graph.edges()).anyMatch(edge ->
+            edge.sourceId().startsWith("SERVICE_METHOD:io.atworks.shipping.CancelOrderService.cancel(")
+                && edge.targetId().startsWith("SERVICE_METHOD:io.atworks.order.Order.cancel(")
+                && edge.type() == GraphEdgeType.CALLS
+        );
+        assertThat(graph.nodes()).anyMatch(node ->
+            node.id().startsWith("BUSINESS_RULE:io.atworks.order.Order.cancel(")
+                && node.label().contains("hasCancellationPermission")
+        );
+    }
+
+    @Test
+    public void testBuildEvidenceGraphUsesResolvedMethodSignatureForOverloads() throws Exception {
+        Path srcRoot = tempDir.resolve("src/main/java");
+
+        Path serviceDir = srcRoot.resolve("io/atworks/overload");
+        Files.createDirectories(serviceDir);
+        Files.writeString(serviceDir.resolve("OverloadService.java"), """
+            package io.atworks.overload;
+
+            public class OverloadService {
+                public void process(String userId) {
+                    validate(userId);
+                }
+
+                public void validate(String userId) {
+                    if (userId.isBlank()) {
+                        throw new IllegalArgumentException("blank");
+                    }
+                }
+
+                public void validate(Long userId) {
+                    throw new IllegalStateException("wrong overload");
+                }
+            }
+        """);
+        Files.writeString(serviceDir.resolve("OverloadController.java"), """
+            package io.atworks.overload;
+
+            import org.springframework.web.bind.annotation.PathVariable;
+            import org.springframework.web.bind.annotation.PostMapping;
+            import org.springframework.web.bind.annotation.RestController;
+
+            @RestController
+            public class OverloadController {
+                private OverloadService overloadService;
+
+                @PostMapping("/overload/{userId}")
+                public void process(@PathVariable String userId) {
+                    overloadService.process(userId);
+                }
+            }
+        """);
+        Files.writeString(serviceDir.resolve("OverloadExceptionHandler.java"), """
+            package io.atworks.overload;
+
+            import org.springframework.http.HttpStatus;
+            import org.springframework.web.bind.annotation.ExceptionHandler;
+            import org.springframework.web.bind.annotation.ResponseStatus;
+            import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+            @RestControllerAdvice
+            public class OverloadExceptionHandler {
+                @ExceptionHandler(IllegalArgumentException.class)
+                @ResponseStatus(HttpStatus.BAD_REQUEST)
+                public String handleIllegalArgument(IllegalArgumentException ex) {
+                    return ex.getMessage();
+                }
+            }
+        """);
+
+        SpringStaticScanService scanService = new SpringStaticScanService();
+        StaticScanResult scanResult = scanService.scan(repositorySource);
+        ValidationExtractionResult extractionResult = new ValidationExtractionService().extract(scanResult, repositorySource);
+        ValidationEvidenceGraph graph = new ValidationEvidenceGraphBuilder().build(scanResult, extractionResult, repositorySource);
+
+        assertThat(graph.nodes()).anyMatch(node ->
+            node.id().startsWith("SERVICE_METHOD:io.atworks.overload.OverloadService.validate(java.lang.String)")
+        );
+        assertThat(graph.nodes()).noneMatch(node ->
+            node.id().startsWith("SERVICE_METHOD:io.atworks.overload.OverloadService.validate(java.lang.Long)")
+        );
+        assertThat(graph.nodes()).anyMatch(node -> node.id().equals("EXCEPTION:IllegalArgumentException"));
+        assertThat(graph.nodes()).noneMatch(node -> node.id().equals("EXCEPTION:IllegalStateException"));
+    }
+
+    @Test
+    public void testBuildEvidenceGraphTraversesBeyondFixedDepthChains() throws Exception {
+        Path srcRoot = tempDir.resolve("src/main/java");
+
+        Path packageDir = srcRoot.resolve("io/atworks/depth");
+        Files.createDirectories(packageDir);
+        Files.writeString(packageDir.resolve("DeepController.java"), """
+            package io.atworks.depth;
+
+            import org.springframework.web.bind.annotation.PostMapping;
+            import org.springframework.web.bind.annotation.RestController;
+
+            @RestController
+            public class DeepController {
+                private DeepService deepService;
+
+                @PostMapping("/deep/orders")
+                public void create() {
+                    deepService.start();
+                }
+            }
+        """);
+        Files.writeString(packageDir.resolve("DeepService.java"), """
+            package io.atworks.depth;
+
+            public class DeepService {
+                private DeepHelper deepHelper;
+
+                public void start() {
+                    deepHelper.load();
+                }
+            }
+        """);
+        Files.writeString(packageDir.resolve("DeepHelper.java"), """
+            package io.atworks.depth;
+
+            public class DeepHelper {
+                private DeepDomain deepDomain;
+
+                public void load() {
+                    deepDomain.advance();
+                }
+            }
+        """);
+        Files.writeString(packageDir.resolve("DeepDomain.java"), """
+            package io.atworks.depth;
+
+            public class DeepDomain {
+                private DeepGuard deepGuard;
+
+                public void advance() {
+                    deepGuard.ensureReady();
+                }
+            }
+        """);
+        Files.writeString(packageDir.resolve("DeepGuard.java"), """
+            package io.atworks.depth;
+
+            public class DeepGuard {
+                public void ensureReady() {
+                    if (true) {
+                        throw new IllegalArgumentException("too deep for fixed depth");
+                    }
+                }
+            }
+        """);
+
+        SpringStaticScanService scanService = new SpringStaticScanService();
+        StaticScanResult scanResult = scanService.scan(repositorySource);
+        ValidationExtractionResult extractionResult = new ValidationExtractionService().extract(scanResult, repositorySource);
+        ValidationEvidenceGraph graph = new ValidationEvidenceGraphBuilder().build(scanResult, extractionResult, repositorySource);
+
+        assertThat(graph.nodes()).anyMatch(node ->
+            node.id().startsWith("SERVICE_METHOD:io.atworks.depth.DeepService.start()")
+        );
+        assertThat(graph.nodes()).anyMatch(node ->
+            node.id().startsWith("SERVICE_METHOD:io.atworks.depth.DeepHelper.load()")
+        );
+        assertThat(graph.nodes()).anyMatch(node ->
+            node.id().startsWith("SERVICE_METHOD:io.atworks.depth.DeepDomain.advance()")
+        );
+        assertThat(graph.nodes()).anyMatch(node ->
+            node.id().startsWith("SERVICE_METHOD:io.atworks.depth.DeepGuard.ensureReady()")
+        );
+        assertThat(graph.nodes()).anyMatch(node ->
+            node.id().startsWith("BUSINESS_RULE:io.atworks.depth.DeepGuard.ensureReady(")
+        );
     }
 }
