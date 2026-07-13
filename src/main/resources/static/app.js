@@ -22,7 +22,6 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     button.disabled = true;
     
-    // Set UI State for Loading
     consoleText.textContent = "> Initializing scan payload...\n> Contacting Spec Scanner Engine...\n> This process analyzes repository Java AST and build patterns. Please wait.";
     consoleText.className = "console-text";
     statsGrid.style.display = "none";
@@ -60,7 +59,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Event listeners for filtering
   operationSearch.addEventListener("input", filterAndRender);
   methodFilter.addEventListener("change", filterAndRender);
 
@@ -69,7 +67,6 @@ document.addEventListener("DOMContentLoaded", () => {
     allOperations = ops;
     rawJsonContent.textContent = JSON.stringify(result, null, 2);
 
-    // Calculate metrics
     let totalPreconditions = 0;
     let totalAssertions = 0;
     let totalExcluded = 0;
@@ -87,7 +84,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     statsGrid.style.display = "grid";
 
-    // Build unique method list for dropdown filter
     const uniqueMethods = [...new Set(ops.map(op => op.method).filter(Boolean))].sort();
     methodFilter.innerHTML = `<option value="">All HTTP Methods</option>` + uniqueMethods.map(m => `
       <option value="${m}">${m}</option>
@@ -143,14 +139,53 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="op-details-body" style="display: none;">
             <!-- Tabs Navigation -->
             <div class="tab-navigation">
-              <button class="tab-btn active" onclick="window.switchOpTab(event, ${idx}, 'preconditions')">Preconditions (${numPre})</button>
+              <button class="tab-btn active" onclick="window.switchOpTab(event, ${idx}, 'specs')">API Specs</button>
+              <button class="tab-btn" onclick="window.switchOpTab(event, ${idx}, 'payload')">Payloads</button>
+              <button class="tab-btn" onclick="window.switchOpTab(event, ${idx}, 'preconditions')">Preconditions (${numPre})</button>
               <button class="tab-btn" onclick="window.switchOpTab(event, ${idx}, 'assertions')">Assertions (${numAssert})</button>
               <button class="tab-btn" onclick="window.switchOpTab(event, ${idx}, 'excluded')">Excluded Rules (${numExcluded})</button>
-              <button class="tab-btn" onclick="window.switchOpTab(event, ${idx}, 'payload')">Payload Schemas</button>
+            </div>
+
+            <!-- Tab: API Specs (Headers, PathParams, QueryParams) -->
+            <div class="tab-content active" id="tab-specs-${idx}">
+              ${renderParametersTable(op.request)}
+            </div>
+
+            <!-- Tab: Payloads (Request Body Schema/Example, Response 200 Schema/Example) -->
+            <div class="tab-content" id="tab-payload-${idx}">
+              <div class="payloads-grid">
+                <!-- Request Payload Structure -->
+                <div class="payload-box">
+                  <div class="payload-title">Request Body Structure</div>
+                  <div style="padding: 12px; max-height: 240px; overflow-y: auto;">
+                    ${op.request && op.request.bodySchema ? renderBodyFieldsTable(op.request.bodySchema, "Request") : `<p style="color: var(--text-dark); font-size:12px;">No request body required.</p>`}
+                  </div>
+                </div>
+
+                <!-- Request Payload Example -->
+                <div class="payload-box">
+                  <div class="payload-title">Request Body Example</div>
+                  <pre><code>${op.request && op.request.bodyExample ? escapeHtml(JSON.stringify(op.request.bodyExample, null, 2)) : "N/A"}</code></pre>
+                </div>
+
+                <!-- Response Payload Structure -->
+                <div class="payload-box">
+                  <div class="payload-title">Response 200 Structure</div>
+                  <div style="padding: 12px; max-height: 240px; overflow-y: auto;">
+                    ${op.response200 && op.response200.schema ? renderBodyFieldsTable(op.response200.schema, "Response") : `<p style="color: var(--text-dark); font-size:12px;">No response body.</p>`}
+                  </div>
+                </div>
+
+                <!-- Response Payload Example -->
+                <div class="payload-box">
+                  <div class="payload-title">Response 200 Example</div>
+                  <pre><code>${op.response200 && op.response200.example ? escapeHtml(JSON.stringify(op.response200.example, null, 2)) : "N/A"}</code></pre>
+                </div>
+              </div>
             </div>
 
             <!-- Tab: Preconditions -->
-            <div class="tab-content active" id="tab-preconditions-${idx}">
+            <div class="tab-content" id="tab-preconditions-${idx}">
               ${renderConditionsTable(op.requestPreconditions, "No preconditions mapped.")}
             </div>
 
@@ -163,32 +198,146 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="tab-content" id="tab-excluded-${idx}">
               ${renderConditionsTable(op.excludedBusinessRules, "No internal business rules were excluded.")}
             </div>
-
-            <!-- Tab: Payload Schemas -->
-            <div class="tab-content" id="tab-payload-${idx}">
-              <div class="payloads-grid">
-                <div class="payload-box">
-                  <div class="payload-title">Request Body Schema</div>
-                  <pre><code>${op.request && op.request.bodySchema ? escapeHtml(JSON.stringify(op.request.bodySchema, null, 2)) : "No request body required."}</code></pre>
-                </div>
-                <div class="payload-box">
-                  <div class="payload-title">Request Body Example</div>
-                  <pre><code>${op.request && op.request.bodyExample ? escapeHtml(JSON.stringify(op.request.bodyExample, null, 2)) : "N/A"}</code></pre>
-                </div>
-                <div class="payload-box">
-                  <div class="payload-title">Response 200 Schema</div>
-                  <pre><code>${op.response200 && op.response200.schema ? escapeHtml(JSON.stringify(op.response200.schema, null, 2)) : "No response body."}</code></pre>
-                </div>
-                <div class="payload-box">
-                  <div class="payload-title">Response 200 Example</div>
-                  <pre><code>${op.response200 && op.response200.example ? escapeHtml(JSON.stringify(op.response200.example, null, 2)) : "N/A"}</code></pre>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       `;
     }).join("");
+  }
+
+  // Renders Path variable, Query parameters, and Headers in a clean table
+  function renderParametersTable(request) {
+    if (!request) {
+      return `<div class="empty-state" style="padding: 20px;"><i class="ph ph-info"></i><p>No request metadata</p></div>`;
+    }
+    const pathParams = request.pathParams || [];
+    const queryParams = request.queryParams || [];
+    const headers = request.headers || [];
+
+    if (pathParams.length === 0 && queryParams.length === 0 && headers.length === 0) {
+      return `<div class="empty-state" style="padding: 20px;"><i class="ph ph-info"></i><p>No Path, Query, or Header parameters required.</p></div>`;
+    }
+
+    let rows = "";
+    pathParams.forEach(p => {
+      rows += renderParamRow("Path Variable", p);
+    });
+    queryParams.forEach(p => {
+      rows += renderParamRow("Query Parameter", p);
+    });
+    headers.forEach(p => {
+      rows += renderParamRow("Header", p);
+    });
+
+    return `
+      <table class="conditions-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Name</th>
+            <th>Required</th>
+            <th>DataType</th>
+            <th>Default Value</th>
+            <th>Example</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderParamRow(type, param) {
+    const typeClass = type.replace(/\s+/g, "-").toLowerCase();
+    const schemaSummary = param.schema ? (param.schema.type + (param.schema.format ? ` (${param.schema.format})` : "")) : "string";
+    return `
+      <tr>
+        <td><span class="table-location param-badge-${typeClass}">${escapeHtml(type)}</span></td>
+        <td><span class="table-path">${escapeHtml(param.name)}</span></td>
+        <td><span class="badge-required ${param.required ? 'req' : 'opt'}">${param.required ? 'Required' : 'Optional'}</span></td>
+        <td><span class="table-operator">${escapeHtml(schemaSummary)}</span></td>
+        <td><span style="color: var(--text-dark); font-family: monospace;">${escapeHtml(param.defaultValue || "-")}</span></td>
+        <td><span class="table-expected">${escapeHtml(param.example || "-")}</span></td>
+        <td><span style="color: var(--text-muted); font-size: 11px;">${escapeHtml(param.description || "-")}</span></td>
+      </tr>
+    `;
+  }
+
+  // Generates flat list table of fields inside request/response JSON schema
+  function renderBodyFieldsTable(schema, title) {
+    if (!schema) return "";
+    const rows = [];
+    buildSchemaRows(schema, "$", true, rows);
+
+    if (rows.length === 0) {
+      return `<p style="color: var(--text-dark); font-size:12px;">Empty schema object.</p>`;
+    }
+
+    return `
+      <table class="conditions-table">
+        <thead>
+          <tr>
+            <th>Field Path</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Constraints</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map(r => `
+            <tr>
+              <td><span class="table-path">${escapeHtml(r.path)}</span></td>
+              <td><span class="table-operator">${escapeHtml(r.type)}</span></td>
+              <td><span class="badge-required ${r.required ? 'req' : 'opt'}">${r.required ? 'Required' : 'Optional'}</span></td>
+              <td><span style="color: var(--text-muted); font-size: 11px; white-space: pre-wrap;">${escapeHtml(r.constraints)}</span></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function buildSchemaRows(schema, currentPath, isRequired, rows) {
+    if (!schema) return;
+    const type = schema.type || "object";
+
+    if (type === "object" && schema.properties) {
+      const requiredSet = new Set(schema.required || []);
+      Object.entries(schema.properties).forEach(([key, prop]) => {
+        const nextPath = currentPath === "$" ? `$.${key}` : `${currentPath}.${key}`;
+        const isFieldReq = requiredSet.has(key);
+        
+        let constraints = [];
+        if (prop.format) constraints.push(`format: ${prop.format}`);
+        if (prop.minLength != null) constraints.push(`minLength: ${prop.minLength}`);
+        if (prop.maxLength != null) constraints.push(`maxLength: ${prop.maxLength}`);
+        if (prop.minimum != null) constraints.push(`minimum: ${prop.minimum}`);
+        if (prop.pattern) constraints.push(`pattern: ${prop.pattern}`);
+        if (prop.enum && prop.enum.length > 0) constraints.push(`enum: [${prop.enum.join(", ")}]`);
+
+        rows.push({
+          path: nextPath,
+          type: prop.type || "object",
+          required: isFieldReq,
+          constraints: constraints.join(", ") || "-"
+        });
+
+        if (prop.type === "object" || (prop.type === "array" && prop.items && prop.items.type === "object")) {
+          const subSchema = prop.type === "array" ? prop.items : prop;
+          const subPath = prop.type === "array" ? `${nextPath}[*]` : nextPath;
+          buildSchemaRows(subSchema, subPath, isFieldReq, rows);
+        }
+      });
+    } else if (type === "array" && schema.items) {
+      rows.push({
+        path: `${currentPath}[*]`,
+        type: schema.items.type || "object",
+        required: isRequired,
+        constraints: "-"
+      });
+      buildSchemaRows(schema.items, `${currentPath}[*]`, isRequired, rows);
+    }
   }
 
   function renderConditionsTable(conditions, emptyMsg) {
@@ -221,7 +370,6 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
   }
 
-  // Global window functions for event handlers inside dynamically generated HTML
   window.toggleOpAccordion = (index) => {
     const card = document.getElementById(`op-card-${index}`);
     const body = card.querySelector(".op-details-body");
@@ -237,14 +385,12 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   window.switchOpTab = (event, index, tabName) => {
-    event.stopPropagation(); // Prevent accordion from toggling when clicking tabs
+    event.stopPropagation();
     const card = document.getElementById(`op-card-${index}`);
     
-    // Deactivate all tab buttons and hide all contents inside this card
     card.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
     card.querySelectorAll(".tab-content").forEach(content => content.classList.remove("active"));
 
-    // Activate selected button and show content
     event.target.classList.add("active");
     card.querySelector(`#tab-${tabName}-${index}`).classList.add("active");
   };
