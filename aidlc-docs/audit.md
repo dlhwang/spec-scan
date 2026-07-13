@@ -665,3 +665,19 @@
 **User Input**: "승인"
 **AI Response**: "설계 정렬 계획이 승인됨에 따라, Java 소스 코드 상에서 ApiCondition record에 conditionType 필드를 추가하고, ExecutionSpecExporter에서 AUTH/RESOURCE 등의 도메인 조건을 최종 계약서에서 배제하도록 필터링을 구현했다. 또한 출력 포맷을 requestPreconditions와 responseAssertions로 이원화하고 200 STATUS 어설션을 자동 추가했으며, 이에 맞춰 모든 기존 회귀 및 단위 테스트 코드를 수정하여 전체 테스트 통과를 성공시켰다."
 **Context**: CONSTRUCTION - Precondition/Assertion Architecture Implementation & Testing
+
+---
+
+## excludedBusinessRules Visual Feedback Implementation
+**Timestamp**: 2026-07-13T14:56:45+09:00
+**User Input**: "그런디 잘된건 맞는디. internal business rule이 분석은 헀는디 보여지지 않으니께는 암시롱도 안한것같으니까 보여주기만 할까 같이?"
+**AI Response**: "피드백에 따라, 분석은 완료되었으나 최종 테스트 계약서 모델(preconditions/assertions)에서 제외된 내부 비즈니스 규칙들을 JSON 출력의 excludedBusinessRules 필드에 보존하여 보여주도록 개선했다. 관련 specs 명세를 보완하고, 테스트 코드 내에 excludedBusinessRules 어설션을 추가하여 전체 빌드 및 테스트 패스를 완료한 후 커밋했다."
+**Context**: CONSTRUCTION - excludedBusinessRules Visual Feedback Implementation
+
+---
+
+## Web UI Premium Redesign & Static Resource Serving
+**Timestamp**: 2026-07-13T15:15:20+09:00
+**User Input**: "D:\\workspace\\auto-oas\\src\\main\\java\\io\\atworks\\specscan\\SpecScanWebServer.java여기에 말도안되게 하드 코딩해서 해놓긴해는데 일단 \\src\\main\\resources 에 html이나 js를 몰아 넣고 API를 만들어서 확인할 수 있는 UI를 만들어 줄 수 있겠니?"
+**AI Response**: "하드코딩되어 있던 HTML 문자열을 완전히 제거하고, src/main/resources/static/ 하위에 premium dark mode 테마 및 glassmorphism, bento grid 통계 카드를 적용한 모던 UI(index.html, style.css, app.js)를 신설했다. SpecScanWebServer.java를 리팩토링하여 클래스패스에서 정적 자원을 동적으로 읽어 서빙하도록 개선했고, 엔드포인트 세부 정보 카드 내에 Tab UI를 추가하여 preconditions, assertions, 그리고 필터링 배제된 excludedBusinessRules를 한눈에 볼 수 있도록 시각화했다."
+**Context**: CONSTRUCTION - Web UI Premium Redesign & Static Resource Serving

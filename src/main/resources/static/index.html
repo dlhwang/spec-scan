@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto-OAS Spec Scan Dashboard</title>
+  <!-- Google Fonts & Phosphor Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <i class="ph-bold ph-shield-check"></i>
+        </div>
+        <div class="logo-text">
+          <h1>Auto-OAS</h1>
+          <p>API Contract Spec Scan Dashboard</p>
+        </div>
+      </div>
+      <div class="system-status">
+        <span class="status-indicator online"></span>
+        <span class="status-label">Scanner Engine Active</span>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="app-main">
+      <!-- Left Panel: Scan Trigger Form -->
+      <aside class="sidebar-panel">
+        <div class="panel-header">
+          <i class="ph-bold ph-git-fork"></i>
+          <h2>Repository Scanner</h2>
+        </div>
+        <form id="scanForm" class="scan-form">
+          <div class="form-group">
+            <label for="projectName">Project Name</label>
+            <div class="input-wrapper">
+              <i class="ph ph-folder"></i>
+              <input type="text" id="projectName" name="projectName" value="my-project" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="repositoryUrl">Git Repository URL</label>
+            <div class="input-wrapper">
+              <i class="ph ph-link"></i>
+              <input type="url" id="repositoryUrl" name="repositoryUrl" value="https://github.com/madvirus/ddd-start2.git" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="baseUrl">Base API URL</label>
+            <div class="input-wrapper">
+              <i class="ph ph-globe"></i>
+              <input type="url" id="baseUrl" name="baseUrl" value="http://localhost:8080" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="revisionType">Revision Type</label>
+              <div class="select-wrapper">
+                <select id="revisionType" name="revisionType">
+                  <option value="">Default (HEAD)</option>
+                  <option value="branch">Branch</option>
+                  <option value="tag">Tag</option>
+                  <option value="commit">Commit SHA</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="revision">Value</label>
+              <input type="text" id="revision" name="revision" placeholder="main">
+            </div>
+          </div>
+
+          <button type="submit" id="submitButton" class="btn-primary">
+            <i class="ph-bold ph-play-circle"></i>
+            <span>Execute Analysis Scan</span>
+          </button>
+        </form>
+
+        <div id="statusConsole" class="status-console">
+          <div class="console-header">
+            <span>Execution Logs</span>
+            <span class="pulse-dot"></span>
+          </div>
+          <div id="consoleText" class="console-text">Ready to accept scan payload.</div>
+        </div>
+      </aside>
+
+      <!-- Right Panel: Visualization Dashboard -->
+      <section class="dashboard-panel">
+        <div class="panel-header search-header">
+          <div class="search-area">
+            <i class="ph ph-magnifying-glass"></i>
+            <input type="text" id="operationSearch" placeholder="Search by Path, Operation ID, or Controller...">
+          </div>
+          <div class="filter-area">
+            <select id="methodFilter">
+              <option value="">All HTTP Methods</option>
+            </select>
+            <div class="total-badge">
+              <span id="operationCount">0</span> Endpoints Found
+            </div>
+          </div>
+        </div>
+
+        <!-- Bento Grid Statistics -->
+        <div id="statsGrid" class="bento-grid" style="display: none;">
+          <div class="bento-card card-cyan">
+            <div class="card-icon"><i class="ph-bold ph-lightning"></i></div>
+            <div class="card-info">
+              <h3>Active Operations</h3>
+              <strong id="metricOps">0</strong>
+            </div>
+          </div>
+          <div class="bento-card card-emerald">
+            <div class="card-icon"><i class="ph-bold ph-brackets-curly"></i></div>
+            <div class="card-info">
+              <h3>Preconditions Checked</h3>
+              <strong id="metricPreconditions">0</strong>
+            </div>
+          </div>
+          <div class="bento-card card-purple">
+            <div class="card-icon"><i class="ph-bold ph-shield-alert"></i></div>
+            <div class="card-info">
+              <h3>Response Assertions</h3>
+              <strong id="metricAssertions">0</strong>
+            </div>
+          </div>
+          <div class="bento-card card-orange">
+            <div class="card-icon"><i class="ph-bold ph-exclude"></i></div>
+            <div class="card-info">
+              <h3>Excluded Business Rules</h3>
+              <strong id="metricExcluded">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Endpoint List Accordion -->
+        <div id="operationsList" class="operations-list">
+          <div class="empty-state">
+            <i class="ph ph-stack"></i>
+            <p>No repository scan results loaded. Submit a scan request on the left panel to begin.</p>
+          </div>
+        </div>
+
+        <!-- Raw JSON Viewer -->
+        <details class="raw-json-details">
+          <summary class="raw-json-summary">
+            <i class="ph ph-file-code"></i>
+            <span>Raw Executable Contract JSON</span>
+          </summary>
+          <pre><code id="rawJsonContent">{}</code></pre>
+        </details>
+      </section>
+    </main>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
