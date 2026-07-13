@@ -689,3 +689,11 @@
 **User Input**: "일단 켜져있는거 꺼봐"
 **AI Response**: "요청에 따라 백그라운드에서 동작 중이던 SpecScanWebServer(runWeb 태스크, task-236)를 manage_task 도구를 통해 취소(종료)했다."
 **Context**: PROCESS_CONTROL - Web Server Shutdown
+
+---
+
+## API Specification Details Visualization
+**Timestamp**: 2026-07-13T15:18:50+09:00
+**User Input**: "그래도 API 정보들도 표현해줘. Header, Pathvariable, QueryString, Request Body, Response Body 정보가 있잖애"
+**AI Response**: "피드백을 반영하여 웹 UI 대시보드에 API 파라미터 및 바디 스키마 명세를 시각화했다. API Specs 탭을 신설하여 Headers, Path Variables, Query Strings 정보를 표로 렌더링했고, Payloads 탭을 개편하여 Request/Response Body 스키마의 중첩 필드 목록과 제약조건(constraints)을 구조 테이블로 플래닝하여 출력했다. 관련 스타일(Required/Optional 뱃지, 파라미터 분류별 HSL 뱃지)을 style.css에 추가하고 빌드 및 전체 테스트를 검증하여 커밋을 완료했다."
+**Context**: CONSTRUCTION - API Specification Details Visualization
