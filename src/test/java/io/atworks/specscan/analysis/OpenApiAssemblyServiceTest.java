@@ -173,15 +173,20 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionJson.at("/operations/0/response200/schema/items/properties/nextVisitDate/format").asText()).isEqualTo("date");
         assertThat(executionJson.at("/operations/0/response200/schema/items/properties/specialty/enumValues/1").asText()).isEqualTo("DENTISTRY");
 
-        JsonNode validationConditions = executionJson.at("/operations/0/validationConditions");
-        assertThat(validationConditions).hasSize(3);
-        assertThat(validationConditions.toString()).contains("$.description");
-        assertThat(validationConditions.toString()).contains("$.requestId");
-        assertThat(validationConditions.toString()).contains("$.owner.address.city");
-        assertThat(validationConditions.toString()).doesNotContain("$.visitForm");
-        assertThat(validationConditions.toString()).doesNotContain("$.city\"");
-        assertThat(validationConditions.toString()).doesNotContain("$.petId");
-        assertThat(validationConditions.toString()).doesNotContain("unknownField");
+        JsonNode requestPreconditions = executionJson.at("/operations/0/requestPreconditions");
+        assertThat(requestPreconditions).hasSize(3);
+        assertThat(requestPreconditions.toString()).contains("$.description");
+        assertThat(requestPreconditions.toString()).contains("$.requestId");
+        assertThat(requestPreconditions.toString()).contains("$.owner.address.city");
+        assertThat(requestPreconditions.toString()).doesNotContain("$.visitForm");
+        assertThat(requestPreconditions.toString()).doesNotContain("$.city\"");
+        assertThat(requestPreconditions.toString()).doesNotContain("$.petId");
+        assertThat(requestPreconditions.toString()).doesNotContain("unknownField");
+
+        JsonNode responseAssertions = executionJson.at("/operations/0/responseAssertions");
+        assertThat(responseAssertions).hasSize(1);
+        assertThat(responseAssertions.get(0).get("targetLocation").asText()).isEqualTo("STATUS");
+        assertThat(responseAssertions.get(0).get("expected").asText()).isEqualTo("200");
         assertThat(graphJson.at("/nodes").isArray()).isTrue();
         assertThat(graphJson.at("/edges").isArray()).isTrue();
     }
@@ -277,7 +282,7 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionJson.at("/operations/0/request/queryParams/0/name").asText()).isEqualTo("pageable");
         assertThat(executionJson.at("/operations/0/request/bodySchema/properties/owner/properties/address/properties/city/type").asText())
             .isEqualTo("string");
-        assertThat(executionJson.at("/operations/0/validationConditions").toString())
+        assertThat(executionJson.at("/operations/0/requestPreconditions").toString())
             .contains("$.description")
             .contains("$.requestId")
             .doesNotContain("pageSize");
@@ -645,10 +650,13 @@ class OpenApiAssemblyServiceTest {
 
         JsonNode executionJson = objectMapper.readTree(exporter.export(scanResult, List.of(), conditions, repositorySource));
 
-        assertThat(executionJson.at("/operations/0/validationConditions").toString()).contains("$.version");
-        assertThat(executionJson.at("/operations/0/validationConditions").toString()).doesNotContain("HAS_CANCELLATION_PERMISSION");
-        assertThat(executionJson.at("/operations/1/validationConditions").toString()).contains("HAS_CANCELLATION_PERMISSION");
-        assertThat(executionJson.at("/operations/1/validationConditions").toString()).doesNotContain("$.version");
+        assertThat(executionJson.at("/operations/0/requestPreconditions").toString()).doesNotContain("$.version");
+        assertThat(executionJson.at("/operations/0/requestPreconditions").toString()).doesNotContain("OPTIMISTIC_LOCK_MATCH");
+        assertThat(executionJson.at("/operations/1/requestPreconditions").toString()).doesNotContain("HAS_CANCELLATION_PERMISSION");
+        assertThat(executionJson.at("/operations/1/requestPreconditions").toString()).doesNotContain("$.version");
+
+        assertThat(executionJson.at("/operations/0/responseAssertions").toString()).contains("STATUS");
+        assertThat(executionJson.at("/operations/1/responseAssertions").toString()).contains("STATUS");
     }
 
     @Test
@@ -820,17 +828,19 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionJson.at("/operations/1/request/bodySchema/properties/orderProducts/items/properties/productId/type").asText()).isEqualTo("integer");
         assertThat(executionJson.at("/operations/1/request/bodySchema/properties/ordererMemberId/properties/id/type").asText()).isEqualTo("integer");
         assertThat(executionJson.at("/operations/1/request/bodySchema/properties/shippingInfo/properties/address/properties/zipCode/type").asText()).isEqualTo("string");
-        assertThat(executionJson.at("/operations/1/validationConditions").toString())
+        assertThat(executionJson.at("/operations/1/requestPreconditions").toString())
             .contains("$.orderProducts")
             .contains("$.orderProducts[*].productId")
             .contains("$.shippingInfo.receiver.name");
-        assertThat(executionJson.at("/operations/2/validationConditions").toString())
-            .contains("OPTIMISTIC_LOCK_MATCH")
-            .doesNotContain("HAS_CANCELLATION_PERMISSION");
-        assertThat(executionJson.at("/operations/3/validationConditions").toString())
-            .contains("HAS_CANCELLATION_PERMISSION")
-            .contains("STATE_IN")
+        assertThat(executionJson.at("/operations/2/requestPreconditions").toString())
             .doesNotContain("OPTIMISTIC_LOCK_MATCH");
+        assertThat(executionJson.at("/operations/3/requestPreconditions").toString())
+            .doesNotContain("HAS_CANCELLATION_PERMISSION")
+            .doesNotContain("STATE_IN");
+
+        assertThat(executionJson.at("/operations/1/responseAssertions").toString()).contains("STATUS");
+        assertThat(executionJson.at("/operations/2/responseAssertions").toString()).contains("STATUS");
+        assertThat(executionJson.at("/operations/3/responseAssertions").toString()).contains("STATUS");
     }
 
     private RepositorySource buildRepositorySource(Path tempDir, StaticScanResult scanResult) {

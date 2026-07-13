@@ -88,7 +88,8 @@ public class ExecutionSpecExporter {
         operation.put("controllerClass", endpoint.controllerClass());
         operation.put("request", requestSpec.request());
         operation.put("response200", buildResponse(endpoint, typeResolver));
-        operation.put("validationConditions", requestSpec.endpointConditions());
+        operation.put("requestPreconditions", requestSpec.requestPreconditions());
+        operation.put("responseAssertions", requestSpec.responseAssertions());
         return operation;
     }
 
@@ -103,7 +104,8 @@ public class ExecutionSpecExporter {
         request.put("pathParams", buildParameterGroup(endpoint, BindingLocation.PATH));
         request.put("queryParams", buildParameterGroup(endpoint, BindingLocation.QUERY));
         request.put("headers", buildParameterGroup(endpoint, BindingLocation.HEADER));
-        List<Map<String, Object>> endpointConditions = buildEndpointConditions(endpoint, drafts, conditions);
+        List<Map<String, Object>> requestPreconditions = buildRequestPreconditions(endpoint, drafts, conditions);
+        List<Map<String, Object>> responseAssertions = buildResponseAssertions(endpoint, drafts, conditions);
 
         RequestBinding bodyBinding = endpoint.requestBindings().stream()
             .filter(binding -> binding.targetLocation() == BindingLocation.BODY)
@@ -112,30 +114,30 @@ public class ExecutionSpecExporter {
         if (bodyBinding == null) {
             request.put("bodySchema", null);
             request.put("bodyExample", null);
-            return new RequestSpec(request, endpointConditions, Set.of());
+            return new RequestSpec(request, requestPreconditions, responseAssertions, Set.of());
         }
 
         List<ApiConditionDraft> bodyDrafts = new ArrayList<>();
         List<ApiCondition> bodyConditions = new ArrayList<>();
-for (Map<String, Object> endpointCondition : endpointConditions) {
-    if (!"BODY".equals(endpointCondition.get("targetLocation"))) {
-        continue;
-    }
-    String targetPath = schemaRelativeBodyPath(bodyBinding, String.valueOf(endpointCondition.get("targetPath")));
-    String operator = String.valueOf(endpointCondition.get("operator"));
-    String expected = endpointCondition.get("expected") == null ? null : String.valueOf(endpointCondition.get("expected"));
-    String source = String.valueOf(endpointCondition.get("source"));
-    if ("BEAN_VALIDATION_ANNOTATION".equals(source)) {
-        bodyDrafts.add(new ApiConditionDraft(targetPath, operator, expected, null, bodyBinding.sourceTrace()));
-    } else {
-        bodyConditions.add(new ApiCondition(ConditionLocation.BODY, targetPath, operator, expected, null, 0.0, null, bodyBinding.sourceTrace(), endpoint.path()));
-    }
-}
+        for (Map<String, Object> precondition : requestPreconditions) {
+            if (!"BODY".equals(precondition.get("targetLocation"))) {
+                continue;
+            }
+            String targetPath = schemaRelativeBodyPath(bodyBinding, String.valueOf(precondition.get("targetPath")));
+            String operator = String.valueOf(precondition.get("operator"));
+            String expected = precondition.get("expected") == null ? null : String.valueOf(precondition.get("expected"));
+            String source = String.valueOf(precondition.get("source"));
+            if ("BEAN_VALIDATION_ANNOTATION".equals(source)) {
+                bodyDrafts.add(new ApiConditionDraft(targetPath, operator, expected, null, bodyBinding.sourceTrace()));
+            } else {
+                bodyConditions.add(new ApiCondition(ConditionLocation.BODY, targetPath, operator, expected, null, 0.0, null, bodyBinding.sourceTrace(), endpoint.path()));
+            }
+        }
 
-Map<String, Object> bodySchema = typeResolver.resolveExpandedSchema(bodyBinding.type(), bodyDrafts, bodyConditions);
-request.put("bodySchema", bodySchema);
-request.put("bodyExample", buildExample(bodySchema));
-return new RequestSpec(request, endpointConditions, Set.of());
+        Map<String, Object> bodySchema = typeResolver.resolveExpandedSchema(bodyBinding.type(), bodyDrafts, bodyConditions);
+        request.put("bodySchema", bodySchema);
+        request.put("bodyExample", buildExample(bodySchema));
+        return new RequestSpec(request, requestPreconditions, responseAssertions, Set.of());
     }
 
     private Map<String, Object> buildResponse(ApiEndpoint endpoint, TypeResolver typeResolver) {
@@ -206,27 +208,87 @@ return new RequestSpec(request, endpointConditions, Set.of());
         return parameters;
     }
 
-private List<Map<String, Object>> buildEndpointConditions(
-    ApiEndpoint endpoint,
-    List<ApiConditionDraft> drafts,
-    List<ApiCondition> conditions
-) {
-    List<Map<String, Object>> endpointConditions = new ArrayList<>();
-    Set<String> conditionKeys = new LinkedHashSet<>();
+    private List<Map<String, Object>> buildRequestPreconditions(
+        ApiEndpoint endpoint,
+        List<ApiConditionDraft> drafts,
+        List<ApiCondition> conditions
+    ) {
+        List<Map<String, Object>> preconditions = new ArrayList<>();
+        Set<String> conditionKeys = new LinkedHashSet<>();
 
-    for (ApiConditionDraft draft : drafts) {
-        addEndpointCondition(endpointConditions, conditionKeys, endpoint, draft.targetPath(), draft.operator(), draft.expected(),
-            "BEAN_VALIDATION_ANNOTATION", null);
-    }
-    for (ApiCondition condition : conditions) {
-        if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
-            continue;
+        for (ApiConditionDraft draft : drafts) {
+            if (isFilteredCondition(draft.targetPath(), null, draft.operator())) {
+                continue;
+            }
+            addEndpointCondition(preconditions, conditionKeys, endpoint, draft.targetPath(), draft.operator(), draft.expected(),
+                "BEAN_VALIDATION_ANNOTATION", null);
         }
-        addEndpointCondition(endpointConditions, conditionKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
-            "SERVICE_LOGIC_HINT", condition.targetLocation());
+        for (ApiCondition condition : conditions) {
+            if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
+                continue;
+            }
+            // conditionType가 PRECONDITION인 것만 수집 (기본값)
+            if (condition.conditionType() != io.atworks.specscan.analysis.domain.ConditionType.PRECONDITION) {
+                continue;
+            }
+            if (isFilteredCondition(condition.targetPath(), condition.targetLocation(), condition.operator())) {
+                continue;
+            }
+            addEndpointCondition(preconditions, conditionKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
+                "SERVICE_LOGIC_HINT", condition.targetLocation());
+        }
+        return preconditions;
     }
-    return endpointConditions;
-}
+
+    private List<Map<String, Object>> buildResponseAssertions(
+        ApiEndpoint endpoint,
+        List<ApiConditionDraft> drafts,
+        List<ApiCondition> conditions
+    ) {
+        List<Map<String, Object>> assertions = new ArrayList<>();
+        Set<String> conditionKeys = new LinkedHashSet<>();
+
+        // 기본 성공 응답 STATUS 200 검증 어설션 자동 추가
+        Map<String, Object> statusAssertion = buildConditionMap("STATUS", "$", "EQUALS", "200", "AUTOMATIC_RESPONSE_SPEC");
+        assertions.add(statusAssertion);
+        conditionKeys.add("STATUS|$|EQUALS|200|AUTOMATIC_RESPONSE_SPEC");
+
+        for (ApiCondition condition : conditions) {
+            if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
+                continue;
+            }
+            if (condition.conditionType() != io.atworks.specscan.analysis.domain.ConditionType.ASSERTION) {
+                continue;
+            }
+            if (isFilteredCondition(condition.targetPath(), condition.targetLocation(), condition.operator())) {
+                continue;
+            }
+            addEndpointCondition(assertions, conditionKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
+                "SERVICE_LOGIC_HINT", condition.targetLocation());
+        }
+        return assertions;
+    }
+
+    private boolean isFilteredCondition(String targetPath, ConditionLocation location, String operator) {
+        if (location == ConditionLocation.AUTH || location == ConditionLocation.RESOURCE) {
+            return true;
+        }
+        if (targetPath != null) {
+            String lowerPath = targetPath.toLowerCase();
+            if (lowerPath.contains("currentuser") || lowerPath.contains("order.state") || lowerPath.contains("orderstate")) {
+                return true;
+            }
+        }
+        if (operator != null) {
+            if ("EXISTS_IN_REPOSITORY".equals(operator)
+                || "OPTIMISTIC_LOCK_MATCH".equals(operator)
+                || "HAS_CANCELLATION_PERMISSION".equals(operator)
+                || "STATE_IN".equals(operator)) {
+                return true;
+            }
+        }
+        return false;
+    }
     private void addEndpointCondition(
         List<Map<String, Object>> endpointConditions,
         Set<String> conditionKeys,
@@ -499,7 +561,8 @@ private List<Map<String, Object>> buildEndpointConditions(
 
     private record RequestSpec(
         Map<String, Object> request,
-        List<Map<String, Object>> endpointConditions,
+        List<Map<String, Object>> requestPreconditions,
+        List<Map<String, Object>> responseAssertions,
         Set<String> bodyFieldNames
     ) {}
 

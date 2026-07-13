@@ -633,3 +633,35 @@
 **User Input**: "중간에 멈춘거 같은데, 확인해보고 진행해줘"
 **AI Response**: "legacy `OpenApiGenerator`가 execution model과 어긋나면서 MVC view 응답을 `application/json`으로 잘못 출력하고, `$.order.state` 같은 validation 경로를 schema property로 평탄화하던 문제를 확인했다. 이를 `ExecutionSpecExporter` 기반 YAML 렌더링으로 교체해 request/response schema를 실행 모델과 동일한 구조로 출력하도록 정렬했고, MVC view 응답은 content 없이 `description`만 남기도록 수정했다. 이후 관련 테스트와 `ddd-start2` 재스캔을 다시 실행해 YAML 출력이 구조화된 body schema와 endpoint별 validation 조건을 올바르게 반영함을 검증했다."
 **Context**: CONSTRUCTION - OpenAPI YAML Alignment
+
+---
+
+## Specification Alignment Plan Creation
+**Timestamp**: 2026-07-13T14:32:37+09:00
+**User Input**: "기존 문서에는 일부 기반만 있고, 전체적으로는 오히려 이전 방향인 “서비스·도메인 규칙까지 validationConditions로 승격”하는 설계가 반영돼 있습니다. ... RESOURCE/AUTH 확장 결정은 지금 방향에 맞춰 명시적으로 뒤집어야 합니다."
+**AI Response**: "기존 설계의 도메인 규칙 승격 계획을 폐기하고 전제조건/어설션 모델로 전환하는 정렬 계획을 수립하고, 설계 상의 모호성을 해결하기 위한 Deep Interview 질문 파일 생성을 준비했다."
+**Context**: INCEPTION - API Contract Specification Alignment Plan
+
+---
+
+## Deep Interview Gating Initiation
+**Timestamp**: 2026-07-13T14:37:59+09:00
+**User Input**: "D:\workspace\auto-oas\agent-docs\README.md를 숙지하여 Deep Interview Gating를 시작하자"
+**AI Response**: "Deep Interview Gating 가이드라인을 분석하고, 아키텍처 결정을 위한 3가지 대안식 질문을 deep-interview-questions.md에 생성하여 제공했다."
+**Context**: INCEPTION - Deep Interview Gating Initiate
+
+---
+
+## Deep Interview Decision Enforcement
+**Timestamp**: 2026-07-13T14:40:16+09:00
+**User Input**: "답변완료"
+**AI Response**: "답변된 내용을 확인하여 specs/deep-interview-api-contract.md에 의사결정 사항 및 제약 사항을 고정하고, 이에 의거하여 requirements.md, stories.md, application-design.md, validation-condition-improvement-plan.md 및 aidlc-state.md를 최신 사양으로 개정했다."
+**Context**: INCEPTION - Deep Interview Decisions Enforcement
+
+---
+
+## Precondition/Assertion Architecture Implementation & Testing
+**Timestamp**: 2026-07-13T14:42:13+09:00
+**User Input**: "승인"
+**AI Response**: "설계 정렬 계획이 승인됨에 따라, Java 소스 코드 상에서 ApiCondition record에 conditionType 필드를 추가하고, ExecutionSpecExporter에서 AUTH/RESOURCE 등의 도메인 조건을 최종 계약서에서 배제하도록 필터링을 구현했다. 또한 출력 포맷을 requestPreconditions와 responseAssertions로 이원화하고 200 STATUS 어설션을 자동 추가했으며, 이에 맞춰 모든 기존 회귀 및 단위 테스트 코드를 수정하여 전체 테스트 통과를 성공시켰다."
+**Context**: CONSTRUCTION - Precondition/Assertion Architecture Implementation & Testing

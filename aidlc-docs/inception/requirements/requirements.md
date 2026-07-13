@@ -87,18 +87,19 @@
 ## Requirement R-005: Service and Domain Validation Hint Extraction
 
 ### Description
-도구는 서비스/도메인 로직 내부의 조건문, `BusinessException`, `ErrorCode` 사용 지점에서 validation hint를 추출해야 한다.
+도구는 서비스/도메인 로직 내부의 조건문, `BusinessException`, `ErrorCode` 사용 지점에서 validation hint를 추출하여 증적(evidence)으로 보존해야 한다.
 
 ### Acceptance Criteria
 - `throw new BusinessException(...)` 또는 동등한 예외 패턴을 탐지할 수 있다.
 - 조건문 snippet, error code, 관련 field 후보, source trace를 evidence로 저장할 수 있다.
 - endpoint에 직접 연결되지 않는 경우에도 관련 메서드 체인 기반으로 후보를 수집할 수 있다.
 - annotation 기반, validator 기반과 구분되는 source 분류가 가능하다.
+- **최종 조립 시 배제**: 추출된 서비스/도메인 힌트는 정적 분석 및 후보 수집 단계에서는 증적으로 보존하되, 최종 JSON 계약 조립(assembly) 시점에 `AUTH`, `RESOURCE`, DB 존재 여부, optimistic lock 등과 결부되는 조건들은 계약 조건으로 승격하지 않고 최종 계약 모델에서 완전히 배제(필터링)한다.
 
 ### Verification Expectations
 - **Automation Required**: Yes
 - **Expected Test Level**: integration
-- **Required Test Evidence**: 서비스/도메인 예제에서 조건문 evidence, exception evidence, source trace가 포함된 candidate JSON 생성
+- **Required Test Evidence**: 서비스/도메인 예제에서 조건문 evidence, exception evidence, source trace가 포함된 candidate JSON 생성 검증 및 최종 계약 조립 시 AUTH/RESOURCE가 배제되는 필터링 테스트
 - **Manual Verification Rationale**: N/A
 
 ## Requirement R-006: Candidate Chunk Generation for LLM
@@ -136,38 +137,39 @@ LLM은 추출된 후보를 사람이 읽을 수 있는 validation rule로 정규
 - **Required Test Evidence**: LLM 응답 파서/validator 단위 테스트와 정상/실패/재시도 케이스 검증
 - **Manual Verification Rationale**: N/A
 
-## Requirement R-008: ApiCondition Assembly
+## Requirement R-008: ApiCondition and Separation Assembly
 
 ### Description
-정적 분석 결과와 LLM 정규화 결과를 합쳐 endpoint별 `ApiCondition` 모델을 조립해야 한다.
+정적 분석 결과와 LLM 정규화 결과를 합쳐 endpoint별 실행 가능한 계약 모델(`RequestPrecondition` 및 `ResponseAssertion` 역할을 하는 `ApiCondition` 세트)을 조립해야 한다.
 
 ### Acceptance Criteria
-- `ApiCondition`은 `targetLocation`, `targetPath`, `expected`, `operator`, `purpose`, `source`, `confidence`, `errorCode`, `sourceClass`, `sourceMethod`, `lineNumber`, `evidence`, `llmReason`, `llmGenerated`, `active`를 저장할 수 있다.
+- `ApiCondition` 모델 구조를 최대한 재활용하되, `conditionType` (값: `PRECONDITION`, `ASSERTION`) 필드를 추가하여 요청 전제조건과 응답 검증을 개념적으로 분리하여 조립한다.
+- `ApiCondition`은 `conditionType`, `targetLocation`, `targetPath`, `expected`, `operator`, `purpose`, `source`, `confidence`, `errorCode`, `sourceClass`, `sourceMethod`, `lineNumber`, `evidence`, `llmReason`, `llmGenerated`, `active`를 저장할 수 있다.
 - evidence source와 normalized result를 구분해 저장할 수 있다.
 - endpoint별 condition 조회가 가능하다.
-- HEADER/PATH/QUERY/BODY/RESPONSE 위치 구분이 가능하다.
+- **실행 가능한 검증 위치 구체화**: HEADER/PATH/QUERY/BODY/RESPONSE 위치 구분이 가능해야 하며, 응답 어설션(`ASSERTION`)의 경우 `RESPONSE` 위치를 `STATUS`, `HEADER`, `BODY` 레벨로 엄격히 세분화하여 테스트 실행 후 성공 여부를 판정할 수 있는 실행 가능한 테스트 오라클 형태로 조립한다.
 
 ### Verification Expectations
 - **Automation Required**: Yes
 - **Expected Test Level**: unit
-- **Required Test Evidence**: `ApiCondition` assembler 단위 테스트와 endpoint별 JSON 스냅샷 검증
+- **Required Test Evidence**: `conditionType` 및 `STATUS/HEADER/BODY` 응답 세부 위치가 반영된 `ApiCondition` assembler 단위 테스트와 endpoint별 JSON 스냅샷 검증
 - **Manual Verification Rationale**: N/A
 
 ## Requirement R-009: OpenAPI and Internal JSON Output
 
 ### Description
-PoC 결과물은 OpenAPI와 ApiCondition JSON을 함께 제공해야 한다.
+PoC 결과물은 OpenAPI와 사전/사후 조건이 분리된 ApiCondition JSON을 함께 제공해야 한다.
 
 ### Acceptance Criteria
 - endpoint 기준 OpenAPI 결과를 확인할 수 있다.
-- endpoint별 validation map 또는 동등한 ApiCondition 결과를 조회할 수 있다.
-- 내부 JSON에는 evidence, confidence, source trace가 포함된다.
+- endpoint별로 요청 전제조건(`requestPreconditions`)과 응답 검증 어설션(`responseAssertions`)이 구조적으로 구분된 ApiCondition 결과를 조회할 수 있다.
+- 내부 JSON에는 `conditionType`별로 분류된 결과와 함께 evidence, confidence, source trace가 포함된다.
 - 향후 JSON/DB 저장 확장이 가능한 구조여야 한다.
 
 ### Verification Expectations
 - **Automation Required**: Yes
 - **Expected Test Level**: integration
-- **Required Test Evidence**: 샘플 저장소 분석 후 OpenAPI 파일과 ApiCondition JSON 파일이 함께 생성되고 구조가 유효함을 검증
+- **Required Test Evidence**: 샘플 저장소 분석 후 OpenAPI 파일과 `requestPreconditions`/`responseAssertions`가 명확히 분리 및 마킹된 ApiCondition JSON 파일이 함께 생성되고 구조가 유효함을 검증
 - **Manual Verification Rationale**: N/A
 
 ## Requirement R-010: Workflow Design and LLM Call Plan
