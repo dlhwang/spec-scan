@@ -1,0 +1,26 @@
+{
+  "run_id": "019f4a55-1113-7000-a86d-4e27bf7d7987",
+  "skill": "ralplan",
+  "active": true,
+  "current_phase": "architect",
+  "version": 2,
+  "updated_at": "2026-07-10T04:45:24.887Z",
+  "receipt": {
+    "version": 1,
+    "skill": "ralplan",
+    "owner": "gjc-runtime",
+    "command": "gjc ralplan persist-run-id",
+    "state_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f4a55-1113-7000-a86d-4e27bf7d7987\\skill-active-state.json",
+    "storage_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f4a55-1113-7000-a86d-4e27bf7d7987\\ralplan-state.json",
+    "mutated_at": "2026-07-10T04:45:24.888Z",
+    "fresh_until": "2026-07-10T05:15:24.888Z",
+    "status": "fresh",
+    "mutation_id": "ralplan:2026-07-10T04:45:24.888Z",
+    "content_sha256": {
+      "algorithm": "sha256",
+      "value": "c168d64f2be0cb9abc978ad34b4756bea539b21f604ff3046f1e7beafff1ded4",
+      "covered_path": "D:\\workspace\\auto-oas\\.gjc\\_session-019f4a55-1113-7000-a86d-4e27bf7d7987\\state\\ralplan-state.json",
+      "computed_at": "2026-07-10T04:45:24.888Z"
+    }
+  }
+}

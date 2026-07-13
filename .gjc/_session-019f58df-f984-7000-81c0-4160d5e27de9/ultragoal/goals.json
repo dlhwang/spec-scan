@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "brief": "Recover spen-scan validation accuracy for the ddd-start2 representative regression by restoring @ModelAttribute OrderRequest shape, enforcing strict endpoint-scoped graph-backed SERVICE_HINT promotion, preserving validationConditions export compatibility, and proving the result with unit, assembly, and ddd-start2 regression verification.",
+  "gjcGoalMode": "aggregate",
+  "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
+  "goals": [
+    {
+      "id": "G001",
+      "title": "Recover spen-scan validation accuracy for the ddd-start2 representative regre...",
+      "objective": "Recover spen-scan validation accuracy for the ddd-start2 representative regression by restoring @ModelAttribute OrderRequest shape, enforcing strict endpoint-scoped graph-backed SERVICE_HINT promotion, preserving validationConditions export compatibility, and proving the result with unit, assembly, and ddd-start2 regression verification.",
+      "status": "superseded",
+      "createdAt": "2026-07-13T00:38:46.073Z",
+      "updatedAt": "2026-07-13T02:29:49.532Z",
+      "pipelineMetadata": {
+        "schemaVersion": 1,
+        "goalId": "G001",
+        "source": "legacy_brief_only",
+        "eligible": false,
+        "dependsOn": [],
+        "independentOf": [],
+        "targets": {
+          "files": [],
+          "surfaces": []
+        },
+        "overlap": "none",
+        "invalidationReason": "missing_pipeline_metadata",
+        "metadataHash": "ee22f050202eddb1df159edbc575f74df1661c7cce97b7394afe3f786d576e94"
+      },
+      "startedAt": "2026-07-13T00:38:52.101Z",
+      "evidence": "Resolved by verification blocker story G002: Resolved the end-to-end regression evidence blocker by strengthening the ddd-start2-style pipeline regression to prove restored body shape, nested /orders/order validation paths, endpoint-scoped shipping/cancel service conditions, and exported warning payloads; verified with focused regression runs and clean full-suite runs; architect review 6-UltragoalG002ClearReview marked the blocker resolved and G002 complete-ready."
+    },
+    {
+      "id": "G002",
+      "title": "Resolve end-to-end regression evidence blockers",
+      "objective": "Make the ddd-start2 representative full-pipeline regression prove recovered shipping/cancel service conditions and the expected nested /orders/order validation path set through extraction, graph building, normalization, and assembly, then rerun the hardened completion gate.",
+      "status": "complete",
+      "createdAt": "2026-07-13T01:38:12.344Z",
+      "updatedAt": "2026-07-13T02:29:49.532Z",
+      "steering": {
+        "kind": "review_blocker",
+        "blockedGoalId": "G001"
+      },
+      "startedAt": "2026-07-13T01:38:35.651Z",
+      "completedAt": "2026-07-13T02:29:49.532Z",
+      "evidence": "Resolved the end-to-end regression evidence blocker by strengthening the ddd-start2-style pipeline regression to prove restored body shape, nested /orders/order validation paths, endpoint-scoped shipping/cancel service conditions, and exported warning payloads; verified with focused regression runs and clean full-suite runs; architect review 6-UltragoalG002ClearReview marked the blocker resolved and G002 complete-ready.",
+      "completionVerification": {
+        "schemaVersion": 1,
+        "receiptId": "4b870ee8-3049-4f3a-bb80-769cb607d830",
+        "verifiedAt": "2026-07-13T02:29:49.532Z",
+        "goalId": "G002",
+        "receiptKind": "final-aggregate",
+        "goalStatusBeforeCheckpoint": "active",
+        "gjcGoalMode": "aggregate",
+        "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
+        "qualityGateHash": "e62953aa46736e5b8f70ce603d24f2eaa20b047566eef7cf1417cedadffb32b1",
+        "planGeneration": "01a829056ad2b44dcc963fb2b99613a867e3c390d6e4a40420dce41d456621bd",
+        "basis": {
+          "planHashBeforeCheckpoint": "c6aa22a0e593b62344e2b9cdb6d25749cd56e744100fb1185d2ea9f343f49e8e",
+          "latestRelevantLedgerEventIdBeforeCheckpoint": "23988276-8eb0-4262-af05-eda41de499d1",
+          "goalUpdatedAtBeforeCheckpoint": "2026-07-13T02:29:49.532Z",
+          "relevantGoalIdsBeforeCheckpoint": [
+            "G002"
+          ],
+          "requiredGoalSetHashBeforeCheckpoint": "c15573ef25d8f427910561b9b8681d08d208be01d719ecdc44cebe7f8ed25d11"
+        },
+        "checkpointLedgerEventId": "8476658c-bf89-4d07-9334-eb204b2bc003"
+      }
+    }
+  ],
+  "createdAt": "2026-07-13T00:38:46.073Z",
+  "updatedAt": "2026-07-13T02:29:49.532Z",
+  "state_revision": 6
+}

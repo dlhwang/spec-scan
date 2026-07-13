@@ -1,0 +1,30 @@
+{
+  "active": true,
+  "version": 2,
+  "current_phase": "interviewing",
+  "skill": "deep-interview",
+  "cwd": "D:\\workspace\\auto-oas",
+  "updated_at": "2026-07-10T01:09:41.353Z",
+  "session_id": "019f4991-e667-7000-b63b-307ac62dc449",
+  "threshold": 0.05,
+  "threshold_source": "default",
+  "receipt": {
+    "version": 1,
+    "skill": "deep-interview",
+    "owner": "gjc-hook",
+    "command": "gjc-skill-invocation",
+    "state_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f4991-e667-7000-b63b-307ac62dc449\\skill-active-state.json",
+    "storage_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f4991-e667-7000-b63b-307ac62dc449\\deep-interview-state.json",
+    "mutated_at": "2026-07-10T01:09:41.359Z",
+    "fresh_until": "2026-07-10T01:39:41.359Z",
+    "status": "fresh",
+    "mutation_id": "deep-interview:2026-07-10T01:09:41.359Z",
+    "content_sha256": {
+      "algorithm": "sha256",
+      "value": "8d8f54ccd54c8f89f2ac440d948149b4f3dab0989df5a801126fbb0674633f3b",
+      "covered_path": "D:\\workspace\\auto-oas\\.gjc\\_session-019f4991-e667-7000-b63b-307ac62dc449\\state\\deep-interview-state.json",
+      "computed_at": "2026-07-10T01:09:41.360Z"
+    }
+  },
+  "state_revision": 1
+}

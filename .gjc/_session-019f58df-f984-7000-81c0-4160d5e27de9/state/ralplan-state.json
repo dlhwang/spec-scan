@@ -1,0 +1,30 @@
+{
+  "active": true,
+  "current_phase": "planner",
+  "skill": "ralplan",
+  "version": 2,
+  "mode": "short",
+  "interactive": false,
+  "task": "status",
+  "run_id": "019f58df-f984-7000-81c0-4160d5e27de9",
+  "updated_at": "2026-07-13T00:35:24.323Z",
+  "session_id": "019f58df-f984-7000-81c0-4160d5e27de9",
+  "receipt": {
+    "version": 1,
+    "skill": "ralplan",
+    "owner": "gjc-runtime",
+    "command": "gjc ralplan seed",
+    "state_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f58df-f984-7000-81c0-4160d5e27de9\\skill-active-state.json",
+    "storage_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f58df-f984-7000-81c0-4160d5e27de9\\ralplan-state.json",
+    "mutated_at": "2026-07-13T00:35:24.324Z",
+    "fresh_until": "2026-07-13T01:05:24.324Z",
+    "status": "fresh",
+    "mutation_id": "ralplan:2026-07-13T00:35:24.324Z",
+    "content_sha256": {
+      "algorithm": "sha256",
+      "value": "c0adba283a2702506efe2ef0a0bf2824326cc7079be78462274f28a1d42d9f28",
+      "covered_path": "D:\\workspace\\auto-oas\\.gjc\\_session-019f58df-f984-7000-81c0-4160d5e27de9\\state\\ralplan-state.json",
+      "computed_at": "2026-07-13T00:35:24.325Z"
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "active": false,
+  "version": 2,
+  "current_phase": "handoff",
+  "skill": "ralplan",
+  "cwd": "D:\\workspace\\auto-oas",
+  "updated_at": "2026-07-10T05:14:15.348Z",
+  "session_id": "019f4998-9528-7000-afbb-36d50c3c2655",
+  "receipt": {
+    "version": 1,
+    "skill": "ralplan",
+    "owner": "gjc-state-cli",
+    "command": "gjc state ralplan handoff --to ultragoal",
+    "state_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f4998-9528-7000-afbb-36d50c3c2655\\skill-active-state.json",
+    "storage_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f4998-9528-7000-afbb-36d50c3c2655\\ralplan-state.json",
+    "mutated_at": "2026-07-10T05:14:15.348Z",
+    "fresh_until": "2026-07-10T05:44:15.348Z",
+    "status": "fresh",
+    "mutation_id": "ralplan:handoff:ultragoal:2026-07-10T05:14:15.348Z",
+    "content_sha256": {
+      "algorithm": "sha256",
+      "value": "061b5eddbf6840ff0d8fc8f5fbc2b46d01ac7e4e658ccd7f2b4f2527cf5cffb7",
+      "covered_path": "D:\\workspace\\auto-oas\\.gjc\\_session-019f4998-9528-7000-afbb-36d50c3c2655\\state\\ralplan-state.json",
+      "computed_at": "2026-07-10T05:14:15.482Z"
+    }
+  },
+  "run_id": "019f4998-9528-7000-afbb-36d50c3c2655",
+  "planner_subagent_id": "3-ralplanPlanner",
+  "planner_resumable": false,
+  "planner_fallback_reason": "resume_failed",
+  "planner_fallback_attempted_id": "3-ralplanPlanner",
+  "planner_fallback_stage_n": 3,
+  "handoff_to": "ultragoal",
+  "handoff_at": "2026-07-10T05:14:15.348Z",
+  "state_revision": 3
+}

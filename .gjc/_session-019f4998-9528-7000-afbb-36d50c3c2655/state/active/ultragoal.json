@@ -1,0 +1,52 @@
+{
+  "skill": "ultragoal",
+  "phase": "active",
+  "active": true,
+  "activated_at": "2026-07-10T05:14:51.394Z",
+  "updated_at": "2026-07-10T05:14:51.394Z",
+  "session_id": "019f4998-9528-7000-afbb-36d50c3c2655",
+  "hud": {
+    "version": 1,
+    "chips": [
+      {
+        "label": "goals",
+        "value": "0/1",
+        "priority": 10
+      },
+      {
+        "label": "current",
+        "value": "G001:Recover spen-scan validation accuracy for the ddd-start2 representative reg",
+        "priority": 20
+      },
+      {
+        "label": "status",
+        "value": "active",
+        "priority": 30
+      },
+      {
+        "label": "ledger",
+        "value": "goal_started:G001",
+        "priority": 35
+      }
+    ],
+    "updated_at": "2026-07-10T05:14:51.389Z"
+  },
+  "receipt": {
+    "version": 1,
+    "skill": "ultragoal",
+    "owner": "gjc-runtime",
+    "command": "gjc ultragoal (reconcile)",
+    "state_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f4998-9528-7000-afbb-36d50c3c2655\\skill-active-state.json",
+    "storage_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f4998-9528-7000-afbb-36d50c3c2655\\ultragoal-state.json",
+    "mutated_at": "2026-07-10T05:14:51.369Z",
+    "fresh_until": "2026-07-10T05:44:51.369Z",
+    "status": "fresh",
+    "mutation_id": "ultragoal:reconcile:2026-07-10T05:14:51.369Z",
+    "verb": "reconcile",
+    "forced": true,
+    "from_phase": "pending",
+    "to_phase": "active"
+  },
+  "source_state_revision": 2,
+  "state_revision": 2
+}

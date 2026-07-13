@@ -599,3 +599,37 @@
 **Context**: CONSTRUCTION - Validation Condition Improvement Parallel Implementation
 
 ---
+
+## Inception - Workspace Detection
+**Timestamp**: 2026-07-10T06:37:30Z
+**User Input**: "## System Prompt
+
+### System Prompt 1
+
+<gajae-code-system-prompt>
+... (Gajae Code system prompt and Project configuration) ...
+</gajae-code-system-prompt>
+
+### System Prompt 2
+
+[PROJECT]
+... (Project metadata and context) ...
+[/PROJECT]"
+**AI Response**: "Display welcome message, perform workspace detection, and create session resumption questions for the user."
+**Context**: INCEPTION - Workspace Detection
+
+---
+
+## Validation Condition Improvement Resume
+**Timestamp**: 2026-07-13T09:10:55+09:00
+**User Input**: "중간에 멈춘거 같은데, 확인해보고 진행해줘"
+**AI Response**: "중단 지점을 점검한 뒤 `ValidationExtractionService`, `ServiceHintExtractor`, `RuleBasedConditionNormalizer`, `NormalizationService`를 이어서 보강했다. `orElseThrow` 기반 존재성 힌트를 추출해 `EXISTS_IN_REPOSITORY`로 승격하고, graph 기반 `STATE_IN($.order.state)` 조건을 shipping/cancel 엔드포인트에 복원했으며, `orderProducts[*].productId` 존재성 검증도 final condition으로 반영했다. 이후 관련 단위/통합 테스트와 `ddd-start2` 재스캔을 다시 통과시켜 개선 결과를 확인했다."
+**Context**: CONSTRUCTION - Validation Condition Improvement Resume
+
+---
+
+## OpenAPI YAML Renderer Alignment
+**Timestamp**: 2026-07-13T09:20:03.7867356+09:00
+**User Input**: "중간에 멈춘거 같은데, 확인해보고 진행해줘"
+**AI Response**: "legacy `OpenApiGenerator`가 execution model과 어긋나면서 MVC view 응답을 `application/json`으로 잘못 출력하고, `$.order.state` 같은 validation 경로를 schema property로 평탄화하던 문제를 확인했다. 이를 `ExecutionSpecExporter` 기반 YAML 렌더링으로 교체해 request/response schema를 실행 모델과 동일한 구조로 출력하도록 정렬했고, MVC view 응답은 content 없이 `description`만 남기도록 수정했다. 이후 관련 테스트와 `ddd-start2` 재스캔을 다시 실행해 YAML 출력이 구조화된 body schema와 endpoint별 validation 조건을 올바르게 반영함을 검증했다."
+**Context**: CONSTRUCTION - OpenAPI YAML Alignment

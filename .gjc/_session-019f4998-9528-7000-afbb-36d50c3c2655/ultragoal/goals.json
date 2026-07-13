@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "brief": "Recover spen-scan validation accuracy for the ddd-start2 representative regression by restoring @ModelAttribute OrderRequest shape, enforcing strict endpoint-scoped graph-backed SERVICE_HINT promotion, preserving validationConditions export compatibility, and proving the result with unit, assembly, and ddd-start2 regression verification.",
+  "gjcGoalMode": "aggregate",
+  "gjcObjective": "Complete the durable ultragoal plan in .gjc/ultragoal/goals.json, including later accepted/appended stories, under the original brief constraints; use .gjc/ultragoal/ledger.jsonl as the audit trail.",
+  "goals": [
+    {
+      "id": "G001",
+      "title": "Recover spen-scan validation accuracy for the ddd-start2 representative regre...",
+      "objective": "Recover spen-scan validation accuracy for the ddd-start2 representative regression by restoring @ModelAttribute OrderRequest shape, enforcing strict endpoint-scoped graph-backed SERVICE_HINT promotion, preserving validationConditions export compatibility, and proving the result with unit, assembly, and ddd-start2 regression verification.",
+      "status": "active",
+      "createdAt": "2026-07-10T05:14:42.588Z",
+      "updatedAt": "2026-07-10T05:14:51.312Z",
+      "pipelineMetadata": {
+        "schemaVersion": 1,
+        "goalId": "G001",
+        "source": "legacy_brief_only",
+        "eligible": false,
+        "dependsOn": [],
+        "independentOf": [],
+        "targets": {
+          "files": [],
+          "surfaces": []
+        },
+        "overlap": "none",
+        "invalidationReason": "missing_pipeline_metadata",
+        "metadataHash": "ee22f050202eddb1df159edbc575f74df1661c7cce97b7394afe3f786d576e94"
+      },
+      "startedAt": "2026-07-10T05:14:51.312Z"
+    }
+  ],
+  "createdAt": "2026-07-10T05:14:42.588Z",
+  "updatedAt": "2026-07-10T05:14:51.312Z",
+  "state_revision": 2
+}

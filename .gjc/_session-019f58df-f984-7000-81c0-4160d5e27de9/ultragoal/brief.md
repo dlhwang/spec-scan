@@ -1,0 +1,1 @@
+Recover spen-scan validation accuracy for the ddd-start2 representative regression by restoring @ModelAttribute OrderRequest shape, enforcing strict endpoint-scoped graph-backed SERVICE_HINT promotion, preserving validationConditions export compatibility, and proving the result with unit, assembly, and ddd-start2 regression verification.

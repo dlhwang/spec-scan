@@ -1,0 +1,1282 @@
+{
+  "active": true,
+  "version": 2,
+  "current_phase": "handoff",
+  "skill": "deep-interview",
+  "cwd": "D:\\workspace\\auto-oas",
+  "updated_at": "2026-07-10T04:37:49.601Z",
+  "session_id": "019f4998-9528-7000-afbb-36d50c3c2655",
+  "threshold": 0.05,
+  "threshold_source": "default",
+  "receipt": {
+    "version": 1,
+    "skill": "deep-interview",
+    "owner": "gjc-state-cli",
+    "command": "gjc state deep-interview write",
+    "state_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f4998-9528-7000-afbb-36d50c3c2655\\skill-active-state.json",
+    "storage_path": "D:\\workspace\\auto-oas\\.gjc\\state\\sessions\\019f4998-9528-7000-afbb-36d50c3c2655\\deep-interview-state.json",
+    "mutated_at": "2026-07-10T04:37:49.601Z",
+    "fresh_until": "2026-07-10T05:07:49.601Z",
+    "status": "fresh",
+    "mutation_id": "deep-interview:2026-07-10T04:37:49.601Z",
+    "content_sha256": {
+      "algorithm": "sha256",
+      "value": "36ef1e33e5b870c70254c49cd50a4ab276325185f3f460f3be13424034c1240a",
+      "covered_path": "D:\\workspace\\auto-oas\\.gjc\\_session-019f4998-9528-7000-afbb-36d50c3c2655\\state\\deep-interview-state.json",
+      "computed_at": "2026-07-10T04:37:49.610Z"
+    }
+  },
+  "spec_slug": "spen-scan-validation-graph-context",
+  "spec_path": "D:\\workspace\\auto-oas\\.gjc\\_session-019f4998-9528-7000-afbb-36d50c3c2655\\specs\\deep-interview-spen-scan-validation-graph-context.md",
+  "spec_sha256": "a59da9c19c7c13301aa64b3353798cad0309c38a2f866f826084765c5eb7e83e",
+  "spec_stage": "final",
+  "spec_persisted_at": "2026-07-10T04:31:29.508Z",
+  "state": {
+    "threshold": 0.05,
+    "threshold_source": "default",
+    "rounds": [
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-0-topology",
+        "round_id": "round-0-topology",
+        "round": 0,
+        "question_id": "deep_interview_round0_topology",
+        "question_text": "Round 0 | Topology confirmation | Ambiguity: not scored yet\n\n현재 범위를 이렇게 2개의 상위 컴포넌트로 읽고 있습니다.\n1. Validation condition 추출 정확도 개선: `ValidationExtractionService` → `RuleBasedConditionNormalizer` 경로에서 annotation, custom validator, service/domain hint가 최종 `validationConditions`로 살아남도록 만드는 범위입니다. 현재 샘플 문서에는 graph는 있는데 최종 validationConditions가 0건이라고 기록돼 있습니다.\n2. Graph context 기반 분석 개선: `ValidationEvidenceGraphBuilder` / `GraphContextSelector`가 뽑은 endpoint-scoped subgraph가 실제 정규화 판단에 의미 있게 반영되도록 만드는 범위입니다. 현재 검색상 `PromptBuilder`는 graph context를 받을 수 있지만 다른 production 코드에서 직접 쓰이지 않습니다.\n\n영향 파일과 필요한 테스트는 두 컴포넌트 모두에 대해 교차로 정리하겠습니다.\n\n이 topology가 맞나요? 추가/삭제/병합/분리하거나, 이번 라운드에서 명시적으로 defer할 컴포넌트가 있나요?",
+        "question_hash": "34e4cc3f746ca2c77ecea334d49986f7",
+        "answer_hash": "0f5eeb91115a109c71e8aab455fac4d1",
+        "selected_options": [
+          "Looks right"
+        ],
+        "component": "topology",
+        "dimension": "topology",
+        "ambiguity_at_ask": 1,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T01:21:37.313Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-1-goal",
+        "round_id": "round-1-goal",
+        "round": 1,
+        "question_id": "deep_interview_round1_goal",
+        "question_text": "Round 1 | Component: Validation condition 추출 정확도 개선 | Targeting: Goal Clarity | Why now: 두 active 컴포넌트가 아직 모두 미정이지만, extraction 쪽의 완료 정의가 먼저 고정돼야 영향 파일과 테스트 범위를 안정적으로 좁힐 수 있어 지금 가장 큰 병목입니다. | Ambiguity: 100%\n\n현재 코드베이스 증거상 가장 눈에 띄는 갭은 두 가지입니다. `ddd-start2-demp-auto-oas.md`에는 graph node/edge는 있지만 최종 `validationConditions`가 0건으로 남아 있고, `ddd-start2-demp-manual-spec.md`에는 `@ModelAttribute OrderRequest` shape와 service/domain rule 누락이 적혀 있습니다.\n\n이번 개선의 1차 성공 목표를 어느 쪽에 두고 싶나요?",
+        "question_hash": "4ff219fccaf4d12523893b0c38639f56",
+        "answer_hash": "3a2c1ff5bd7ac7353b849ce7b66c05fd",
+        "selected_options": [
+          "둘 다 이번 범위에 포함하고, ddd-start2를 대표 회귀 시나리오로 삼는다"
+        ],
+        "component": "validation-extraction",
+        "dimension": "goal",
+        "ambiguity_at_ask": 1,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T01:24:01.732Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-2-goal",
+        "round_id": "round-2-goal",
+        "round": 2,
+        "question_id": "deep_interview_round2_goal",
+        "question_text": "Round 2 | Component: Graph context 기반 분석 개선 | Targeting: Goal Clarity | Why now: graph context가 최종 정규화에 어떤 권한을 가지는지 아직 불명확해서 영향 파일과 테스트 경계를 정확히 못 잠그고 있습니다. | Ambiguity: 68.3%\n\n아니요, 멈춘 건 아닙니다. 계속 진행 중입니다.\n\n현재 코드 증거상 `GraphContextSelector`는 endpoint-scoped subgraph를 고를 수 있고, `PromptBuilder`는 그 context를 프롬프트에 실을 수 있습니다. 그런데 검색 기준 production 코드에서는 `PromptBuilder` 호출 흔적이 거의 보이지 않아, graph context의 의도된 역할이 아직 가장 큰 불명확점입니다.\n\n이번 개선에서 graph context는 최종적으로 어떤 역할이어야 하나요?",
+        "question_hash": "80bb7be19c5d39311df83433cfacf5ef",
+        "answer_hash": "8f8eb71f8f1509eecbb2e8d8556cd549",
+        "selected_options": [],
+        "custom_input": "1차 구현 범위에서는 LLM/prompt 호출을 사용하지 않는다.",
+        "component": "graph-context-analysis",
+        "dimension": "goal",
+        "ambiguity_at_ask": 0.6825,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T01:30:14.303Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-2-goal-refine",
+        "round_id": "round-2-goal-refine",
+        "round": 2,
+        "question_id": "deep_interview_round2_refine",
+        "question_text": "Round 2 | Refine answer confirmation | Component: Graph context 기반 분석 개선 | Ambiguity: 68.3%\n\n지금 답을 이렇게 구조화해 기록하려고 합니다.\n\n- Decision: Graph context는 deterministic rule-based normalization의 입력 또는 보조 근거로만 사용한다.\n- Reasoning: 1차 구현 범위에서는 LLM/prompt 호출을 사용하지 않는다.\n- Constraints (user-stated): 초기 범위에서는 LLM/prompt 기반 normalization 경로를 활성화하지 않는다.\n- Out of scope (user-stated): `PromptBuilder`를 실제 production 정규화 경로에 연결하는 작업은 이번 1차 범위에서 제외한다.\n- Codebase context (verified): `PromptBuilder`는 graph context를 받을 수 있지만, 현재 검색 기준 production 호출 흔적이 거의 없다.\n\n이 구조화가 빠짐없이 맞나요?",
+        "question_hash": "a57c7adfe298b6e4671b5871558a4cd0",
+        "answer_hash": "aac666b2c394085fb109b52b466eb0bd",
+        "selected_options": [
+          "Send as-is"
+        ],
+        "component": "graph-context-analysis",
+        "dimension": "goal",
+        "ambiguity_at_ask": 0.6825,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T01:31:25.351Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-3-constraints",
+        "round_id": "round-3-constraints",
+        "round": 3,
+        "question_id": "deep_interview_round3_constraints",
+        "question_text": "Round 2 complete.\n\n| Dimension | Score | Weight | Weighted | Gap |\n|---|---:|---:|---:|---|\n| Goal | 0.78 | 0.35 | 0.27 | graph context의 역할은 정리됐지만 extraction 쪽 경계는 아직 남아 있습니다 |\n| Constraints | 0.35 | 0.25 | 0.09 | 출력 호환성, 변경 허용 범위, 영향 파일 경계가 아직 미정입니다 |\n| Success Criteria | 0.40 | 0.25 | 0.10 | 어떤 테스트 조합이 완료 기준인지 아직 부족합니다 |\n| Context | 0.78 | 0.15 | 0.12 | 핵심 코드 경로는 파악됐습니다 |\n| **Ambiguity** |  |  | **68.3% -> 42.3% down** | |\n\n**Topology:** Targeted `graph-context-analysis` | Active: 2 | Deferred: 0 | Next rotation after: `graph-context-analysis`\n**Ontology:** 7 entities | Stability: 71% | New: 2 | Changed: 0 | Stable: 5\n**Milestone:** `initial` → `progress`\n**Next target:** `validation-extraction / constraints` — 이제 가장 큰 병목은 정확도 개선을 위해 어디까지 파일/출력/호환성을 건드려도 되는지입니다.\n\nRound 3 | Component: Validation condition 추출 정확도 개선 | Targeting: Constraint Clarity | Why now: `ExecutionSpecExporter`와 Web UI는 이미 `validationConditions`를 소비하고 있어서, 출력 계약을 건드릴 수 있는지 먼저 정해야 영향 파일과 테스트 범위를 제대로 잠글 수 있습니다. | Ambiguity: 42.3%\n\n현재 코드 증거상 `ExecutionSpecExporter`는 operation별 `validationConditions`를 내보내고, `SpecScanWebServer` UI도 그 개수를 바로 표시합니다. 이번 1차 구현에서 허용되는 변경 범위는 어디까지인가요?",
+        "question_hash": "9cac22e48c49ce7412dc5b33e8683cb0",
+        "answer_hash": "6c40a83bb4720bd83e5d2d2159f3b44c",
+        "selected_options": [
+          "기존 validationConditions 소비는 유지하되, 디버깅용 메타데이터 필드는 추가할 수 있다"
+        ],
+        "component": "validation-extraction",
+        "dimension": "constraints",
+        "ambiguity_at_ask": 0.4225,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T02:13:56.813Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-4-criteria",
+        "round_id": "round-4-criteria",
+        "round": 4,
+        "question_id": "deep_interview_round4_criteria",
+        "question_text": "Round 3 complete.\n\n| Dimension | Score | Weight | Weighted | Gap |\n|---|---:|---:|---:|---|\n| Goal | 0.78 | 0.35 | 0.27 | 목표 방향은 꽤 선명합니다 |\n| Constraints | 0.55 | 0.25 | 0.14 | 출력 호환성은 정리됐지만 graph context 쪽 세부 제한은 남아 있습니다 |\n| Success Criteria | 0.40 | 0.25 | 0.10 | graph context 개선이 무엇으로 증명되는지 아직 약합니다 |\n| Context | 0.78 | 0.15 | 0.12 | 핵심 파일과 소비 경로는 파악됐습니다 |\n| **Ambiguity** |  |  | **42.3% -> 37.0% down** | |\n\n**Topology:** Targeted `validation-extraction` | Active: 2 | Deferred: 0 | Next rotation after: `validation-extraction`\n**Ontology:** 8 entities | Stability: 88% | New: 1 | Changed: 0 | Stable: 7\n**Milestone:** `progress` → `progress`\n**Next target:** `graph-context-analysis / criteria` — graph context 개선이 실제 완료됐다고 판정할 테스트 정의가 아직 가장 약합니다.\n\nRound 4 | Component: Graph context 기반 분석 개선 | Targeting: Success Criteria | Why now: 현재 테스트를 보면 `GraphContextSelectorTest`는 subgraph 선택만 검증하고, `NormalizationServiceTest`는 일부 graph-aware rule만 검증합니다. 이번 1차 구현의 완료 기준으로 어떤 검증을 반드시 통과해야 하나요?",
+        "question_hash": "307ad4e0edd80f91f8c069c1b51ae46b",
+        "answer_hash": "58a62dedf161e4213526914d99c93362",
+        "selected_options": [
+          "위 기준에 더해, unrelated endpoint/graph node가 있어도 현재 endpoint의 normalization 결과가 오염되지 않는 endpoint isolation까지 반드시 검증한다"
+        ],
+        "component": "graph-context-analysis",
+        "dimension": "criteria",
+        "ambiguity_at_ask": 0.3695,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T02:18:31.244Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-5-criteria",
+        "round_id": "round-5-criteria",
+        "round": 5,
+        "question_id": "deep_interview_round5_criteria",
+        "question_text": "Round 4 complete.\n\n| Dimension | Score | Weight | Weighted | Gap |\n|---|---:|---:|---:|---|\n| Goal | 0.78 | 0.35 | 0.27 | 목표 방향은 선명합니다 |\n| Constraints | 0.55 | 0.25 | 0.14 | graph context 쪽 세부 제한이 아직 남아 있습니다 |\n| Success Criteria | 0.58 | 0.25 | 0.15 | 어떤 테스트 층이 필수인지 아직 잠기지 않았습니다 |\n| Context | 0.78 | 0.15 | 0.12 | 핵심 파일과 소비 경로는 파악됐습니다 |\n| **Ambiguity** |  |  | **37.0% -> 32.8% down** | |\n\n**Topology:** Targeted `graph-context-analysis` | Active: 2 | Deferred: 0 | Next rotation after: `graph-context-analysis`\n**Ontology:** 9 entities | Stability: 89% | New: 1 | Changed: 0 | Stable: 8\n**Milestone:** `progress` → `progress`\n**Next target:** `validation-extraction / criteria` — extraction 개선이 완료됐다고 판정할 필수 테스트 층이 아직 안 잠겨서 영향 파일과 작업 크기를 확정하기 어렵습니다.\n\nRound 5 | Component: Validation condition 추출 정확도 개선 | Targeting: Success Criteria | Why now: 현재 테스트 증거를 보면 `ValidationExtractionServiceTest`는 annotation/custom validator/service hint 추출을, `NormalizationServiceTest`는 graph-aware normalization을, `OpenApiAssemblyServiceTest`는 최종 `validationConditions` export를 각각 일부 검증합니다. 그런데 `ddd-start2` 수준 회귀가 필수인지, 아니면 단위/조립 테스트 조합으로 충분한지가 아직 미정입니다.\n\n이번 1차 구현의 완료 기준으로 어떤 테스트 층을 반드시 포함해야 하나요?",
+        "question_hash": "c9242f68fb4ab3673e0c8d667afb8d9c",
+        "answer_hash": "b5f7f85cdcb020f66887631244c92bb7",
+        "selected_options": [
+          "단위 테스트 + 조립 테스트 + `ddd-start2` 회귀 시나리오까지 모두 필수다"
+        ],
+        "component": "validation-extraction",
+        "dimension": "criteria",
+        "ambiguity_at_ask": 0.3275,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T02:21:04.747Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-6-constraints",
+        "round_id": "round-6-constraints",
+        "round": 6,
+        "question_id": "deep_interview_round6_constraints",
+        "question_text": "Round 5 complete.\n\n| Dimension | Score | Weight | Weighted | Gap |\n|---|---:|---:|---:|---|\n| Goal | 0.78 | 0.35 | 0.27 | 목표 방향은 선명합니다 |\n| Constraints | 0.55 | 0.25 | 0.14 | graph evidence를 얼마나 엄격하게 요구할지가 아직 미정입니다 |\n| Success Criteria | 0.83 | 0.25 | 0.21 | 필수 테스트 층은 잠겼습니다 |\n| Context | 0.78 | 0.15 | 0.12 | 핵심 파일과 회귀 근거는 파악됐습니다 |\n| **Ambiguity** |  |  | **32.8% -> 24.8% down** | |\n\n**Topology:** Targeted `validation-extraction` | Active: 2 | Deferred: 0 | Next rotation after: `validation-extraction`\n**Ontology:** 10 entities | Stability: 90% | New: 1 | Changed: 0 | Stable: 9\n**Milestone:** `progress` → `refined` — lateral panel convened\n**Next target:** `graph-context-analysis / constraints` — 이제 남은 핵심 병목은 graph context를 서비스 힌트 정규화에서 얼마나 엄격한 계약으로 강제할지입니다.\n\nRound 6 | Component: Graph context 기반 분석 개선 | Targeting: Constraint Clarity | Why now: repo 근거상 `RuleBasedConditionNormalizer`는 현재 graph가 비어 있으면 `SERVICE_HINT`도 계속 정규화할 수 있고, graph가 있을 때만 endpoint-linked evidence를 필터로 씁니다. 반면 `NormalizationServiceTest`에는 다른 endpoint graph만 있을 때 reject되는 케이스가 이미 있습니다. 즉 phase 1에서 graph evidence를 필수 계약으로 올릴지, 호환성 때문에 fallback을 남길지가 아직 결정되지 않았습니다.\n\n이번 1차 구현에서 `SERVICE_HINT` 정규화는 어떤 계약을 따라야 하나요?",
+        "question_hash": "ffb958b1f8883451a981f515418accc5",
+        "answer_hash": "fa534ad87df767dcbe1922f97ebbc53e",
+        "selected_options": [
+          "엄격 모드: 해당 endpoint에서 도달 가능한 graph evidence가 있을 때만 SERVICE_HINT condition을 만든다"
+        ],
+        "component": "graph-context-analysis",
+        "dimension": "constraints",
+        "ambiguity_at_ask": 0.2475,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T02:25:41.334Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-7-criteria",
+        "round_id": "round-7-criteria",
+        "round": 7,
+        "question_id": "deep_interview_round7_criteria",
+        "question_text": "Round 6 complete.\n\n| Dimension | Score | Weight | Weighted | Gap |\n|---|---:|---:|---:|---|\n| Goal | 0.78 | 0.35 | 0.27 | 목표 방향은 선명합니다 |\n| Constraints | 0.82 | 0.25 | 0.21 | strict graph contract까지 잠겼습니다 |\n| Success Criteria | 0.68 | 0.25 | 0.17 | ddd-start2 회귀의 최소 합격선만 아직 미정입니다 |\n| Context | 0.78 | 0.15 | 0.12 | 핵심 파일과 회귀 근거는 파악됐습니다 |\n| **Ambiguity** |  |  | **24.8% -> 23.5% down** | |\n\n**Topology:** Targeted `graph-context-analysis` | Active: 2 | Deferred: 0 | Next rotation after: `graph-context-analysis`\n**Ontology:** 11 entities | Stability: 91% | New: 1 | Changed: 0 | Stable: 10\n**Milestone:** `refined` → `refined`\n**Next target:** `validation-extraction / criteria` — 남은 가장 큰 병목은 ddd-start2 회귀에서 어디까지 복구되면 1차 구현을 합격으로 볼지입니다.\n\nRound 7 | Component: Validation condition 추출 정확도 개선 | Targeting: Success Criteria | Why now: 현재 근거상 `ddd-start2-demp-auto-oas.md`는 non-empty `validationConditions`가 0건이고, manual spec은 `/orders/orderConfirm`의 `AUTH $.ordererMemberId -> OVERWRITTEN_BY_AUTHENTICATED_USER true`, `/orders/order`의 nested `OrderRequest` shape + 여러 BODY rule, `/my/orders/{orderNo}/cancel`의 permission/state rule을 기대값으로 보여줍니다. 1차 구현의 ddd-start2 회귀 최소 합격선을 어디에 두나요?",
+        "question_hash": "a59910450f19f793d7b8e07b75cc5ee0",
+        "answer_hash": "022359b4e0c7edb8b527783bb12a7597",
+        "selected_options": [
+          "위 기준에 더해 `/my/orders/{orderNo}/cancel` 같은 service/domain endpoint에서도 permission 또는 state 계열 validationCondition이 반드시 살아나야 한다"
+        ],
+        "component": "validation-extraction",
+        "dimension": "criteria",
+        "ambiguity_at_ask": 0.235,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T02:28:25.768Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-8-context",
+        "round_id": "round-8-context",
+        "round": 8,
+        "question_id": "deep_interview_round8_context",
+        "question_text": "Round 7 complete.\n\n| Dimension | Score | Weight | Weighted | Gap |\n|---|---:|---:|---:|---|\n| Goal | 0.78 | 0.35 | 0.27 | extraction 쪽 목표는 선명하지만 필수 변경 경계는 아직 남아 있습니다 |\n| Constraints | 0.82 | 0.25 | 0.21 | strict graph contract와 출력 호환성은 잠겼습니다 |\n| Success Criteria | 0.94 | 0.25 | 0.24 | ddd-start2 최소 합격선까지 잠겼습니다 |\n| Context | 0.78 | 0.15 | 0.12 | graph contract를 어떤 파일 경계까지 적용할지가 아직 완전히 잠기지 않았습니다 |\n| **Ambiguity** |  |  | **23.5% -> 16.8% down** | |\n\n**Topology:** Targeted `validation-extraction` | Active: 2 | Deferred: 0 | Next rotation after: `validation-extraction`\n**Ontology:** 12 entities | Stability: 92% | New: 1 | Changed: 0 | Stable: 11\n**Milestone:** `refined` → `refined`\n**Next target:** `graph-context-analysis / context` — 남은 가장 큰 병목은 strict graph contract를 실제 변경 파일 경계로 어디까지 끌고 갈지입니다.\n\nRound 8 | Component: Graph context 기반 분석 개선 | Targeting: Context Clarity | Why now: 현재 코드 근거상 `GraphContextSelector`, `ValidationEvidenceGraphBuilder`, `RuleBasedConditionNormalizer`가 핵심 생산 경로이고, `ExecutionSpecExporter`/`SpecScanWebServer`는 기존 `validationConditions` 소비자입니다. 또 `PromptBuilder`는 graph context를 받을 수 있지만 production 호출 흔적이 거의 없어서 phase 1 필수 변경 대상이라고 보긴 어렵습니다. 이번 1차 범위의 필수 변경 파일 경계를 어디까지로 보나요?",
+        "question_hash": "9c92d32e34b6d45b6098b15a1524b899",
+        "answer_hash": "2fb58630263295d6c75e83428a4c2d0c",
+        "selected_options": [
+          "위 파일들에 더해 `ExecutionSpecExporter`와 조립 테스트까지는 필수로 맞추되, Web UI와 debug metadata는 선택이다"
+        ],
+        "component": "graph-context-analysis",
+        "dimension": "context",
+        "ambiguity_at_ask": 0.1675,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T03:55:29.023Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-9-goal",
+        "round_id": "round-9-goal",
+        "round": 9,
+        "question_id": "deep_interview_round9_goal",
+        "question_text": "Round 8 complete.\n\n| Dimension | Score | Weight | Weighted | Gap |\n|---|---:|---:|---:|---|\n| Goal | 0.78 | 0.35 | 0.27 | 아직 1차 목표가 범용 엔진 개선인지, ddd-start2 유형 패턴까지 허용하는지 한 점이 남아 있습니다 |\n| Constraints | 0.88 | 0.25 | 0.22 | 필수 파일 경계까지 잠겼습니다 |\n| Success Criteria | 0.83 | 0.25 | 0.21 | 테스트 층과 회귀 최소 합격선이 잠겼습니다 |\n| Context | 0.90 | 0.15 | 0.14 | 생산 경로와 소비 경로의 경계도 분명해졌습니다 |\n| **Ambiguity** |  |  | **16.8% -> 18.7% flat-ish** | 남은 주된 갭은 목표의 일반화 수준입니다 |\n\n**Topology:** Targeted `graph-context-analysis` | Active: 2 | Deferred: 0 | Next rotation after: `graph-context-analysis`\n**Ontology:** 13 entities | Stability: 93% | New: 1 | Changed: 0 | Stable: 12\n**Milestone:** `refined` → `refined`\n**Next target:** `validation-extraction / goal` — 이제 남은 가장 큰 병목은 1차 목표가 범용 추출 엔진 개선인지, 아니면 ddd-start2에서 드러난 패턴을 우선적으로 복구하는 실용적 개선인지입니다.\n\nRound 9 | Component: Validation condition 추출 정확도 개선 | Targeting: Goal Clarity | Why now: 현재 `RuleBasedConditionNormalizer`에는 이미 `matchVersion(`, `hasCancellationPermission(` 같은 패턴 기반 규칙이 있고, ddd-start2 manual spec도 permission/state/existence 계열 service/domain rule을 기대값으로 제시합니다. 그래서 1차 목표를 어디까지 일반화해야 하는지가 구현 전략을 크게 바꿉니다.\n\n이번 1차 구현의 목표는 어느 쪽에 더 가깝나요?",
+        "question_hash": "6076320220568990f49594a0d2d1f731",
+        "answer_hash": "2926c5c3d0cdd59290f2a364bcd99755",
+        "selected_options": [
+          "실용 우선: ddd-start2에서 드러난 service/domain 패턴을 우선 복구하되, 구현은 가능한 한 재사용 가능한 형태로 묶는다"
+        ],
+        "component": "validation-extraction",
+        "dimension": "goal",
+        "ambiguity_at_ask": 0.187,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T03:58:57.900Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-10-goal",
+        "round_id": "round-10-goal",
+        "round": 10,
+        "question_id": "deep_interview_round10_goal",
+        "question_text": "Round 9 complete.\n\n| Dimension | Score | Weight | Weighted | Gap |\n|---|---:|---:|---:|---|\n| Goal | 0.80 | 0.35 | 0.28 | graph context의 역할 범위가 아직 한 점 남아 있습니다 |\n| Constraints | 0.88 | 0.25 | 0.22 | strict contract와 필수 파일 경계는 잠겼습니다 |\n| Success Criteria | 0.83 | 0.25 | 0.21 | 테스트/회귀 합격선도 잠겼습니다 |\n| Context | 0.90 | 0.15 | 0.14 | 코드 경계는 충분히 파악됐습니다 |\n| **Ambiguity** |  |  | **18.7% -> 15.8% down** | |\n\n**Topology:** Targeted `validation-extraction` | Active: 2 | Deferred: 0 | Next rotation after: `validation-extraction`\n**Ontology:** 14 entities | Stability: 94% | New: 1 | Changed: 0 | Stable: 13\n**Milestone:** `refined` → `refined`\n**Next target:** `graph-context-analysis / goal` — 남은 가장 큰 병목은 graph context가 phase 1에서 정확히 어디까지 권한을 가지는지입니다.\n\nRound 10 | Component: Graph context 기반 분석 개선 | Targeting: Goal Clarity | Why now: 현재 코드상 graph evidence를 실제 판정에 쓰는 곳은 사실상 `RuleBasedConditionNormalizer`의 `SERVICE_HINT` 경로뿐이고, annotation/custom validator 기반 조건들은 graph와 거의 독립적으로 정규화됩니다. 그래서 phase 1 목표가 `SERVICE_HINT` 엄격화에만 집중하는지, 아니면 annotation/custom-validator ownership에도 graph를 관여시키는지에 따라 범위가 크게 달라집니다.\n\n이번 1차 구현에서 graph context의 직접적인 판정 권한은 어디까지로 보나요?",
+        "question_hash": "adeee757ac28a8a729547206fa4a628c",
+        "answer_hash": "ae835c2d265d53ef88a9cf557205f00e",
+        "selected_options": [
+          "SERVICE_HINT 경로에만 직접 권한을 준다. annotation/custom validator 경로는 기존처럼 graph와 독립적으로 둔다"
+        ],
+        "component": "graph-context-analysis",
+        "dimension": "goal",
+        "ambiguity_at_ask": 0.1575,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T04:08:16.556Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-10-soft-warning",
+        "round_id": "round-10-soft-warning",
+        "round": 10,
+        "question_id": "deep_interview_round10_soft_warning",
+        "question_text": "We're at 10 rounds. Current ambiguity: 12.3%.\n\n아직 threshold 5% 아래는 아닙니다. 남아 있는 대표 갭은 다음입니다.\n- `validation-extraction / constraints`: 선택 범위인 debug metadata를 실제로 이번 1차에서 넣을지, 완전히 비목표로 둘지\n- `graph-context-analysis / criteria`: graph-aware 개선의 증거를 조립/회귀에서 어떤 관찰값으로 확인할지 더 구체화할 여지\n\n현재 상태로도 spec 초안을 만들 수는 있지만, 진행하면 일부 구현 선택은 제가 보수적으로 고정해야 합니다.\n\n계속할까요, 아니면 현재 선명도로 정리할까요?",
+        "question_hash": "9fc998d4976144bb2fa865d4dc230957",
+        "answer_hash": "78d57318f173c8ece04c5fef9c920f6d",
+        "selected_options": [
+          "질문을 계속해서 더 선명하게 만든다"
+        ],
+        "component": "workflow",
+        "dimension": "soft-limit",
+        "ambiguity_at_ask": 0.1225,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T04:09:33.543Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-11-criteria",
+        "round_id": "round-11-criteria",
+        "round": 11,
+        "question_id": "deep_interview_round11_criteria",
+        "question_text": "Round 11 | Component: Graph context 기반 분석 개선 | Targeting: Success Criteria | Why now: 현재 graph-aware 개선의 핵심 결과는 결국 `validationConditions`로 드러나지만, 기존 출력에는 이미 graph node/edge가 따로 존재합니다. 그래서 phase 1 합격선을 `조건이 살아난다`로만 볼지, 아니면 `그 조건이 graph-backed임을 관찰 가능하게 남긴다`까지 요구할지가 아직 남아 있습니다. | Ambiguity: 12.3%\n\n코드/산출물 근거를 보면:\n- `ddd-start2-demp-auto-oas.md`는 graph node/edge는 이미 잡히지만 final `validationConditions`는 0건입니다.\n- `ExecutionSpecExporter`는 현재 `validationConditions`만 내보내고, 기존 소비자는 그 배열을 그대로 봅니다.\n- 당신은 Web UI와 debug metadata를 선택 범위로 두었습니다.\n\n그렇다면 이번 1차 구현에서 graph-aware 개선의 합격 증거는 어디까지 필요하다고 보나요?",
+        "question_hash": "c8a74fd0c001fad9f915547f9b320b9f",
+        "answer_hash": "23ec9ce68c4b162f2abc8deb24f47016",
+        "selected_options": [
+          "기본 합격은 `validationConditions` 복구지만, 가능하면 exporter의 비파괴적 debug metadata로 graph-backed 근거도 남기면 좋다"
+        ],
+        "component": "graph-context-analysis",
+        "dimension": "criteria",
+        "ambiguity_at_ask": 0.1225,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T04:11:38.367Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-12-constraints",
+        "round_id": "round-12-constraints",
+        "round": 12,
+        "question_id": "deep_interview_round12_constraints",
+        "question_text": "Round 12 | Component: Validation condition 추출 정확도 개선 | Targeting: Constraint Clarity | Why now: 남은 큰 갭은 이번 1차에서 무엇을 명시적으로 안 하는지입니다. 이 비목표가 잠겨야 구현이 validation/graph scope를 벗어나지 않습니다. | Ambiguity: 10.5%\n\n현재 repo 근거상 validation 관련 외에도 이런 이슈가 이미 보입니다.\n- `ddd-start2-demp-auto-oas.md`: MVC view endpoint가 JSON string response처럼 보이는 문제\n- 같은 문서: `ModelMap`, `BindingResult`, `HttpServletResponse` 같은 framework parameter가 사용자 입력처럼 노출되는 문제\n- `PromptBuilder` 경로는 있으나 production 호출 흔적이 거의 없음\n\n이번 1차에서 아래 항목들은 명시적 non-goal로 고정할까요?",
+        "question_hash": "f515a26212889228ff135c7c7c2dc679",
+        "answer_hash": "f7b0c5d382fd77d9940da394c280931b",
+        "selected_options": [
+          "응답 분류와 PromptBuilder/LLM 연결은 non-goal로 두되, framework parameter 정리는 validation 정확도에 직접 닿으면 포함할 수 있다"
+        ],
+        "component": "validation-extraction",
+        "dimension": "constraints",
+        "ambiguity_at_ask": 0.105,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T04:13:12.914Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-13-constraints",
+        "round_id": "round-13-constraints",
+        "round": 13,
+        "question_id": "deep_interview_round13_constraints",
+        "question_text": "Round 13 | Component: Graph context 기반 분석 개선 | Targeting: Constraint Clarity | Why now: strict graph contract는 잠겼지만, graph가 불완전할 때 실패 방향을 어떻게 가져갈지가 아직 명시되지 않았습니다. 이 선택이 false positive/false negative 성향을 결정합니다. | Ambiguity: 9.8%\n\n현재 합의상 `SERVICE_HINT`는 graph-backed일 때만 승격됩니다. 그러면 다음 상황이 남습니다.\n- graph builder가 특정 service/domain 흐름을 끝까지 못 잇는 경우\n- endpoint는 맞는데 evidence reachability가 애매한 경우\n- 결과적으로 service hint가 실제로는 맞더라도 graph가 부족해서 놓칠 수 있는 경우\n\n이번 1차 구현에서 이런 경우의 기본 태도는 무엇이어야 하나요?",
+        "question_hash": "8b758b9510fb422c23e5c8f1874c7ad2",
+        "answer_hash": "1d1bd9fed4b500e00c729c27e5e0e9d8",
+        "selected_options": [
+          "균형 우선: graph-backed가 애매하면 condition은 버리되, 가능하면 debug metadata나 warning으로만 남긴다"
+        ],
+        "component": "graph-context-analysis",
+        "dimension": "constraints",
+        "ambiguity_at_ask": 0.0975,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T04:17:48.467Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-14-goal",
+        "round_id": "round-14-goal",
+        "round": 14,
+        "question_id": "deep_interview_round14_goal",
+        "question_text": "Round 14 | Component: Validation condition 추출 정확도 개선 | Targeting: Goal Clarity | Why now: 남은 가장 큰 갭은 ‘재사용 가능한 형태’의 구체적 의미입니다. 이 수준이 잠겨야 구현이 repo-specific heuristic으로 미끄러지지 않습니다. | Ambiguity: 8.0%\n\n현재 합의는 `ddd-start2` 패턴을 우선 복구하되 재사용 가능한 형태로 묶는 것입니다. 여기서 아직 선택이 남습니다.\n- method/class 이름 자체에 기대는 규칙을 허용할지\n- 아니면 permission/state/existence/version-check 같은 더 일반적인 패턴 클래스까지만 허용할지\n\n이번 1차 구현에서 허용되는 일반화 수준은 어디까지인가요?",
+        "question_hash": "5d659326a9d960ef1b0a3f4e42dafb3c",
+        "answer_hash": "77d439c40c8ed4c1e631233c7ad58db1",
+        "selected_options": [
+          "repo-specific symbol 이름에 직접 기대는 규칙은 피하고, permission/state/existence/version-check 같은 패턴 클래스 수준까지만 허용한다"
+        ],
+        "component": "validation-extraction",
+        "dimension": "goal",
+        "ambiguity_at_ask": 0.08,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T04:21:34.959Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-15-criteria",
+        "round_id": "round-15-criteria",
+        "round": 15,
+        "question_id": "deep_interview_round15_criteria",
+        "question_text": "Round 15 | Component: Graph context 기반 분석 개선 | Targeting: Success Criteria | Why now: 남은 마지막 수준의 갭은 ‘애매한 graph-backed 케이스’를 테스트에서 무엇으로 확인하느냐입니다. 이게 잠기면 graph-aware acceptance criteria가 사실상 닫힙니다. | Ambiguity: 6.5%\n\n현재 합의는 이렇습니다.\n- graph-backed가 명확하면 `SERVICE_HINT`를 승격\n- 애매하면 condition은 버림\n- 가능하면 debug metadata나 warning으로만 남김\n\n그렇다면 이번 1차 구현의 테스트/회귀 기준에서, 애매한 graph-backed 케이스는 무엇을 반드시 보여줘야 하나요?",
+        "question_hash": "5c11067efbcdce69d9e6a0405988f255",
+        "answer_hash": "116e59a19f16c3a9f0575151505277b1",
+        "selected_options": [
+          "condition이 생성되지 않는 것과, 최소한 warning 또는 debug metadata 중 하나는 남는 것을 함께 기대한다"
+        ],
+        "component": "graph-context-analysis",
+        "dimension": "criteria",
+        "ambiguity_at_ask": 0.065,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T04:25:18.074Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-16-context",
+        "round_id": "round-16-context",
+        "round": 16,
+        "question_id": "deep_interview_round16_context",
+        "question_text": "Round 16 | Component: Validation condition 추출 정확도 개선 | Targeting: Context Clarity | Why now: 남은 마지막 수준의 갭은 framework parameter 정리를 어느 범위까지 일반화할지입니다. 이것이 잠기면 이번 1차의 brownfield 변경 맥락이 사실상 닫힙니다. | Ambiguity: 5.2%\n\n현재 합의는 framework parameter 정리를 validation 정확도에 직접 닿는 경우에만 포함할 수 있다는 것입니다. 여기서 아직 선택이 남습니다.\n- `ModelMap`, `BindingResult`, `HttpServletResponse` 같은 알려진 Spring MVC 인프라 타입을 일반 규칙으로 걸러낼지\n- 아니면 ddd-start2 회귀에 필요한 최소 지점에서만 국소적으로 처리할지\n\n이번 1차 구현은 어느 쪽으로 가는 게 맞나요?",
+        "question_hash": "7703d316aceccd3b4156793fedc3212c",
+        "answer_hash": "23ee23a378c70efb469fc43822186505",
+        "selected_options": [
+          "일반 규칙으로 간다. 알려진 Spring MVC 인프라 파라미터는 validation 정확도에 닿는 범위에서 재사용 가능한 방식으로 걸러낸다"
+        ],
+        "component": "validation-extraction",
+        "dimension": "context",
+        "ambiguity_at_ask": 0.052,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T04:28:18.831Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-restate-goal",
+        "round_id": "round-restate-goal",
+        "round": 17,
+        "question_id": "deep_interview_restate_gate",
+        "question_text": "If someone read only this line, would they reach the same outcome you have in mind?\n\n`spen-scan` 1차 구현은 `ddd-start2`를 대표 회귀 시나리오로 삼아 `@ModelAttribute OrderRequest` shape와 service/domain validationConditions 복구를 달성하되, graph context는 `SERVICE_HINT` 경로에만 엄격하게 적용하고, 패턴 클래스 수준의 재사용 가능한 규칙과 비파괴적 기존 export 호환성을 유지하면서 단위·조립·ddd-start2 회귀 테스트를 모두 통과해야 한다.",
+        "question_hash": "54808def72b3d7cfcc92e01705783b0a",
+        "answer_hash": "f7e2e045c247f456a0dc973c68f36449",
+        "selected_options": [
+          "Yes, crystallize"
+        ],
+        "component": "goal-line",
+        "dimension": "restate",
+        "ambiguity_at_ask": 0.0475,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T04:29:55.898Z"
+      },
+      {
+        "round_key": "8a453720-e712-4e20-9fc1-d9f964b57f6c::rid:round-execution-bridge",
+        "round_id": "round-execution-bridge",
+        "round": 18,
+        "question_id": "deep_interview_execution_bridge",
+        "question_text": "Your spec is ready (ambiguity: 4.75%). How would you like to proceed?",
+        "question_hash": "c4b83ada8ca79e58c903c0c4552b3096",
+        "answer_hash": "4c9ff7e2a379dbb10f1b0f15eb69f01f",
+        "selected_options": [
+          "Refine with ralplan consensus"
+        ],
+        "component": "execution-bridge",
+        "dimension": "approval",
+        "ambiguity_at_ask": 0.0475,
+        "lifecycle": "answered",
+        "answered_at": "2026-07-10T04:37:42.248Z"
+      }
+    ],
+    "established_facts": [
+      {
+        "id": "fact-round1-scope-ddd-start2",
+        "statement": "이번 인터뷰 범위는 ddd-start2를 대표 회귀 시나리오로 삼아 service/domain validationConditions 채움과 @ModelAttribute OrderRequest shape 복원을 모두 포함한다.",
+        "source_round": 1,
+        "evidence": [
+          "User answer: 둘 다 이번 범위에 포함하고, ddd-start2를 대표 회귀 시나리오로 삼는다",
+          "ddd-start2-demp-auto-oas.md",
+          "ddd-start2-demp-manual-spec.md"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round2-graph-context-role",
+        "statement": "1차 구현 범위에서 graph context는 deterministic rule-based normalization의 입력 또는 보조 근거로만 사용하며, LLM/prompt 호출은 사용하지 않는다.",
+        "source_round": 2,
+        "evidence": [
+          "User answer: Graph context는 deterministic rule-based normalization의 입력 또는 보조 근거로만 사용한다.",
+          "User answer: 1차 구현 범위에서는 LLM/prompt 호출을 사용하지 않는다.",
+          "src/main/java/io/atworks/specscan/analysis/support/PromptBuilder.java"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round3-output-compatibility",
+        "statement": "이번 1차 구현에서는 기존 validationConditions 소비 방식은 유지하고, 필요하면 디버깅용 메타데이터 필드만 추가할 수 있다.",
+        "source_round": 3,
+        "evidence": [
+          "User answer: 기존 validationConditions 소비는 유지하되, 디버깅용 메타데이터 필드는 추가할 수 있다",
+          "src/main/java/io/atworks/specscan/analysis/support/ExecutionSpecExporter.java",
+          "src/main/java/io/atworks/specscan/SpecScanWebServer.java"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round4-graph-isolation",
+        "statement": "graph context 완료 기준에는 연결 유무 기반 normalize/reject 검증뿐 아니라 unrelated endpoint/graph node가 현재 endpoint 결과를 오염시키지 않는 endpoint isolation 검증이 반드시 포함된다.",
+        "source_round": 4,
+        "evidence": [
+          "User answer: 위 기준에 더해, unrelated endpoint/graph node가 있어도 현재 endpoint의 normalization 결과가 오염되지 않는 endpoint isolation까지 반드시 검증한다",
+          "src/test/java/io/atworks/specscan/analysis/GraphContextSelectorTest.java",
+          "src/test/java/io/atworks/specscan/analysis/NormalizationServiceTest.java"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round5-required-test-layers",
+        "statement": "이번 1차 구현의 완료 기준에는 단위 테스트, 조립 테스트, 그리고 ddd-start2 회귀 시나리오가 모두 필수다.",
+        "source_round": 5,
+        "evidence": [
+          "User answer: 단위 테스트 + 조립 테스트 + `ddd-start2` 회귀 시나리오까지 모두 필수다",
+          "src/test/java/io/atworks/specscan/analysis/ValidationExtractionServiceTest.java",
+          "src/test/java/io/atworks/specscan/analysis/NormalizationServiceTest.java",
+          "src/test/java/io/atworks/specscan/analysis/OpenApiAssemblyServiceTest.java",
+          "ddd-start2-demp-auto-oas.md",
+          "ddd-start2-demp-manual-spec.md"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round6-strict-service-hint-graph",
+        "statement": "이번 1차 구현에서 SERVICE_HINT 정규화는 해당 endpoint에서 도달 가능한 graph evidence가 있을 때만 condition을 만들고, empty-graph fallback은 허용하지 않는다.",
+        "source_round": 6,
+        "evidence": [
+          "User answer: 엄격 모드: 해당 endpoint에서 도달 가능한 graph evidence가 있을 때만 SERVICE_HINT condition을 만든다",
+          "src/main/java/io/atworks/specscan/analysis/support/RuleBasedConditionNormalizer.java",
+          "src/test/java/io/atworks/specscan/analysis/NormalizationServiceTest.java"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round7-ddd-min-bar",
+        "statement": "ddd-start2 회귀 최소 합격선은 `/orders/orderConfirm`과 `/orders/order`의 `@ModelAttribute OrderRequest` shape 복원, `/orders/order`의 nested BODY validation 다수 복구, 그리고 `/my/orders/{orderNo}/cancel` 같은 service/domain endpoint의 permission 또는 state 계열 validationCondition 복구를 모두 포함한다.",
+        "source_round": 7,
+        "evidence": [
+          "User answer: 위 기준에 더해 `/my/orders/{orderNo}/cancel` 같은 service/domain endpoint에서도 permission 또는 state 계열 validationCondition이 반드시 살아나야 한다",
+          "ddd-start2-demp-manual-spec.md",
+          "ddd-start2-demp-auto-oas.md"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round8-required-file-boundary",
+        "statement": "이번 1차 구현의 필수 변경 경계에는 `ValidationExtractionService`/`ValidationEvidenceGraphBuilder`/`RuleBasedConditionNormalizer`와 관련 테스트, 그리고 `ExecutionSpecExporter` 및 조립 테스트가 포함된다. Web UI와 debug metadata는 선택 범위다.",
+        "source_round": 8,
+        "evidence": [
+          "User answer: 위 파일들에 더해 `ExecutionSpecExporter`와 조립 테스트까지는 필수로 맞추되, Web UI와 debug metadata는 선택이다",
+          "src/main/java/io/atworks/specscan/analysis/support/ExecutionSpecExporter.java",
+          "src/test/java/io/atworks/specscan/analysis/OpenApiAssemblyServiceTest.java"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round9-practical-generalized-goal",
+        "statement": "이번 1차 구현은 ddd-start2에서 드러난 service/domain 패턴을 우선 복구하되, 구현은 가능한 한 재사용 가능한 형태로 묶는 실용 우선 목표를 따른다.",
+        "source_round": 9,
+        "evidence": [
+          "User answer: 실용 우선: ddd-start2에서 드러난 service/domain 패턴을 우선 복구하되, 구현은 가능한 한 재사용 가능한 형태로 묶는다",
+          "src/main/java/io/atworks/specscan/analysis/support/RuleBasedConditionNormalizer.java",
+          "ddd-start2-demp-manual-spec.md"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round10-graph-authority-boundary",
+        "statement": "이번 1차 구현에서 graph context의 직접적인 판정 권한은 SERVICE_HINT 경로에만 부여하고, annotation/custom validator 경로는 기존처럼 graph와 독립적으로 유지한다.",
+        "source_round": 10,
+        "evidence": [
+          "User answer: SERVICE_HINT 경로에만 직접 권한을 준다. annotation/custom validator 경로는 기존처럼 graph와 독립적으로 둔다",
+          "src/main/java/io/atworks/specscan/analysis/support/RuleBasedConditionNormalizer.java",
+          "src/main/java/io/atworks/specscan/analysis/application/ValidationExtractionService.java"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round11-graph-evidence-observability",
+        "statement": "이번 1차 구현의 기본 합격선은 validationConditions 복구이며, 가능하면 exporter의 비파괴적 debug metadata로 graph-backed 근거를 남기면 좋지만 필수 합격 조건은 아니다.",
+        "source_round": 11,
+        "evidence": [
+          "User answer: 기본 합격은 `validationConditions` 복구지만, 가능하면 exporter의 비파괴적 debug metadata로 graph-backed 근거도 남기면 좋다",
+          "src/main/java/io/atworks/specscan/analysis/support/ExecutionSpecExporter.java",
+          "ddd-start2-demp-auto-oas.md"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round12-nongoals-and-optional-framework-cleanup",
+        "statement": "이번 1차에서 MVC view 응답 분류 수정과 PromptBuilder/LLM 연결은 non-goal로 둔다. framework parameter 정리는 validation 정확도에 직접 닿는 경우에만 포함할 수 있다.",
+        "source_round": 12,
+        "evidence": [
+          "User answer: 응답 분류와 PromptBuilder/LLM 연결은 non-goal로 두되, framework parameter 정리는 validation 정확도에 직접 닿으면 포함할 수 있다",
+          "ddd-start2-demp-auto-oas.md",
+          "src/main/java/io/atworks/specscan/analysis/application/ValidationExtractionService.java",
+          "src/main/java/io/atworks/specscan/analysis/support/PromptBuilder.java"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round13-ambiguous-graph-handling",
+        "statement": "이번 1차 구현에서는 graph-backed 여부가 애매하면 SERVICE_HINT condition은 버리고, 가능하면 debug metadata나 warning으로만 남긴다.",
+        "source_round": 13,
+        "evidence": [
+          "User answer: 균형 우선: graph-backed가 애매하면 condition은 버리되, 가능하면 debug metadata나 warning으로만 남긴다",
+          "src/main/java/io/atworks/specscan/analysis/support/ExecutionSpecExporter.java",
+          "src/main/java/io/atworks/specscan/analysis/support/RuleBasedConditionNormalizer.java"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round14-generalization-level",
+        "statement": "이번 1차 구현은 repo-specific symbol 이름 기반 규칙을 피하고, permission/state/existence/version-check 같은 패턴 클래스 수준까지만 일반화를 허용한다.",
+        "source_round": 14,
+        "evidence": [
+          "User answer: repo-specific symbol 이름에 직접 기대는 규칙은 피하고, permission/state/existence/version-check 같은 패턴 클래스 수준까지만 허용한다",
+          "src/main/java/io/atworks/specscan/analysis/support/RuleBasedConditionNormalizer.java"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round15-ambiguous-case-acceptance",
+        "statement": "애매한 graph-backed 케이스의 합격 기준은 condition이 생성되지 않는 것과, 최소한 warning 또는 debug metadata 중 하나가 남는 것을 함께 기대하는 것이다.",
+        "source_round": 15,
+        "evidence": [
+          "User answer: condition이 생성되지 않는 것과, 최소한 warning 또는 debug metadata 중 하나는 남는 것을 함께 기대한다",
+          "src/main/java/io/atworks/specscan/analysis/support/ExecutionSpecExporter.java"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      },
+      {
+        "id": "fact-round16-framework-parameter-generalization",
+        "statement": "framework parameter 정리는 알려진 Spring MVC 인프라 파라미터를 validation 정확도에 닿는 범위에서 재사용 가능한 일반 규칙으로 걸러내는 방향으로 수행한다.",
+        "source_round": 16,
+        "evidence": [
+          "User answer: 일반 규칙으로 간다. 알려진 Spring MVC 인프라 파라미터는 validation 정확도에 닿는 범위에서 재사용 가능한 방식으로 걸러낸다",
+          "ddd-start2-demp-auto-oas.md",
+          "src/main/java/io/atworks/specscan/analysis/application/ValidationExtractionService.java"
+        ],
+        "disputed": false,
+        "superseded_by": null
+      }
+    ],
+    "interview_id": "8a453720-e712-4e20-9fc1-d9f964b57f6c",
+    "type": "brownfield",
+    "initial_idea": "spen-scan 프로젝트에서 validation condition 추출과 graph context 기반 분석을 개선하려고 한다. 현재 코드베이스 기준으로 목표, 제약, 영향 파일, 필요한 테스트를 먼저 인터뷰 방식으로 정리해줘.",
+    "current_ambiguity": 0.0475,
+    "language": {
+      "instruction": "한국어로 진행"
+    },
+    "codebase_context": {
+      "summary": "README 기준 파이프라인은 Validation Extract(UOW-03)와 Normalization(UOW-04)로 분리되어 있습니다. ValidationExtractionService는 DTO annotation direct condition, custom-validator candidate, service hint를 수집합니다. ValidationEvidenceGraphBuilder는 endpoint/DTO/service/business-rule graph를 만듭니다. GraphContextSelector와 PromptBuilder는 graph context를 프롬프트에 싣는 경로를 제공하지만, 현재 검색상 PromptBuilder는 다른 production 코드에서 호출되지 않습니다. 샘플 결과 문서에는 graph node/edge는 존재하지만 최종 validationConditions가 0건이고, @ModelAttribute OrderRequest shape와 service/domain rule이 덜 추출된다고 기록돼 있습니다.",
+      "citations": [
+        "README.md",
+        "src/main/java/io/atworks/specscan/analysis/application/ValidationExtractionService.java",
+        "src/main/java/io/atworks/specscan/analysis/support/ValidationEvidenceGraphBuilder.java",
+        "src/main/java/io/atworks/specscan/analysis/support/GraphContextSelector.java",
+        "src/main/java/io/atworks/specscan/analysis/support/PromptBuilder.java",
+        "ddd-start2-demp-auto-oas.md",
+        "ddd-start2-demp-manual-spec.md"
+      ],
+      "relevant_files": [
+        "src/main/java/io/atworks/specscan/analysis/application/ValidationExtractionService.java",
+        "src/main/java/io/atworks/specscan/analysis/support/ValidationEvidenceGraphBuilder.java",
+        "src/main/java/io/atworks/specscan/analysis/support/GraphContextSelector.java",
+        "src/main/java/io/atworks/specscan/analysis/support/PromptBuilder.java",
+        "src/main/java/io/atworks/specscan/analysis/support/RuleBasedConditionNormalizer.java",
+        "src/test/java/io/atworks/specscan/analysis/ValidationExtractionServiceTest.java",
+        "src/test/java/io/atworks/specscan/analysis/ValidationEvidenceGraphBuilderTest.java",
+        "src/test/java/io/atworks/specscan/analysis/GraphContextSelectorTest.java"
+      ]
+    },
+    "topology": {
+      "status": "confirmed",
+      "confirmed_at": "2026-07-10T01:21:45Z",
+      "components": [
+        {
+          "id": "validation-extraction",
+          "name": "Validation condition 추출 정확도 개선",
+          "description": "annotation, custom validator, service/domain hint가 최종 validationConditions로 이어지도록 추출·정규화 경로를 개선한다.",
+          "status": "active",
+          "evidence": [
+            "README.md UOW-03/UOW-04",
+            "ddd-start2-demp-auto-oas.md: graph exists but validationConditions=0"
+          ],
+          "clarity_scores": {
+            "goal": 0.97,
+            "constraints": 0.96,
+            "criteria": 0.94,
+            "context": 0.97
+          },
+          "weakest_dimension": "criteria"
+        },
+        {
+          "id": "graph-context-analysis",
+          "name": "Graph context 기반 분석 개선",
+          "description": "endpoint-scoped evidence graph와 subgraph 선택 결과가 실제 정규화 판단에 의미 있게 반영되도록 분석 경로를 정리한다.",
+          "status": "active",
+          "evidence": [
+            "GraphContextSelector exists",
+            "PromptBuilder accepts graph context",
+            "PromptBuilder search returned no production callers"
+          ],
+          "clarity_scores": {
+            "goal": 0.95,
+            "constraints": 0.97,
+            "criteria": 0.96,
+            "context": 0.95
+          },
+          "weakest_dimension": "goal"
+        }
+      ],
+      "deferrals": [],
+      "last_targeted_component_id": "validation-extraction"
+    },
+    "ontology_snapshots": [
+      {
+        "round": 1,
+        "entities": [
+          {
+            "name": "ValidationCondition",
+            "type": "core domain",
+            "fields": [
+              "targetPath",
+              "operator",
+              "expected",
+              "confidence"
+            ],
+            "relationships": [
+              "normalized from ValidationCandidate",
+              "attached to Endpoint validationConditions"
+            ]
+          },
+          {
+            "name": "ValidationCandidate",
+            "type": "supporting",
+            "fields": [
+              "candidateId",
+              "sourceType",
+              "targetPath",
+              "evidenceSnippet",
+              "confidence"
+            ],
+            "relationships": [
+              "feeds ValidationCondition normalization",
+              "linked to source evidence"
+            ]
+          },
+          {
+            "name": "ValidationEvidenceGraph",
+            "type": "supporting",
+            "fields": [
+              "nodes",
+              "edges",
+              "endpoint-scoped subgraph"
+            ],
+            "relationships": [
+              "provides context for candidate normalization"
+            ]
+          },
+          {
+            "name": "OrderRequest",
+            "type": "fixture request model",
+            "fields": [
+              "orderProducts",
+              "ordererMemberId",
+              "shippingInfo"
+            ],
+            "relationships": [
+              "bound to ddd-start2 order endpoints"
+            ]
+          },
+          {
+            "name": "ddd-start2 regression fixture",
+            "type": "external system",
+            "fields": [
+              "auto-oas output",
+              "manual spec"
+            ],
+            "relationships": [
+              "used as representative regression scenario"
+            ]
+          }
+        ],
+        "stability_ratio": null,
+        "matching_reasoning": {
+          "matched": [],
+          "new": [
+            "ValidationCondition",
+            "ValidationCandidate",
+            "ValidationEvidenceGraph",
+            "OrderRequest",
+            "ddd-start2 regression fixture"
+          ],
+          "changed": [],
+          "removed": []
+        }
+      },
+      {
+        "round": 2,
+        "entities": [
+          {
+            "name": "ValidationCondition",
+            "type": "core domain",
+            "fields": [
+              "targetPath",
+              "operator",
+              "expected",
+              "confidence"
+            ],
+            "relationships": [
+              "normalized from ValidationCandidate",
+              "attached to Endpoint validationConditions"
+            ]
+          },
+          {
+            "name": "ValidationCandidate",
+            "type": "supporting",
+            "fields": [
+              "candidateId",
+              "sourceType",
+              "targetPath",
+              "evidenceSnippet",
+              "confidence"
+            ],
+            "relationships": [
+              "feeds ValidationCondition normalization",
+              "linked to source evidence"
+            ]
+          },
+          {
+            "name": "ValidationEvidenceGraph",
+            "type": "supporting",
+            "fields": [
+              "nodes",
+              "edges",
+              "endpoint-scoped subgraph"
+            ],
+            "relationships": [
+              "provides context for candidate normalization"
+            ]
+          },
+          {
+            "name": "OrderRequest",
+            "type": "fixture request model",
+            "fields": [
+              "orderProducts",
+              "ordererMemberId",
+              "shippingInfo"
+            ],
+            "relationships": [
+              "bound to ddd-start2 order endpoints"
+            ]
+          },
+          {
+            "name": "ddd-start2 regression fixture",
+            "type": "external system",
+            "fields": [
+              "auto-oas output",
+              "manual spec"
+            ],
+            "relationships": [
+              "used as representative regression scenario"
+            ]
+          },
+          {
+            "name": "Deterministic normalization path",
+            "type": "supporting",
+            "fields": [
+              "rule-based input",
+              "support evidence"
+            ],
+            "relationships": [
+              "consumes graph context"
+            ]
+          },
+          {
+            "name": "LLM/prompt normalization path",
+            "type": "supporting",
+            "fields": [
+              "prompt call",
+              "PromptBuilder"
+            ],
+            "relationships": [
+              "explicitly out of scope for phase 1"
+            ]
+          }
+        ],
+        "stability_ratio": 0.7143,
+        "matching_reasoning": {
+          "matched": [
+            "ValidationCondition",
+            "ValidationCandidate",
+            "ValidationEvidenceGraph",
+            "OrderRequest",
+            "ddd-start2 regression fixture"
+          ],
+          "new": [
+            "Deterministic normalization path",
+            "LLM/prompt normalization path"
+          ],
+          "changed": [],
+          "removed": []
+        }
+      },
+      {
+        "round": 3,
+        "entities": [
+          {
+            "name": "ValidationCondition",
+            "type": "core domain",
+            "fields": [
+              "targetPath",
+              "operator",
+              "expected",
+              "confidence"
+            ],
+            "relationships": [
+              "normalized from ValidationCandidate",
+              "attached to Endpoint validationConditions"
+            ]
+          },
+          {
+            "name": "ValidationCandidate",
+            "type": "supporting",
+            "fields": [
+              "candidateId",
+              "sourceType",
+              "targetPath",
+              "evidenceSnippet",
+              "confidence"
+            ],
+            "relationships": [
+              "feeds ValidationCondition normalization",
+              "linked to source evidence"
+            ]
+          },
+          {
+            "name": "ValidationEvidenceGraph",
+            "type": "supporting",
+            "fields": [
+              "nodes",
+              "edges",
+              "endpoint-scoped subgraph"
+            ],
+            "relationships": [
+              "provides context for candidate normalization"
+            ]
+          },
+          {
+            "name": "OrderRequest",
+            "type": "fixture request model",
+            "fields": [
+              "orderProducts",
+              "ordererMemberId",
+              "shippingInfo"
+            ],
+            "relationships": [
+              "bound to ddd-start2 order endpoints"
+            ]
+          },
+          {
+            "name": "ddd-start2 regression fixture",
+            "type": "external system",
+            "fields": [
+              "auto-oas output",
+              "manual spec"
+            ],
+            "relationships": [
+              "used as representative regression scenario"
+            ]
+          },
+          {
+            "name": "Deterministic normalization path",
+            "type": "supporting",
+            "fields": [
+              "rule-based input",
+              "support evidence"
+            ],
+            "relationships": [
+              "consumes graph context"
+            ]
+          },
+          {
+            "name": "LLM/prompt normalization path",
+            "type": "supporting",
+            "fields": [
+              "prompt call",
+              "PromptBuilder"
+            ],
+            "relationships": [
+              "explicitly out of scope for phase 1"
+            ]
+          },
+          {
+            "name": "Validation debug metadata",
+            "type": "supporting",
+            "fields": [
+              "optional export field",
+              "diagnostic only"
+            ],
+            "relationships": [
+              "may be added without breaking existing validationConditions consumers"
+            ]
+          }
+        ],
+        "stability_ratio": 0.875,
+        "matching_reasoning": {
+          "matched": [
+            "ValidationCondition",
+            "ValidationCandidate",
+            "ValidationEvidenceGraph",
+            "OrderRequest",
+            "ddd-start2 regression fixture",
+            "Deterministic normalization path",
+            "LLM/prompt normalization path"
+          ],
+          "new": [
+            "Validation debug metadata"
+          ],
+          "changed": [],
+          "removed": []
+        }
+      },
+      {
+        "round": 4,
+        "entities": [
+          {
+            "name": "ValidationCondition",
+            "type": "core domain",
+            "fields": [
+              "targetPath",
+              "operator",
+              "expected",
+              "confidence"
+            ],
+            "relationships": [
+              "normalized from ValidationCandidate",
+              "attached to Endpoint validationConditions"
+            ]
+          },
+          {
+            "name": "ValidationCandidate",
+            "type": "supporting",
+            "fields": [
+              "candidateId",
+              "sourceType",
+              "targetPath",
+              "evidenceSnippet",
+              "confidence"
+            ],
+            "relationships": [
+              "feeds ValidationCondition normalization",
+              "linked to source evidence"
+            ]
+          },
+          {
+            "name": "ValidationEvidenceGraph",
+            "type": "supporting",
+            "fields": [
+              "nodes",
+              "edges",
+              "endpoint-scoped subgraph"
+            ],
+            "relationships": [
+              "provides context for candidate normalization"
+            ]
+          },
+          {
+            "name": "OrderRequest",
+            "type": "fixture request model",
+            "fields": [
+              "orderProducts",
+              "ordererMemberId",
+              "shippingInfo"
+            ],
+            "relationships": [
+              "bound to ddd-start2 order endpoints"
+            ]
+          },
+          {
+            "name": "ddd-start2 regression fixture",
+            "type": "external system",
+            "fields": [
+              "auto-oas output",
+              "manual spec"
+            ],
+            "relationships": [
+              "used as representative regression scenario"
+            ]
+          },
+          {
+            "name": "Deterministic normalization path",
+            "type": "supporting",
+            "fields": [
+              "rule-based input",
+              "support evidence"
+            ],
+            "relationships": [
+              "consumes graph context"
+            ]
+          },
+          {
+            "name": "LLM/prompt normalization path",
+            "type": "supporting",
+            "fields": [
+              "prompt call",
+              "PromptBuilder"
+            ],
+            "relationships": [
+              "explicitly out of scope for phase 1"
+            ]
+          },
+          {
+            "name": "Validation debug metadata",
+            "type": "supporting",
+            "fields": [
+              "optional export field",
+              "diagnostic only"
+            ],
+            "relationships": [
+              "may be added without breaking existing validationConditions consumers"
+            ]
+          },
+          {
+            "name": "Endpoint isolation",
+            "type": "supporting",
+            "fields": [
+              "unrelated endpoint",
+              "unrelated graph node",
+              "current endpoint result"
+            ],
+            "relationships": [
+              "guards graph-aware normalization from cross-endpoint contamination"
+            ]
+          }
+        ],
+        "stability_ratio": 0.8889,
+        "matching_reasoning": {
+          "matched": [
+            "ValidationCondition",
+            "ValidationCandidate",
+            "ValidationEvidenceGraph",
+            "OrderRequest",
+            "ddd-start2 regression fixture",
+            "Deterministic normalization path",
+            "LLM/prompt normalization path",
+            "Validation debug metadata"
+          ],
+          "new": [
+            "Endpoint isolation"
+          ],
+          "changed": [],
+          "removed": []
+        }
+      },
+      {
+        "round": 5,
+        "entities": [
+          {
+            "name": "ValidationCondition",
+            "type": "core domain",
+            "fields": [
+              "targetPath",
+              "operator",
+              "expected",
+              "confidence"
+            ],
+            "relationships": [
+              "normalized from ValidationCandidate",
+              "attached to Endpoint validationConditions"
+            ]
+          },
+          {
+            "name": "ValidationCandidate",
+            "type": "supporting",
+            "fields": [
+              "candidateId",
+              "sourceType",
+              "targetPath",
+              "evidenceSnippet",
+              "confidence"
+            ],
+            "relationships": [
+              "feeds ValidationCondition normalization",
+              "linked to source evidence"
+            ]
+          },
+          {
+            "name": "ValidationEvidenceGraph",
+            "type": "supporting",
+            "fields": [
+              "nodes",
+              "edges",
+              "endpoint-scoped subgraph"
+            ],
+            "relationships": [
+              "provides context for candidate normalization"
+            ]
+          },
+          {
+            "name": "OrderRequest",
+            "type": "fixture request model",
+            "fields": [
+              "orderProducts",
+              "ordererMemberId",
+              "shippingInfo"
+            ],
+            "relationships": [
+              "bound to ddd-start2 order endpoints"
+            ]
+          },
+          {
+            "name": "ddd-start2 regression fixture",
+            "type": "external system",
+            "fields": [
+              "auto-oas output",
+              "manual spec"
+            ],
+            "relationships": [
+              "used as representative regression scenario"
+            ]
+          },
+          {
+            "name": "Deterministic normalization path",
+            "type": "supporting",
+            "fields": [
+              "rule-based input",
+              "support evidence"
+            ],
+            "relationships": [
+              "consumes graph context"
+            ]
+          },
+          {
+            "name": "LLM/prompt normalization path",
+            "type": "supporting",
+            "fields": [
+              "prompt call",
+              "PromptBuilder"
+            ],
+            "relationships": [
+              "explicitly out of scope for phase 1"
+            ]
+          },
+          {
+            "name": "Validation debug metadata",
+            "type": "supporting",
+            "fields": [
+              "optional export field",
+              "diagnostic only"
+            ],
+            "relationships": [
+              "may be added without breaking existing validationConditions consumers"
+            ]
+          },
+          {
+            "name": "Endpoint isolation",
+            "type": "supporting",
+            "fields": [
+              "unrelated endpoint",
+              "unrelated graph node",
+              "current endpoint result"
+            ],
+            "relationships": [
+              "guards graph-aware normalization from cross-endpoint contamination"
+            ]
+          },
+          {
+            "name": "Required test layers",
+            "type": "supporting",
+            "fields": [
+              "unit tests",
+              "assembly tests",
+              "ddd-start2 regression"
+            ],
+            "relationships": [
+              "define extraction completion gate"
+            ]
+          }
+        ],
+        "stability_ratio": 0.9,
+        "matching_reasoning": {
+          "matched": [
+            "ValidationCondition",
+            "ValidationCandidate",
+            "ValidationEvidenceGraph",
+            "OrderRequest",
+            "ddd-start2 regression fixture",
+            "Deterministic normalization path",
+            "LLM/prompt normalization path",
+            "Validation debug metadata",
+            "Endpoint isolation"
+          ],
+          "new": [
+            "Required test layers"
+          ],
+          "changed": [],
+          "removed": []
+        }
+      }
+    ],
+    "auto_researched_rounds": [],
+    "auto_answered_rounds": [],
+    "lateral_reviews": [
+      {
+        "round": 5,
+        "trigger": "progress-to-refined transition",
+        "personas_dispatched": [
+          "researcher",
+          "contrarian",
+          "simplifier"
+        ],
+        "findings_folded": [],
+        "status": "pending_or_timeout"
+      }
+    ],
+    "lateral_panel_failures": 2,
+    "auto_answer_streak": 0,
+    "refined_rounds": [
+      2
+    ],
+    "closure_overrides": [],
+    "ambiguity_milestone": "ready",
+    "architect_failures": 0,
+    "ambiguity_floor": {
+      "floor": 0,
+      "disputed_fact_count": 0,
+      "unscored_active_component_count": 0,
+      "auto_answer_ratio": 0
+    },
+    "restated_goal": "spen-scan 1차 구현은 ddd-start2를 대표 회귀 시나리오로 삼아 @ModelAttribute OrderRequest shape와 service/domain validationConditions 복구를 달성하되, graph context는 SERVICE_HINT 경로에만 엄격하게 적용하고, 패턴 클래스 수준의 재사용 가능한 규칙과 비파괴적 기존 export 호환성을 유지하면서 단위·조립·ddd-start2 회귀 테스트를 모두 통과해야 한다."
+  },
+  "state_revision": 42
+}
