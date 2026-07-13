@@ -1,12 +1,38 @@
 package io.atworks.specscan.analysis.support;
 
-import io.atworks.specscan.analysis.domain.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public class OpenApiGenerator {
 
-    public String generateYaml(StaticScanResult scanResult, List<ApiConditionDraft> drafts, List<ApiCondition> conditions) {
+    private static final Set<String> RESERVED_SCALARS = Set.of(
+        "null", "true", "false", "yes", "no", "on", "off", "~"
+    );
+
+    private final ObjectMapper objectMapper;
+
+    public OpenApiGenerator() {
+        this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    }
+
+    public String generateYaml(String executionJson) {
+        try {
+            return generateYaml(objectMapper.readTree(executionJson));
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to parse execution model JSON.", e);
+        }
+    }
+
+    String generateYaml(JsonNode executionModel) {
         StringBuilder sb = new StringBuilder();
         sb.append("openapi: 3.0.3\n");
         sb.append("info:\n");
@@ -14,232 +40,290 @@ public class OpenApiGenerator {
         sb.append("  version: 1.0.0\n");
         sb.append("paths:\n");
 
-        // Paths 조립
-        Map<String, List<ApiEndpoint>> pathsMap = new LinkedHashMap<>();
-        for (ApiEndpoint endpoint : scanResult.endpoints()) {
-            pathsMap.computeIfAbsent(endpoint.path(), k -> new ArrayList<>()).add(endpoint);
-        }
-
-        for (Map.Entry<String, List<ApiEndpoint>> entry : pathsMap.entrySet()) {
-            String path = entry.getKey();
-            sb.append("  ").append(path).append(":\n");
-            for (ApiEndpoint endpoint : entry.getValue()) {
-                String method = endpoint.httpMethod().toLowerCase();
-                sb.append("    ").append(method).append(":\n");
-                sb.append("      summary: ").append(endpoint.controllerMethod()).append("\n");
-                sb.append("      operationId: ").append(endpoint.controllerMethod()).append("\n");
-
-                // Request parameters or body
-                boolean hasBody = false;
-                List<RequestBinding> queryOrPathParams = new ArrayList<>();
-                for (RequestBinding binding : endpoint.requestBindings()) {
-                    if (binding.targetLocation() == BindingLocation.BODY) {
-                        hasBody = true;
-                    } else {
-                        queryOrPathParams.add(binding);
-                    }
-                }
-
-                if (!queryOrPathParams.isEmpty()) {
-                    sb.append("      parameters:\n");
-                    for (RequestBinding param : queryOrPathParams) {
-                        sb.append("        - name: ").append(param.parameterName()).append("\n");
-                        sb.append("          in: ").append(param.targetLocation().name().toLowerCase()).append("\n");
-                        sb.append("          required: ").append(param.isRequired()).append("\n");
-                        if (param.description() != null && !param.description().isBlank()) {
-                            sb.append("          description: ").append(param.description()).append("\n");
-                        }
-                        if (param.example() != null && !param.example().isBlank()) {
-                            sb.append("          example: ").append(param.example()).append("\n");
-                        }
-                        sb.append("          schema:\n");
-                        sb.append("            type: ").append(resolvePrimitiveYamlType(param.type())).append("\n");
-                        if (param.defaultValue() != null && !param.defaultValue().isBlank()) {
-                            sb.append("            default: ").append(param.defaultValue()).append("\n");
-                        }
-                        if (!param.enumValues().isEmpty()) {
-                            sb.append("            enum:\n");
-                            for (String enumValue : param.enumValues()) {
-                                sb.append("              - ").append(enumValue).append("\n");
-                            }
-                        }
-                        if (param.example() != null && !param.example().isBlank()) {
-                            sb.append("            example: ").append(param.example()).append("\n");
-                        }
-                    }
-                }
-
-                if (hasBody) {
-                    sb.append("      requestBody:\n");
-                    sb.append("        required: true\n");
-                    sb.append("        content:\n");
-                    sb.append("          application/json:\n");
-                    sb.append("            schema:\n");
-                    // DTO body type e.g. UserDto
-                    Optional<RequestBinding> bodyOpt = endpoint.requestBindings().stream()
-                            .filter(b -> b.targetLocation() == BindingLocation.BODY).findFirst();
-                    if (bodyOpt.isPresent()) {
-                        sb.append("              $ref: '#/components/schemas/").append(bodyOpt.get().type()).append("'\n");
-                    }
-                }
-
-                // Responses
-                sb.append("      responses:\n");
-                sb.append("        '200':\n");
-                sb.append("          description: Success\n");
-                String respType = endpoint.responseBinding().type();
-                if (respType != null && !respType.equals("void")) {
-                    sb.append("          content:\n");
-                    sb.append("            application/json:\n");
-                    sb.append("              schema:\n");
-                    if (isPrimitiveType(respType)) {
-                        sb.append("                type: ").append(resolvePrimitiveYamlType(respType)).append("\n");
-                    } else {
-                        sb.append("                $ref: '#/components/schemas/").append(respType).append("'\n");
-                    }
-                }
-            }
-        }
-
-        // Components & Schemas 조립
-        sb.append("components:\n");
-        sb.append("  schemas:\n");
-
-        // DTO들의 필드 및 제약사항 파악
-        Set<String> processedSchemas = new HashSet<>();
-        for (ApiEndpoint endpoint : scanResult.endpoints()) {
-            for (RequestBinding binding : endpoint.requestBindings()) {
-                if (binding.targetLocation() == BindingLocation.BODY && !processedSchemas.contains(binding.type())) {
-                    generateDtoSchemaYaml(sb, binding.type(), drafts, conditions);
-                    processedSchemas.add(binding.type());
-                }
-            }
-            String respType = endpoint.responseBinding().type();
-            if (respType != null && !respType.equals("void") && !isPrimitiveType(respType) && !processedSchemas.contains(respType)) {
-                generateDtoSchemaYaml(sb, respType, drafts, conditions);
-                processedSchemas.add(respType);
+        for (Map.Entry<String, List<JsonNode>> entry : groupOperationsByPath(executionModel.path("operations")).entrySet()) {
+            appendLine(sb, 1, entry.getKey() + ":");
+            for (JsonNode operation : entry.getValue()) {
+                appendOperation(sb, operation);
             }
         }
 
         return sb.toString();
     }
 
-    private void generateDtoSchemaYaml(StringBuilder sb, String typeName, List<ApiConditionDraft> drafts, List<ApiCondition> conditions) {
-        sb.append("    ").append(typeName).append(":\n");
-        sb.append("      type: object\n");
+    private Map<String, List<JsonNode>> groupOperationsByPath(JsonNode operationsNode) {
+        Map<String, List<JsonNode>> operationsByPath = new LinkedHashMap<>();
+        if (!operationsNode.isArray()) {
+            return operationsByPath;
+        }
+        for (JsonNode operation : operationsNode) {
+            String path = operation.path("path").asText();
+            operationsByPath.computeIfAbsent(path, _k -> new ArrayList<>()).add(operation);
+        }
+        return operationsByPath;
+    }
 
-        List<String> requiredFields = new ArrayList<>();
-        Map<String, Map<String, String>> fieldConstraints = new LinkedHashMap<>();
+    private void appendOperation(StringBuilder sb, JsonNode operation) {
+        String method = operation.path("method").asText().toLowerCase(Locale.ROOT);
+        appendLine(sb, 2, method + ":");
 
-        // 1. ApiConditionDraft (Annotation 기반) 스캔
-        for (ApiConditionDraft draft : drafts) {
-            String field = draft.targetPath();
-            if (draft.operator().equals("NOT_NULL") || draft.operator().equals("NOT_BLANK") || draft.operator().equals("NOT_EMPTY")) {
-                if (!requiredFields.contains(field)) {
-                    requiredFields.add(field);
+        String operationId = operation.path("operationId").asText();
+        appendLine(sb, 3, "summary: " + formatString(operationId));
+        appendLine(sb, 3, "operationId: " + formatString(operationId));
+
+        JsonNode request = operation.path("request");
+        appendParameters(sb, request);
+        appendRequestBody(sb, request);
+        appendResponses(sb, operation.path("response200"));
+        appendValidationConditions(sb, operation.path("validationConditions"));
+    }
+
+    private void appendParameters(StringBuilder sb, JsonNode request) {
+        List<ParameterGroup> groups = List.of(
+            new ParameterGroup("pathParams", "path"),
+            new ParameterGroup("queryParams", "query"),
+            new ParameterGroup("headers", "header")
+        );
+        boolean hasParameters = groups.stream().anyMatch(group -> request.path(group.nodeName()).isArray() && request.path(group.nodeName()).size() > 0);
+        if (!hasParameters) {
+            return;
+        }
+
+        appendLine(sb, 3, "parameters:");
+        for (ParameterGroup group : groups) {
+            JsonNode params = request.path(group.nodeName());
+            if (!params.isArray()) {
+                continue;
+            }
+            for (JsonNode parameter : params) {
+                appendLine(sb, 4, "- name: " + formatString(parameter.path("name").asText()));
+                appendLine(sb, 5, "in: " + group.openapiLocation());
+                appendLine(sb, 5, "required: " + parameter.path("required").asBoolean(false));
+                if (!parameter.path("description").isMissingNode() && !parameter.path("description").isNull()) {
+                    appendLine(sb, 5, "description: " + formatScalar(parameter.path("description")));
                 }
-            }
-            Map<String, String> constraints = fieldConstraints.computeIfAbsent(field, k -> new LinkedHashMap<>());
-            if (draft.operator().equals("SIZE")) {
-                parseSizeConstraint(draft.expected(), constraints);
-            } else if (draft.operator().equals("PATTERN")) {
-                constraints.put("pattern", draft.expected());
-            } else if (draft.operator().equals("EMAIL")) {
-                constraints.put("format", "email");
-            }
-        }
-
-        // 2. ApiCondition (LLM Normalized 기반) 스캔
-        for (ApiCondition cond : conditions) {
-            String field = cond.targetPath();
-            if (cond.operator().equals("NOT_NULL") || cond.operator().equals("NOT_BLANK") || cond.operator().equals("NOT_EMPTY")) {
-                if (!requiredFields.contains(field)) {
-                    requiredFields.add(field);
+                if (!parameter.path("example").isMissingNode() && !parameter.path("example").isNull()) {
+                    appendLine(sb, 5, "example: " + formatScalar(parameter.path("example")));
                 }
-            }
-            Map<String, String> constraints = fieldConstraints.computeIfAbsent(field, k -> new LinkedHashMap<>());
-            if (cond.operator().equals("SIZE")) {
-                parseSizeConstraint(cond.expected(), constraints);
-            } else if (cond.operator().equals("PATTERN")) {
-                constraints.put("pattern", cond.expected());
-            } else if (cond.operator().equals("EMAIL")) {
-                constraints.put("format", "email");
-            } else if (cond.operator().equals("MIN_AGE")) {
-                constraints.put("minimum", cond.expected());
-            }
-        }
-
-        // Required 출력
-        if (!requiredFields.isEmpty()) {
-            sb.append("      required:\n");
-            for (String req : requiredFields) {
-                sb.append("        - ").append(req).append("\n");
-            }
-        }
-
-        // Properties 출력
-        sb.append("      properties:\n");
-        Set<String> fields = new LinkedHashSet<>(fieldConstraints.keySet());
-        if (typeName.contains("UserDto") || typeName.contains("User")) {
-            fields.add("username");
-            fields.add("nickname");
-            fields.add("email");
-            fields.add("age");
-        }
-
-        for (String field : fields) {
-            sb.append("        ").append(field).append(":\n");
-            String fieldType = resolveFieldTypeByName(field);
-            sb.append("          type: ").append(fieldType).append("\n");
-
-            Map<String, String> constraints = fieldConstraints.get(field);
-            if (constraints != null) {
-                for (Map.Entry<String, String> constr : constraints.entrySet()) {
-                    sb.append("          ").append(constr.getKey()).append(": ").append(constr.getValue()).append("\n");
+                appendLine(sb, 5, "schema:");
+                appendSchema(sb, 6, parameter.path("schema"));
+                if (!parameter.path("defaultValue").isMissingNode() && !parameter.path("defaultValue").isNull()) {
+                    appendLine(sb, 6, "default: " + formatScalar(parameter.path("defaultValue")));
+                }
+                if (parameter.path("enumValues").isArray() && parameter.path("enumValues").size() > 0) {
+                    appendLine(sb, 6, "enum:");
+                    for (JsonNode enumValue : parameter.path("enumValues")) {
+                        appendLine(sb, 7, "- " + formatScalar(enumValue));
+                    }
                 }
             }
         }
     }
 
-    private void parseSizeConstraint(String expected, Map<String, String> constraints) {
-        String[] parts = expected.split(",");
-        for (String part : parts) {
-            String[] kv = part.split("=");
-            if (kv.length == 2) {
-                String k = kv[0].trim();
-                String v = kv[1].trim();
-                if (k.equals("min")) {
-                    constraints.put("minLength", v);
-                } else if (k.equals("max")) {
-                    constraints.put("maxLength", v);
-                }
+    private void appendRequestBody(StringBuilder sb, JsonNode request) {
+        JsonNode contentType = request.path("contentType");
+        JsonNode bodySchema = request.path("bodySchema");
+        if (contentType.isMissingNode() || contentType.isNull() || bodySchema.isMissingNode() || bodySchema.isNull()) {
+            return;
+        }
+
+        appendLine(sb, 3, "requestBody:");
+        appendLine(sb, 4, "required: true");
+        appendLine(sb, 4, "content:");
+        appendLine(sb, 5, contentType.asText() + ":");
+        appendLine(sb, 6, "schema:");
+        appendSchema(sb, 7, bodySchema);
+        if (!request.path("bodyExample").isMissingNode() && !request.path("bodyExample").isNull()) {
+            appendLine(sb, 6, "example:");
+            appendGenericNode(sb, 7, request.path("bodyExample"));
+        }
+    }
+
+    private void appendResponses(StringBuilder sb, JsonNode response) {
+        appendLine(sb, 3, "responses:");
+        appendLine(sb, 4, "'200':");
+        appendLine(sb, 5, "description: Success");
+
+        JsonNode contentType = response.path("contentType");
+        JsonNode schema = response.path("schema");
+        if (contentType.isMissingNode() || contentType.isNull() || schema.isMissingNode() || schema.isNull()) {
+            return;
+        }
+
+        appendLine(sb, 5, "content:");
+        appendLine(sb, 6, contentType.asText() + ":");
+        appendLine(sb, 7, "schema:");
+        appendSchema(sb, 8, schema);
+        if (!response.path("example").isMissingNode() && !response.path("example").isNull()) {
+            appendLine(sb, 7, "example:");
+            appendGenericNode(sb, 8, response.path("example"));
+        }
+    }
+
+    private void appendValidationConditions(StringBuilder sb, JsonNode validationConditions) {
+        if (!validationConditions.isArray() || validationConditions.isEmpty()) {
+            return;
+        }
+
+        appendLine(sb, 3, "x-validation-conditions:");
+        for (JsonNode condition : validationConditions) {
+            appendLine(sb, 4, "- targetLocation: " + formatScalar(condition.path("targetLocation")));
+            appendLine(sb, 5, "targetPath: " + formatScalar(condition.path("targetPath")));
+            appendLine(sb, 5, "operator: " + formatScalar(condition.path("operator")));
+            if (!condition.path("expected").isMissingNode() && !condition.path("expected").isNull()) {
+                appendLine(sb, 5, "expected: " + formatScalar(condition.path("expected")));
+            }
+            appendLine(sb, 5, "source: " + formatScalar(condition.path("source")));
+        }
+    }
+
+    private void appendSchema(StringBuilder sb, int indent, JsonNode schema) {
+        if (schema == null || schema.isMissingNode() || schema.isNull()) {
+            appendLine(sb, indent, "type: object");
+            return;
+        }
+
+        appendIfPresent(sb, indent, "type", schema.get("type"));
+        appendIfPresent(sb, indent, "format", schema.get("format"));
+        appendIfPresent(sb, indent, "minimum", schema.get("minimum"));
+        appendIfPresent(sb, indent, "maximum", schema.get("maximum"));
+        appendIfPresent(sb, indent, "minLength", schema.get("minLength"));
+        appendIfPresent(sb, indent, "maxLength", schema.get("maxLength"));
+        appendIfPresent(sb, indent, "pattern", schema.get("pattern"));
+
+        JsonNode enumValues = schema.get("enumValues");
+        if (enumValues != null && enumValues.isArray() && enumValues.size() > 0) {
+            appendLine(sb, indent, "enum:");
+            for (JsonNode enumValue : enumValues) {
+                appendLine(sb, indent + 1, "- " + formatScalar(enumValue));
+            }
+        }
+
+        JsonNode required = schema.get("required");
+        if (required != null && required.isArray() && required.size() > 0) {
+            appendLine(sb, indent, "required:");
+            for (JsonNode requiredField : required) {
+                appendLine(sb, indent + 1, "- " + formatScalar(requiredField));
+            }
+        }
+
+        JsonNode properties = schema.get("properties");
+        if (properties != null && properties.isObject() && properties.size() > 0) {
+            appendLine(sb, indent, "properties:");
+            properties.fields().forEachRemaining(entry -> {
+                appendLine(sb, indent + 1, entry.getKey() + ":");
+                appendSchema(sb, indent + 2, entry.getValue());
+            });
+        }
+
+        JsonNode items = schema.get("items");
+        if (items != null && !items.isNull() && !items.isMissingNode()) {
+            appendLine(sb, indent, "items:");
+            appendSchema(sb, indent + 1, items);
+        }
+
+        JsonNode additionalProperties = schema.get("additionalProperties");
+        if (additionalProperties != null && !additionalProperties.isNull() && !additionalProperties.isMissingNode()) {
+            if (additionalProperties.isBoolean()) {
+                appendLine(sb, indent, "additionalProperties: " + additionalProperties.asBoolean());
+            } else {
+                appendLine(sb, indent, "additionalProperties:");
+                appendSchema(sb, indent + 1, additionalProperties);
             }
         }
     }
 
-    private String resolveFieldTypeByName(String fieldName) {
-        if (fieldName.equals("age") || fieldName.contains("Id") || fieldName.contains("Count")) {
-            return "integer";
+    private void appendGenericNode(StringBuilder sb, int indent, JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            appendLine(sb, indent, "null");
+            return;
         }
-        if (fieldName.equals("enabled") || fieldName.equals("active")) {
-            return "boolean";
+        if (node.isObject()) {
+            node.fields().forEachRemaining(entry -> appendNamedGenericNode(sb, indent, entry.getKey(), entry.getValue()));
+            return;
         }
-        return "string";
+        if (node.isArray()) {
+            if (node.isEmpty()) {
+                appendLine(sb, indent, "[]");
+                return;
+            }
+            for (JsonNode item : node) {
+                if (isScalar(item)) {
+                    appendLine(sb, indent, "- " + formatScalar(item));
+                } else {
+                    appendLine(sb, indent, "-");
+                    appendGenericNode(sb, indent + 1, item);
+                }
+            }
+            return;
+        }
+        appendLine(sb, indent, formatScalar(node));
     }
 
-    private boolean isPrimitiveType(String typeName) {
-        return typeName.equals("String") || typeName.equals("int") || typeName.equals("Integer") ||
-               typeName.equals("long") || typeName.equals("Long") || typeName.equals("boolean") ||
-               typeName.equals("Boolean") || typeName.equals("void");
+    private void appendNamedGenericNode(StringBuilder sb, int indent, String key, JsonNode value) {
+        if (isScalar(value)) {
+            appendLine(sb, indent, key + ": " + formatScalar(value));
+            return;
+        }
+        appendLine(sb, indent, key + ":");
+        appendGenericNode(sb, indent + 1, value);
     }
 
-    private String resolvePrimitiveYamlType(String typeName) {
-        if (typeName.equals("int") || typeName.equals("Integer") || typeName.equals("long") || typeName.equals("Long")) {
-            return "integer";
+    private void appendIfPresent(StringBuilder sb, int indent, String key, JsonNode value) {
+        if (value == null || value.isMissingNode() || value.isNull()) {
+            return;
         }
-        if (typeName.equals("boolean") || typeName.equals("Boolean")) {
-            return "boolean";
-        }
-        return "string";
+        appendLine(sb, indent, key + ": " + formatScalar(value));
     }
+
+    private boolean isScalar(JsonNode node) {
+        return node.isValueNode();
+    }
+
+    private String formatScalar(JsonNode value) {
+        if (value == null || value.isNull()) {
+            return "null";
+        }
+        if (value.isBoolean() || value.isNumber()) {
+            return value.toString();
+        }
+        return formatString(value.asText());
+    }
+
+    private String formatString(String value) {
+        if (value == null) {
+            return "null";
+        }
+        if (value.isEmpty()) {
+            return "''";
+        }
+        if (isPlainSafe(value)) {
+            return value;
+        }
+        return "'" + value.replace("'", "''") + "'";
+    }
+
+    private boolean isPlainSafe(String value) {
+        if (value.isBlank() || !value.equals(value.trim())) {
+            return false;
+        }
+        if (value.contains("\n") || value.contains("\r") || value.contains(": ")) {
+            return false;
+        }
+        char first = value.charAt(0);
+        if (first == '-' || first == '?' || first == '@' || first == '*' || first == '&' || first == '!' || first == '%') {
+            return false;
+        }
+        for (char current : value.toCharArray()) {
+            if (current == '#' || current == '{' || current == '}' || current == '[' || current == ']' || current == ',') {
+                return false;
+            }
+        }
+        return !RESERVED_SCALARS.contains(value.toLowerCase(Locale.ROOT));
+    }
+
+    private void appendLine(StringBuilder sb, int indent, String text) {
+        sb.append("  ".repeat(indent)).append(text).append('\n');
+    }
+
+    private record ParameterGroup(String nodeName, String openapiLocation) {}
 }

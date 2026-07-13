@@ -51,75 +51,78 @@ public class StructuredSpecExporter {
         long validationId = 1L;
         long apiId = 1L;
 
-        for (ApiEndpoint endpoint : scanResult.endpoints()) {
-            String jsonRequestBody = resolveJsonRequestBody(endpoint, drafts, conditions);
-            String requestExample = jsonRequestBody;
-            String responseExample = resolveResponseExample(endpoint);
+for (ApiEndpoint endpoint : scanResult.endpoints()) {
+    String jsonRequestBody = resolveJsonRequestBody(endpoint, drafts, conditions);
+    String requestExample = jsonRequestBody;
+    String responseExample = resolveResponseExample(endpoint);
 
-            apiVersions.add(new ApiVersionRecord(
-                apiVersionId,
-                apiId,
-                1,
-                endpoint.httpMethod(),
-                endpoint.path(),
-                resolveContentType(endpoint),
-                jsonRequestBody,
-                null,
-                requestExample,
-                responseExample,
-                null,
-                null,
-                false
-            ));
+    apiVersions.add(new ApiVersionRecord(
+        apiVersionId,
+        apiId,
+        1,
+        endpoint.httpMethod(),
+        endpoint.path(),
+        resolveContentType(endpoint),
+        jsonRequestBody,
+        null,
+        requestExample,
+        responseExample,
+        null,
+        null,
+        false
+    ));
 
-            for (RequestBinding binding : endpoint.requestBindings()) {
-                if (binding.targetLocation() == BindingLocation.BODY) {
-                    continue;
-                }
-                parameters.add(new ParameterRecord(
-                    parameterId++,
-                    apiVersionId,
-                    binding.targetLocation().name(),
-                    binding.parameterName(),
-                    null,
-                    "STATIC",
-                    binding.parameterName()
-                ));
-            }
-
-            int orderNo = 1;
-            for (ApiConditionDraft draft : drafts) {
-                valueValidations.add(new ApiValueValidationRecord(
-                    validationId++,
-                    apiId,
-                    1,
-                    orderNo++,
-                    toJsonPath(draft.targetPath()),
-                    draft.operator(),
-                    draft.expected(),
-                    true,
-                    null,
-                    null
-                ));
-            }
-            for (ApiCondition condition : conditions) {
-                valueValidations.add(new ApiValueValidationRecord(
-                    validationId++,
-                    apiId,
-                    1,
-                    orderNo++,
-                    toJsonPath(condition.targetPath()),
-                    condition.operator(),
-                    condition.expected(),
-                    true,
-                    null,
-                    null
-                ));
-            }
-
-            apiVersionId++;
-            apiId++;
+    for (RequestBinding binding : endpoint.requestBindings()) {
+        if (binding.targetLocation() == BindingLocation.BODY) {
+            continue;
         }
+        parameters.add(new ParameterRecord(
+            parameterId++,
+            apiVersionId,
+            binding.targetLocation().name(),
+            binding.parameterName(),
+            null,
+            "STATIC",
+            binding.parameterName()
+        ));
+    }
+
+    int orderNo = 1;
+    for (ApiConditionDraft draft : drafts) {
+        valueValidations.add(new ApiValueValidationRecord(
+            validationId++,
+            apiId,
+            1,
+            orderNo++,
+            toJsonPath(draft.targetPath()),
+            draft.operator(),
+            draft.expected(),
+            true,
+            null,
+            null
+        ));
+    }
+    for (ApiCondition condition : conditions) {
+        if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
+            continue;
+        }
+        valueValidations.add(new ApiValueValidationRecord(
+            validationId++,
+            apiId,
+            1,
+            orderNo++,
+            toJsonPath(condition.targetPath()),
+            condition.operator(),
+            condition.expected(),
+            true,
+            null,
+            null
+        ));
+    }
+
+    apiVersionId++;
+    apiId++;
+}
 
         return new ApiSpecAnalysisExport(apiVersions, parameters, valueValidations);
     }
@@ -142,22 +145,25 @@ public class StructuredSpecExporter {
             return null;
         }
 
-        Map<String, Object> template = new LinkedHashMap<>();
-        for (ApiConditionDraft draft : drafts) {
-            template.putIfAbsent(draft.targetPath(), resolvePlaceholderValue(draft.targetPath()));
-        }
-        for (ApiCondition condition : conditions) {
-            template.putIfAbsent(condition.targetPath(), resolvePlaceholderValue(condition.targetPath()));
-        }
-        if (template.isEmpty()) {
-            template.put("schemaRef", bodyBinding.get().type());
-        }
+Map<String, Object> template = new LinkedHashMap<>();
+for (ApiConditionDraft draft : drafts) {
+    template.putIfAbsent(draft.targetPath(), resolvePlaceholderValue(draft.targetPath()));
+}
+for (ApiCondition condition : conditions) {
+    if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
+        continue;
+    }
+    template.putIfAbsent(condition.targetPath(), resolvePlaceholderValue(condition.targetPath()));
+}
+if (template.isEmpty()) {
+    template.put("schemaRef", bodyBinding.get().type());
+}
 
-        try {
-            return objectMapper.writeValueAsString(template);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize request body template.", e);
-        }
+try {
+    return objectMapper.writeValueAsString(template);
+} catch (JsonProcessingException e) {
+    throw new IllegalStateException("Failed to serialize request body template.", e);
+}
     }
 
     private String resolveResponseExample(ApiEndpoint endpoint) {

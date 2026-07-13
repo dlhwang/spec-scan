@@ -626,4 +626,145 @@ public class ValidationEvidenceGraphBuilderTest {
             node.id().startsWith("BUSINESS_RULE:io.atworks.depth.DeepGuard.ensureReady(")
         );
     }
+    @Test
+    public void testBuildEvidenceGraphClassifiesReusableRuleTypes() throws Exception {
+        Path srcRoot = tempDir.resolve("src/main/java");
+        Path packageDir = srcRoot.resolve("io/atworks/classify");
+        Files.createDirectories(packageDir);
+        Files.writeString(packageDir.resolve("Order.java"), """
+            package io.atworks.classify;
+
+            public class Order {
+                private final String status;
+                private final long version;
+                private final CancelPolicy cancelPolicy;
+
+                public Order(String status, long version, CancelPolicy cancelPolicy) {
+                    this.status = status;
+                    this.version = version;
+                    this.cancelPolicy = cancelPolicy;
+                }
+
+                public void ensureVersion(long requestedVersion) {
+                    if (version != requestedVersion) {
+                        throw new IllegalStateException("version mismatch");
+                    }
+                }
+
+                public void ensureShippable() {
+                    if (!"PAYED".equals(status)) {
+                        throw new IllegalStateException("bad status");
+                    }
+                }
+
+                public void cancel(User currentUser) {
+                    if (!cancelPolicy.hasCancellationPermission(this, currentUser)) {
+                        throw new IllegalArgumentException("no permission");
+                    }
+                }
+            }
+        """);
+        Files.writeString(packageDir.resolve("CancelPolicy.java"), """
+            package io.atworks.classify;
+
+            public class CancelPolicy {
+                public boolean hasCancellationPermission(Order order, User currentUser) {
+                    return currentUser.isAdmin();
+                }
+            }
+        """);
+        Files.writeString(packageDir.resolve("User.java"), """
+            package io.atworks.classify;
+
+            public class User {
+                public boolean isAdmin() {
+                    return false;
+                }
+            }
+        """);
+        Files.writeString(packageDir.resolve("OrderRepository.java"), """
+            package io.atworks.classify;
+
+            public class OrderRepository {
+                public Order findById(String orderNo) {
+                    return null;
+                }
+            }
+        """);
+        Files.writeString(packageDir.resolve("OrderService.java"), """
+            package io.atworks.classify;
+
+            public class OrderService {
+                private OrderRepository orderRepository;
+
+                public void ship(String orderNo, long version) {
+                    Order order = orderRepository.findById(orderNo);
+                    if (order == null) {
+                        throw new IllegalArgumentException("missing order");
+                    }
+                    order.ensureVersion(version);
+                    order.ensureShippable();
+                }
+
+                public void cancel(String orderNo, User currentUser) {
+                    Order order = orderRepository.findById(orderNo);
+                    order.cancel(currentUser);
+                }
+            }
+        """);
+        Files.writeString(packageDir.resolve("OrderController.java"), """
+            package io.atworks.classify;
+
+            import org.springframework.web.bind.annotation.GetMapping;
+            import org.springframework.web.bind.annotation.PathVariable;
+            import org.springframework.web.bind.annotation.PostMapping;
+            import org.springframework.web.bind.annotation.RequestParam;
+            import org.springframework.web.bind.annotation.RestController;
+
+            @RestController
+            public class OrderController {
+                private OrderService orderService;
+
+                @PostMapping("/classify/orders/{orderNo}/ship")
+                public void ship(@PathVariable String orderNo, @RequestParam long version) {
+                    orderService.ship(orderNo, version);
+                }
+
+                @GetMapping("/classify/orders/{orderNo}/cancel")
+                public void cancel(@PathVariable String orderNo) {
+                    orderService.cancel(orderNo, new User());
+                }
+            }
+        """);
+        Files.writeString(packageDir.resolve("OrderExceptionHandler.java"), """
+            package io.atworks.classify;
+
+            import org.springframework.http.HttpStatus;
+            import org.springframework.web.bind.annotation.ExceptionHandler;
+            import org.springframework.web.bind.annotation.ResponseStatus;
+            import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+            @RestControllerAdvice
+            public class OrderExceptionHandler {
+                @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+                @ResponseStatus(HttpStatus.BAD_REQUEST)
+                public String handleRuntime(RuntimeException ex) {
+                    return ex.getMessage();
+                }
+            }
+        """);
+
+        StaticScanResult scanResult = new SpringStaticScanService().scan(repositorySource);
+        ValidationExtractionResult extractionResult = new ValidationExtractionService().extract(scanResult, repositorySource);
+        ValidationEvidenceGraph graph = new ValidationEvidenceGraphBuilder().build(scanResult, extractionResult, repositorySource);
+
+        assertThat(graph.nodes()).anyMatch(node -> node.type() == GraphNodeType.BUSINESS_RULE && node.label().startsWith("EXISTENCE_CHECK | order == null"));
+        assertThat(graph.nodes()).anyMatch(node -> node.type() == GraphNodeType.BUSINESS_RULE && node.label().startsWith("VERSION_CHECK | version != requestedVersion"));
+        assertThat(graph.nodes()).anyMatch(node -> node.type() == GraphNodeType.BUSINESS_RULE && node.label().startsWith("STATE_CHECK | !\"PAYED\".equals(status)"));
+        assertThat(graph.nodes()).anyMatch(node -> node.type() == GraphNodeType.BUSINESS_RULE && node.label().startsWith("PERMISSION_CHECK | !cancelPolicy.hasCancellationPermission(this, currentUser)"));
+        assertThat(graph.edges()).anyMatch(edge -> edge.type() == GraphEdgeType.EVALUATES && edge.evidence().startsWith("EXISTENCE_CHECK | if statement"));
+        assertThat(graph.edges()).anyMatch(edge -> edge.type() == GraphEdgeType.EVALUATES && edge.evidence().startsWith("VERSION_CHECK | if statement"));
+        assertThat(graph.edges()).anyMatch(edge -> edge.type() == GraphEdgeType.EVALUATES && edge.evidence().startsWith("STATE_CHECK | if statement"));
+        assertThat(graph.edges()).anyMatch(edge -> edge.type() == GraphEdgeType.EVALUATES && edge.evidence().startsWith("PERMISSION_CHECK | if statement"));
+    }
 }

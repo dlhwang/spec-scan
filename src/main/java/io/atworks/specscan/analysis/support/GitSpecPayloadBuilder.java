@@ -24,7 +24,8 @@ public class GitSpecPayloadBuilder {
         RepositorySource repositorySource,
         StaticScanResult scanResult,
         List<ApiConditionDraft> drafts,
-        List<ApiCondition> normalizedConditions
+        List<ApiCondition> normalizedConditions,
+        List<IngestionWarning> warnings
     ) {
         List<Map<String, Object>> operations = new ArrayList<>();
         List<Map<String, Object>> flattenedConditions = new ArrayList<>();
@@ -37,11 +38,11 @@ public class GitSpecPayloadBuilder {
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("document", buildDocument(projectName, baseUrl, scanResult));
-        payload.put("analysis", buildAnalysis(repositorySource, scanResult));
+        payload.put("analysis", buildAnalysis(repositorySource, scanResult, warnings));
         payload.put("operations", operations);
         payload.put("conditions", flattenedConditions);
-        if (!scanResult.warnings().isEmpty()) {
-            payload.put("warnings", buildWarnings(scanResult.warnings()));
+        if (!warnings.isEmpty()) {
+            payload.put("warnings", buildWarnings(warnings));
         }
         return payload;
     }
@@ -122,7 +123,7 @@ public class GitSpecPayloadBuilder {
         return operation;
     }
 
-    private Map<String, Object> buildAnalysis(RepositorySource repositorySource, StaticScanResult scanResult) {
+    private Map<String, Object> buildAnalysis(RepositorySource repositorySource, StaticScanResult scanResult, List<IngestionWarning> warnings) {
         Map<String, Object> analysis = new LinkedHashMap<>();
         analysis.put("endpointCount", scanResult.endpoints().size());
         analysis.put("fileCount", scanResult.scannedClassesCount());
@@ -137,8 +138,8 @@ public class GitSpecPayloadBuilder {
         if (ref != null) {
             analysis.put("revision", ref);
         }
-        analysis.put("warningCount", scanResult.warnings().size());
-        analysis.put("warningSummary", scanResult.warnings().stream().map(IngestionWarning::message).toList());
+        analysis.put("warningCount", warnings.size());
+        analysis.put("warningSummary", warnings.stream().map(IngestionWarning::message).toList());
         return analysis;
     }
 
@@ -151,6 +152,9 @@ public class GitSpecPayloadBuilder {
             item.put("severity", severityOf(warning.severity()));
             if (warning.relatedPath() != null) {
                 item.put("location", warning.relatedPath());
+            }
+            if (!warning.details().isEmpty()) {
+                item.put("details", warning.details());
             }
             result.add(item);
         }
@@ -201,7 +205,7 @@ public class GitSpecPayloadBuilder {
                     null,
                     condition.sourceTrace() == null ? null : condition.sourceTrace().startLine(),
                     condition.evidence(),
-                    "LLM"
+                    "RULE_BASED_NORMALIZER"
                 ));
             }
         }

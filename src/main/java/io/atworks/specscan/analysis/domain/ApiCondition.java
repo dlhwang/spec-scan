@@ -10,5 +10,6 @@ public record ApiCondition(
     String evidence,
     double confidence,
     String llmReason,
-    SourceTrace sourceTrace
+    SourceTrace sourceTrace,
+    String endpointPath
 ) {}

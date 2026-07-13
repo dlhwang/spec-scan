@@ -52,16 +52,17 @@ public class LlmResponseValidator {
                     continue;
                 }
 
-                list.add(new ApiCondition(
-                    ConditionLocation.UNKNOWN,
-                    matched.targetPath(),
-                    operator,
-                    expected,
-                    matched.evidenceSnippet(),
-                    confidence,
-                    reason,
-                    matched.sourceTrace()
-                ));
+list.add(new ApiCondition(
+    ConditionLocation.UNKNOWN,
+    matched.targetPath(),
+    operator,
+    expected,
+    matched.evidenceSnippet(),
+    confidence,
+    reason,
+    matched.sourceTrace(),
+    null
+));
                 candMap.remove(candId);
             }
 

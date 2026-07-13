@@ -10,6 +10,7 @@ import io.atworks.specscan.analysis.domain.BindingLocation;
 import io.atworks.specscan.analysis.domain.ConditionLocation;
 import io.atworks.specscan.analysis.domain.RequestBinding;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
+import io.atworks.specscan.ingestion.domain.IngestionWarning;
 import io.atworks.specscan.ingestion.domain.RepositorySource;
 import io.atworks.specscan.ingestion.domain.SourceRootCandidate;
 
@@ -35,6 +36,16 @@ public class ExecutionSpecExporter {
         List<ApiCondition> conditions,
         RepositorySource repositorySource
     ) {
+        return export(scanResult, drafts, conditions, scanResult.warnings(), repositorySource);
+    }
+
+    public String export(
+        StaticScanResult scanResult,
+        List<ApiConditionDraft> drafts,
+        List<ApiCondition> conditions,
+        List<IngestionWarning> warnings,
+        RepositorySource repositorySource
+    ) {
         TypeResolver typeResolver = new TypeResolver(resolveSourceRoots(repositorySource));
         List<Map<String, Object>> operations = new ArrayList<>();
         for (ApiEndpoint endpoint : scanResult.endpoints()) {
@@ -44,7 +55,10 @@ public class ExecutionSpecExporter {
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("operations", operations);
-        payload.put("warningCount", scanResult.warnings().size());
+        payload.put("warningCount", warnings.size());
+        if (!warnings.isEmpty()) {
+            payload.put("warnings", buildWarnings(warnings));
+        }
 
         try {
             return objectMapper.writeValueAsString(payload);
@@ -103,25 +117,25 @@ public class ExecutionSpecExporter {
 
         List<ApiConditionDraft> bodyDrafts = new ArrayList<>();
         List<ApiCondition> bodyConditions = new ArrayList<>();
-        for (Map<String, Object> endpointCondition : endpointConditions) {
-            if (!"BODY".equals(endpointCondition.get("targetLocation"))) {
-                continue;
-            }
-            String targetPath = String.valueOf(endpointCondition.get("targetPath"));
-            String operator = String.valueOf(endpointCondition.get("operator"));
-            String expected = endpointCondition.get("expected") == null ? null : String.valueOf(endpointCondition.get("expected"));
-            String source = String.valueOf(endpointCondition.get("source"));
-            if ("BEAN_VALIDATION_ANNOTATION".equals(source)) {
-                bodyDrafts.add(new ApiConditionDraft(targetPath, operator, expected, null, bodyBinding.sourceTrace()));
-            } else {
-                bodyConditions.add(new ApiCondition(ConditionLocation.BODY, targetPath, operator, expected, null, 0.0, null, bodyBinding.sourceTrace()));
-            }
-        }
+for (Map<String, Object> endpointCondition : endpointConditions) {
+    if (!"BODY".equals(endpointCondition.get("targetLocation"))) {
+        continue;
+    }
+    String targetPath = schemaRelativeBodyPath(bodyBinding, String.valueOf(endpointCondition.get("targetPath")));
+    String operator = String.valueOf(endpointCondition.get("operator"));
+    String expected = endpointCondition.get("expected") == null ? null : String.valueOf(endpointCondition.get("expected"));
+    String source = String.valueOf(endpointCondition.get("source"));
+    if ("BEAN_VALIDATION_ANNOTATION".equals(source)) {
+        bodyDrafts.add(new ApiConditionDraft(targetPath, operator, expected, null, bodyBinding.sourceTrace()));
+    } else {
+        bodyConditions.add(new ApiCondition(ConditionLocation.BODY, targetPath, operator, expected, null, 0.0, null, bodyBinding.sourceTrace(), endpoint.path()));
+    }
+}
 
-        Map<String, Object> bodySchema = typeResolver.resolveExpandedSchema(bodyBinding.type(), bodyDrafts, bodyConditions);
-        request.put("bodySchema", bodySchema);
-        request.put("bodyExample", buildExample(bodySchema));
-        return new RequestSpec(request, endpointConditions, Set.of());
+Map<String, Object> bodySchema = typeResolver.resolveExpandedSchema(bodyBinding.type(), bodyDrafts, bodyConditions);
+request.put("bodySchema", bodySchema);
+request.put("bodyExample", buildExample(bodySchema));
+return new RequestSpec(request, endpointConditions, Set.of());
     }
 
     private Map<String, Object> buildResponse(ApiEndpoint endpoint, TypeResolver typeResolver) {
@@ -192,25 +206,27 @@ public class ExecutionSpecExporter {
         return parameters;
     }
 
-    private List<Map<String, Object>> buildEndpointConditions(
-        ApiEndpoint endpoint,
-        List<ApiConditionDraft> drafts,
-        List<ApiCondition> conditions
-    ) {
-        List<Map<String, Object>> endpointConditions = new ArrayList<>();
-        Set<String> conditionKeys = new LinkedHashSet<>();
+private List<Map<String, Object>> buildEndpointConditions(
+    ApiEndpoint endpoint,
+    List<ApiConditionDraft> drafts,
+    List<ApiCondition> conditions
+) {
+    List<Map<String, Object>> endpointConditions = new ArrayList<>();
+    Set<String> conditionKeys = new LinkedHashSet<>();
 
-        for (ApiConditionDraft draft : drafts) {
-            addEndpointCondition(endpointConditions, conditionKeys, endpoint, draft.targetPath(), draft.operator(), draft.expected(),
-                "BEAN_VALIDATION_ANNOTATION", null);
-        }
-        for (ApiCondition condition : conditions) {
-            addEndpointCondition(endpointConditions, conditionKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
-                "SERVICE_LOGIC_HINT", condition.targetLocation());
-        }
-        return endpointConditions;
+    for (ApiConditionDraft draft : drafts) {
+        addEndpointCondition(endpointConditions, conditionKeys, endpoint, draft.targetPath(), draft.operator(), draft.expected(),
+            "BEAN_VALIDATION_ANNOTATION", null);
     }
-
+    for (ApiCondition condition : conditions) {
+        if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
+            continue;
+        }
+        addEndpointCondition(endpointConditions, conditionKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
+            "SERVICE_LOGIC_HINT", condition.targetLocation());
+    }
+    return endpointConditions;
+}
     private void addEndpointCondition(
         List<Map<String, Object>> endpointConditions,
         Set<String> conditionKeys,
@@ -248,7 +264,7 @@ public class ExecutionSpecExporter {
 
     private ResolvedCondition resolveCondition(ApiEndpoint endpoint, String rawTargetPath, ConditionLocation explicitLocation) {
         if (explicitLocation != null && explicitLocation != ConditionLocation.UNKNOWN) {
-            return new ResolvedCondition(explicitLocation.name(), normalizeTargetPathForLocation(rawTargetPath));
+            return new ResolvedCondition(explicitLocation.name(), normalizeTargetPathForLocation(endpoint, rawTargetPath, explicitLocation));
         }
 
         String normalizedName = normalizeConditionName(rawTargetPath);
@@ -266,7 +282,7 @@ public class ExecutionSpecExporter {
         }
 
         if (hasBody(endpoint)) {
-            return new ResolvedCondition("BODY", toBodyJsonPath(rawTargetPath, normalizedName));
+            return new ResolvedCondition("BODY", toBodyJsonPath(endpoint, rawTargetPath, normalizedName));
         }
         return null;
     }
@@ -283,21 +299,84 @@ public class ExecutionSpecExporter {
         return normalized.trim();
     }
 
-    private String toBodyJsonPath(String rawTargetPath, String normalizedName) {
-        if (rawTargetPath != null && rawTargetPath.startsWith("$.") && !rawTargetPath.isBlank()) {
-            return rawTargetPath;
+    private String toBodyJsonPath(ApiEndpoint endpoint, String rawTargetPath, String normalizedName) {
+        if (rawTargetPath == null || rawTargetPath.isBlank()) {
+            return "$." + normalizedName;
         }
-        return "$." + normalizedName;
+        String bodyPath = stripBodyBindingPrefix(endpoint, rawTargetPath);
+        if (bodyPath.startsWith("$")) {
+            return bodyPath;
+        }
+        if (bodyPath.isBlank()) {
+            return "$";
+        }
+        return "$." + bodyPath;
     }
 
-    private String normalizeTargetPathForLocation(String rawTargetPath) {
+    private String normalizeTargetPathForLocation(ApiEndpoint endpoint, String rawTargetPath, ConditionLocation explicitLocation) {
         if (rawTargetPath == null || rawTargetPath.isBlank()) {
             return "$";
+        }
+        if (explicitLocation == ConditionLocation.BODY) {
+            String normalizedName = normalizeConditionName(rawTargetPath);
+            return toBodyJsonPath(endpoint, rawTargetPath, normalizedName);
         }
         if (rawTargetPath.startsWith("$.")) {
             return rawTargetPath;
         }
         return "$." + normalizeConditionName(rawTargetPath);
+    }
+
+    private String schemaRelativeBodyPath(RequestBinding bodyBinding, String targetPath) {
+        if (targetPath == null || targetPath.isBlank()) {
+            return "$";
+        }
+        String normalized = stripBindingPrefix(targetPath, bodyBinding.parameterName());
+        if (normalized.startsWith("$")) {
+            return normalized;
+        }
+        if (normalized.isBlank()) {
+            return "$";
+        }
+        return "$." + normalized;
+    }
+
+    private String stripBodyBindingPrefix(ApiEndpoint endpoint, String rawTargetPath) {
+        String normalized = rawTargetPath == null ? "" : rawTargetPath.trim();
+        if (normalized.startsWith("$.")) {
+            normalized = normalized.substring(2);
+        }
+        for (RequestBinding binding : endpoint.requestBindings()) {
+            if (binding.targetLocation() != BindingLocation.BODY) {
+                continue;
+            }
+            normalized = stripBindingPrefix(normalized, binding.parameterName());
+        }
+        if (normalized.isBlank()) {
+            return "$";
+        }
+        if (normalized.startsWith("$.")) {
+            return normalized;
+        }
+        return normalized;
+    }
+
+    private String stripBindingPrefix(String targetPath, String bindingName) {
+        if (targetPath == null || targetPath.isBlank() || bindingName == null || bindingName.isBlank()) {
+            return targetPath == null ? "" : targetPath.trim();
+        }
+        String normalized = targetPath.trim();
+        if (normalized.startsWith("$.")) {
+            normalized = normalized.substring(2);
+        }
+        if (normalized.equals(bindingName)) {
+            return "";
+        }
+        String nestedPrefix = bindingName + ".";
+        if (normalized.startsWith(nestedPrefix)) {
+            return normalized.substring(nestedPrefix.length());
+        }
+        return normalized;
     }
 
     private Map<String, Object> buildConditionMap(
@@ -314,6 +393,38 @@ public class ExecutionSpecExporter {
         item.put("expected", expected);
         item.put("source", source);
         return item;
+    }
+
+    private List<Map<String, Object>> buildWarnings(List<IngestionWarning> warnings) {
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (IngestionWarning warning : warnings) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("code", warning.warningCode());
+            item.put("message", warning.message());
+            item.put("severity", severityOf(warning.severity()));
+            if (warning.relatedPath() != null) {
+                item.put("location", warning.relatedPath());
+            }
+            if (!warning.details().isEmpty()) {
+                item.put("details", warning.details());
+            }
+            items.add(item);
+        }
+        return items;
+    }
+
+    private String severityOf(String severity) {
+        if (severity == null) {
+            return "warning";
+        }
+        String normalized = severity.toLowerCase();
+        if ("high".equals(normalized)) {
+            return "error";
+        }
+        if ("low".equals(normalized)) {
+            return "info";
+        }
+        return "warning";
     }
 
     private boolean hasBody(ApiEndpoint endpoint) {

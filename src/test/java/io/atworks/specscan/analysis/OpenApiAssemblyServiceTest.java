@@ -3,6 +3,7 @@ package io.atworks.specscan.analysis;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.atworks.specscan.analysis.application.OpenApiAssemblyService;
+import io.atworks.specscan.analysis.application.ValidationExtractionService;
 import io.atworks.specscan.analysis.domain.ApiCondition;
 import io.atworks.specscan.analysis.domain.ApiConditionDraft;
 import io.atworks.specscan.analysis.domain.ApiEndpoint;
@@ -92,7 +93,7 @@ class OpenApiAssemblyServiceTest {
 
         SourceTrace dummyTrace = new SourceTrace("src/main/java/io/atworks/controller/VisitController.java", 10, 15);
         RequestBinding pathBinding = new RequestBinding("petId", BindingLocation.PATH, "Long", true, null, null, null, List.of(), dummyTrace);
-        RequestBinding bodyBinding = new RequestBinding("request", BindingLocation.BODY, "VisitRequest", true, null, null, null, List.of(), dummyTrace);
+        RequestBinding bodyBinding = new RequestBinding("visitForm", BindingLocation.BODY, "VisitRequest", true, null, null, null, List.of(), dummyTrace);
         ResponseBinding responseBinding = new ResponseBinding("List<VisitResponse>", dummyTrace);
 
         ApiEndpoint endpoint = new ApiEndpoint(
@@ -112,14 +113,15 @@ class OpenApiAssemblyServiceTest {
             new IngestionMetadata(Instant.now(), Instant.now(), 1, "BRANCH", "main", 0)
         );
 
-        ApiConditionDraft draft1 = new ApiConditionDraft("description", "SIZE", "min=5, max=20", "@Size", dummyTrace);
-        ApiConditionDraft draft2 = new ApiConditionDraft("requestId", "NOT_NULL", "true", "@NotNull", dummyTrace);
+        ApiConditionDraft draft1 = new ApiConditionDraft("visitForm.description", "SIZE", "min=5, max=20", "@Size", dummyTrace);
+        ApiConditionDraft draft2 = new ApiConditionDraft("visitForm.requestId", "NOT_NULL", "true", "@NotNull", dummyTrace);
+        ApiConditionDraft draft3 = new ApiConditionDraft("visitForm.owner.address.city", "NOT_BLANK", "true", "@NotBlank", dummyTrace);
         ValidationCandidate candidate1 = new ValidationCandidate("cand-1", "SERVICE_HINT", "petId", "validated", 1.0, dummyTrace);
         ValidationCandidate candidate2 = new ValidationCandidate("cand-2", "SERVICE_HINT", "petId", "validated", 1.0, dummyTrace);
         ValidationCandidate candidate3 = new ValidationCandidate("cand-3", "SERVICE_HINT", "unknownField", "validated", 1.0, dummyTrace);
 
         ValidationExtractionResult extractResult = new ValidationExtractionResult(
-            List.of(draft1, draft2),
+            List.of(draft1, draft2, draft3),
             List.of(candidate1, candidate2, candidate3),
             List.of()
         );
@@ -143,7 +145,15 @@ class OpenApiAssemblyServiceTest {
 
         assertThat(yamlContent)
             .contains("openapi: 3.0.3")
-            .contains("/owners/*/pets/{petId}/visits:");
+            .contains("/owners/*/pets/{petId}/visits:")
+            .contains("requestBody:")
+            .contains("description:")
+            .contains("minLength: 5")
+            .contains("petType:")
+            .contains("enum:")
+            .contains("responses:")
+            .doesNotContain("#/components/schemas")
+            .doesNotContain("__mvc_view__");
 
         assertThat(structuredJson.at("/apiVersions/0/method").asText()).isEqualTo("POST");
         assertThat(structuredJson.at("/apiVersions/0/endpoint").asText()).isEqualTo("/owners/*/pets/{petId}/visits");
@@ -164,13 +174,113 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionJson.at("/operations/0/response200/schema/items/properties/specialty/enumValues/1").asText()).isEqualTo("DENTISTRY");
 
         JsonNode validationConditions = executionJson.at("/operations/0/validationConditions");
-        assertThat(validationConditions).hasSize(2);
+        assertThat(validationConditions).hasSize(3);
         assertThat(validationConditions.toString()).contains("$.description");
         assertThat(validationConditions.toString()).contains("$.requestId");
+        assertThat(validationConditions.toString()).contains("$.owner.address.city");
+        assertThat(validationConditions.toString()).doesNotContain("$.visitForm");
+        assertThat(validationConditions.toString()).doesNotContain("$.city\"");
         assertThat(validationConditions.toString()).doesNotContain("$.petId");
         assertThat(validationConditions.toString()).doesNotContain("unknownField");
         assertThat(graphJson.at("/nodes").isArray()).isTrue();
         assertThat(graphJson.at("/edges").isArray()).isTrue();
+    }
+
+    @Test
+    void validationExtractionSkipsInfrastructureQueryTypesWhileExportingModelAttributeShape(@TempDir Path tempDir) throws IOException, IngestionException {
+        Path srcRoot = tempDir.resolve("src/main/java");
+        Path controllerDir = srcRoot.resolve("io/atworks/controller");
+        Path dtoDir = srcRoot.resolve("io/atworks/dto");
+        Files.createDirectories(controllerDir);
+        Files.createDirectories(dtoDir);
+
+        Files.writeString(controllerDir.resolve("VisitController.java"), """
+            package io.atworks.controller;
+
+            import io.atworks.dto.Pageable;
+            import io.atworks.dto.VisitForm;
+            import org.springframework.web.bind.annotation.ModelAttribute;
+            import org.springframework.web.bind.annotation.PostMapping;
+            import org.springframework.web.bind.annotation.RestController;
+
+            @RestController
+            class VisitController {
+                @PostMapping("/visits")
+                String createVisit(@ModelAttribute("visitForm") VisitForm visitForm, Pageable pageable) {
+                    return "ok";
+                }
+            }
+        """);
+        Files.writeString(dtoDir.resolve("VisitForm.java"), """
+            package io.atworks.dto;
+
+            import jakarta.validation.constraints.NotNull;
+            import jakarta.validation.constraints.Size;
+            import java.util.UUID;
+
+            public class VisitForm {
+                @Size(min = 5, max = 20)
+                String description;
+                OwnerSnapshot owner;
+                @NotNull
+                UUID requestId;
+            }
+        """);
+        Files.writeString(dtoDir.resolve("OwnerSnapshot.java"), """
+            package io.atworks.dto;
+
+            public class OwnerSnapshot {
+                Address address;
+            }
+        """);
+        Files.writeString(dtoDir.resolve("Address.java"), """
+            package io.atworks.dto;
+
+            public class Address {
+                String city;
+            }
+        """);
+        Files.writeString(dtoDir.resolve("Pageable.java"), """
+            package io.atworks.dto;
+
+            import jakarta.validation.constraints.NotNull;
+
+            public class Pageable {
+                @NotNull
+                Integer pageSize;
+            }
+        """);
+
+        EndpointExtractor extractor = new EndpointExtractor(tempDir);
+        List<ApiEndpoint> endpoints = extractor.extract(controllerDir.resolve("VisitController.java"));
+        StaticScanResult scanResult = new StaticScanResult(
+            endpoints,
+            1,
+            List.of(),
+            new IngestionMetadata(Instant.now(), Instant.now(), 1, "BRANCH", "main", 0)
+        );
+        RepositorySource repositorySource = buildRepositorySource(tempDir, scanResult);
+
+        ValidationExtractionService extractionService = new ValidationExtractionService();
+        ValidationExtractionResult extractResult = extractionService.extract(scanResult, repositorySource);
+
+        JsonNode executionJson = objectMapper.readTree(new ExecutionSpecExporter().export(
+            scanResult,
+            extractResult.directConditions(),
+            List.of(),
+            repositorySource
+        ));
+
+        assertThat(extractResult.directConditions()).extracting(ApiConditionDraft::targetPath)
+            .contains("description", "requestId")
+            .doesNotContain("pageSize");
+        assertThat(executionJson.at("/operations/0/request/queryParams/0/name").asText()).isEqualTo("pageable");
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/owner/properties/address/properties/city/type").asText())
+            .isEqualTo("string");
+        assertThat(executionJson.at("/operations/0/validationConditions").toString())
+            .contains("$.description")
+            .contains("$.requestId")
+            .doesNotContain("pageSize");
     }
 
     @Test
@@ -263,6 +373,464 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionJson.at("/operations/1/response200/contentType").asText()).isEqualTo("text/plain");
         assertThat(executionJson.at("/operations/1/response200/schema/type").asText()).isEqualTo("string");
         assertThat(executionJson.at("/operations/1/response200/example").asText()).isEqualTo("");
+    }
+
+    @Test
+    void executionExportKeepsModelAttributeStructuredBodySchemaAtDtoRoot(@TempDir Path tempDir) throws Exception {
+        Path srcRoot = tempDir.resolve("src/main/java");
+        Path dtoDir = srcRoot.resolve("io/atworks/order");
+        Files.createDirectories(dtoDir);
+        Files.writeString(dtoDir.resolve("OrderRequest.java"), """
+            package io.atworks.order;
+
+            import java.util.List;
+
+            public class OrderRequest {
+                private List<OrderProduct> orderProducts;
+                private OrdererMemberId ordererMemberId;
+                private ShippingInfo shippingInfo;
+
+                static class OrderProduct {
+                    private Long productId;
+                    private int quantity;
+                }
+
+                static class OrdererMemberId {
+                    private Long id;
+                }
+
+                static class ShippingInfo {
+                    private Address address;
+                    private Receiver receiver;
+                    private String message;
+                }
+
+                static class Address {
+                    private String zipCode;
+                    private String address1;
+                    private String address2;
+                }
+
+                static class Receiver {
+                    private String name;
+                    private String phone;
+                }
+            }
+        """);
+
+        SourceTrace trace = new SourceTrace("src/main/java/io/atworks/order/OrderController.java", 10, 15);
+        ApiEndpoint endpoint = new ApiEndpoint(
+            "POST",
+            "/orders/order",
+            "io.atworks.order.OrderController",
+            "submit",
+            List.of(new RequestBinding("orderRequest", BindingLocation.BODY, "OrderRequest", true, null, null, null, List.of(), trace)),
+            new ResponseBinding("__mvc_view__", trace),
+            trace
+        );
+        StaticScanResult scanResult = new StaticScanResult(
+            List.of(endpoint),
+            1,
+            List.of(),
+            new IngestionMetadata(Instant.now(), Instant.now(), 1, "BRANCH", "main", 0)
+        );
+
+        RepositorySource repositorySource = buildRepositorySource(tempDir, scanResult);
+        ExecutionSpecExporter exporter = new ExecutionSpecExporter();
+
+        JsonNode executionJson = objectMapper.readTree(exporter.export(scanResult, List.of(), List.of(), repositorySource));
+
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/orderProducts/items/properties/productId/type").asText()).isEqualTo("integer");
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/ordererMemberId/properties/id/type").asText()).isEqualTo("integer");
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/shippingInfo/properties/address/properties/zipCode/type").asText()).isEqualTo("string");
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/shippingInfo/properties/receiver/properties/name/type").asText()).isEqualTo("string");
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/orderRequest").isMissingNode()).isTrue();
+    }
+
+    @Test
+    void executionExportIncludesLateServiceHintWarnings(@TempDir Path tempDir) throws Exception {
+        SourceTrace trace = new SourceTrace("src/main/java/io/atworks/order/OrderController.java", 10, 15);
+        ApiEndpoint endpoint = new ApiEndpoint(
+            "POST",
+            "/orders/order",
+            "io.atworks.order.OrderController",
+            "submit",
+            List.of(new RequestBinding("orderRequest", BindingLocation.BODY, "OrderRequest", true, null, null, null, List.of(), trace)),
+            new ResponseBinding("__mvc_view__", trace),
+            trace
+        );
+        StaticScanResult scanResult = new StaticScanResult(
+            List.of(endpoint),
+            1,
+            List.of(),
+            new IngestionMetadata(Instant.now(), Instant.now(), 1, "BRANCH", "main", 0)
+        );
+        RepositorySource repositorySource = buildRepositorySource(tempDir, scanResult);
+        ExecutionSpecExporter exporter = new ExecutionSpecExporter();
+
+        JsonNode executionJson = objectMapper.readTree(exporter.export(
+            scanResult,
+            List.of(),
+            List.of(),
+            List.of(
+                new io.atworks.specscan.ingestion.domain.IngestionWarning(
+                    "SERVICE_HINT_REJECTED",
+                    "Skipped service hint without graph evidence for POST /orders/order: orderService.submit(orderRequest)",
+                    "/orders/order",
+                    "MEDIUM",
+                    java.util.Map.of(
+                        "endpoint", "POST /orders/order",
+                        "candidateId", "cand-1",
+                        "targetPath", "shippingInfo.address.zipCode",
+                        "reasonCategory", "UNREACHABLE_GRAPH_EVIDENCE"
+                    )
+                ),
+                new io.atworks.specscan.ingestion.domain.IngestionWarning(
+                    "SERVICE_HINT_AMBIGUOUS",
+                    "Skipped ambiguous service hint for POST /orders/order: orderService.submit(orderRequest)",
+                    "/orders/order",
+                    "MEDIUM",
+                    java.util.Map.of(
+                        "endpoint", "POST /orders/order",
+                        "candidateId", "cand-2",
+                        "targetPath", "orderProducts[*].productId",
+                        "reasonCategory", "AMBIGUOUS_GRAPH_EVIDENCE"
+                    )
+                )
+            ),
+            repositorySource
+        ));
+
+        assertThat(executionJson.at("/warningCount").asInt()).isEqualTo(2);
+        assertThat(executionJson.at("/warnings/0/code").asText()).isEqualTo("SERVICE_HINT_REJECTED");
+        assertThat(executionJson.at("/warnings/0/location").asText()).isEqualTo("/orders/order");
+        assertThat(executionJson.at("/warnings/0/message").asText()).contains("Skipped service hint without graph evidence");
+        assertThat(executionJson.at("/warnings/0/details/reasonCategory").asText()).isEqualTo("UNREACHABLE_GRAPH_EVIDENCE");
+        assertThat(executionJson.at("/warnings/0/details/candidateId").asText()).isEqualTo("cand-1");
+        assertThat(executionJson.at("/warnings/0/details/endpoint").asText()).isEqualTo("POST /orders/order");
+        assertThat(executionJson.at("/warnings/1/code").asText()).isEqualTo("SERVICE_HINT_AMBIGUOUS");
+        assertThat(executionJson.at("/warnings/1/message").asText()).contains("Skipped ambiguous service hint");
+        assertThat(executionJson.at("/warnings/1/details/reasonCategory").asText()).isEqualTo("AMBIGUOUS_GRAPH_EVIDENCE");
+        assertThat(executionJson.at("/warnings/1/details/endpoint").asText()).isEqualTo("POST /orders/order");
+        assertThat(executionJson.at("/warnings/1/details/targetPath").asText()).isEqualTo("orderProducts[*].productId");
+    }
+
+    @Test
+    void assembledYamlUsesStructuredBodySchemaAndOmitsMvcViewContent(@TempDir Path tempDir) throws Exception {
+        Path outputPath = tempDir.resolve("openapi.yaml");
+        Path srcRoot = tempDir.resolve("src/main/java");
+        Path dtoDir = srcRoot.resolve("io/atworks/order");
+        Files.createDirectories(dtoDir);
+        Files.writeString(dtoDir.resolve("OrderRequest.java"), """
+            package io.atworks.order;
+
+            import java.util.List;
+
+            public class OrderRequest {
+                private List<OrderProduct> orderProducts;
+                private ShippingInfo shippingInfo;
+
+                static class OrderProduct {
+                    private Long productId;
+                    private int quantity;
+                }
+
+                static class ShippingInfo {
+                    private Receiver receiver;
+                }
+
+                static class Receiver {
+                    private String name;
+                }
+            }
+        """);
+
+        SourceTrace trace = new SourceTrace("src/main/java/io/atworks/order/OrderController.java", 10, 15);
+        ApiEndpoint endpoint = new ApiEndpoint(
+            "POST",
+            "/orders/order",
+            "io.atworks.order.OrderController",
+            "submit",
+            List.of(new RequestBinding("orderRequest", BindingLocation.BODY, "OrderRequest", true, null, null, null, List.of(), trace)),
+            new ResponseBinding("__mvc_view__", trace),
+            trace
+        );
+        StaticScanResult scanResult = new StaticScanResult(
+            List.of(endpoint),
+            1,
+            List.of(),
+            new IngestionMetadata(Instant.now(), Instant.now(), 1, "BRANCH", "main", 0)
+        );
+        RepositorySource repositorySource = buildRepositorySource(tempDir, scanResult);
+
+        assemblyService.assemble(
+            scanResult,
+            new ValidationExtractionResult(List.of(), List.of(), List.of()),
+            repositorySource,
+            outputPath
+        );
+
+        String yamlContent = Files.readString(outputPath);
+        assertThat(yamlContent)
+            .contains("/orders/order:")
+            .contains("requestBody:")
+            .contains("orderProducts:")
+            .contains("items:")
+            .contains("productId:")
+            .contains("shippingInfo:")
+            .contains("receiver:")
+            .contains("name:")
+            .doesNotContain("__mvc_view__")
+            .doesNotContain("#/components/schemas")
+            .contains("responses:\n        '200':\n          description: Success\n")
+            .doesNotContain("responses:\n        '200':\n          description: Success\n          content:");
+    }
+    @Test
+    void executionExportScopesNormalizedConditionsToOwningEndpoint(@TempDir Path tempDir) throws Exception {
+        SourceTrace trace = new SourceTrace("src/main/java/io/atworks/controller/VisitController.java", 10, 15);
+        ApiEndpoint shipping = new ApiEndpoint(
+            "POST",
+            "/admin/orders/{orderNo}/shipping",
+            "io.atworks.controller.AdminOrderController",
+            "startShipping",
+            List.of(
+                new RequestBinding("orderNo", BindingLocation.PATH, "String", true, null, null, null, List.of(), trace),
+                new RequestBinding("version", BindingLocation.QUERY, "long", true, null, null, null, List.of(), trace)
+            ),
+            new ResponseBinding("__mvc_view__", trace),
+            trace
+        );
+        ApiEndpoint cancel = new ApiEndpoint(
+            "GET",
+            "/my/orders/{orderNo}/cancel",
+            "io.atworks.controller.CancelOrderController",
+            "cancel",
+            List.of(new RequestBinding("orderNo", BindingLocation.PATH, "String", true, null, null, null, List.of(), trace)),
+            new ResponseBinding("__mvc_view__", trace),
+            trace
+        );
+        StaticScanResult scanResult = new StaticScanResult(
+            List.of(shipping, cancel),
+            2,
+            List.of(),
+            new IngestionMetadata(Instant.now(), Instant.now(), 2, "BRANCH", "main", 0)
+        );
+        RepositorySource repositorySource = buildRepositorySource(tempDir, scanResult);
+        ExecutionSpecExporter exporter = new ExecutionSpecExporter();
+
+        List<ApiCondition> conditions = List.of(
+            new ApiCondition(
+                io.atworks.specscan.analysis.domain.ConditionLocation.QUERY,
+                "$.version",
+                "OPTIMISTIC_LOCK_MATCH",
+                "must match current resource version",
+                "matchVersion(req.getVersion())",
+                0.5,
+                "test",
+                trace,
+                "/admin/orders/{orderNo}/shipping"
+            ),
+            new ApiCondition(
+                io.atworks.specscan.analysis.domain.ConditionLocation.AUTH,
+                "$.currentUser",
+                "HAS_CANCELLATION_PERMISSION",
+                "orderer or ROLE_ADMIN",
+                "hasCancellationPermission(order, canceller)",
+                0.5,
+                "test",
+                trace,
+                "/my/orders/{orderNo}/cancel"
+            )
+        );
+
+        JsonNode executionJson = objectMapper.readTree(exporter.export(scanResult, List.of(), conditions, repositorySource));
+
+        assertThat(executionJson.at("/operations/0/validationConditions").toString()).contains("$.version");
+        assertThat(executionJson.at("/operations/0/validationConditions").toString()).doesNotContain("HAS_CANCELLATION_PERMISSION");
+        assertThat(executionJson.at("/operations/1/validationConditions").toString()).contains("HAS_CANCELLATION_PERMISSION");
+        assertThat(executionJson.at("/operations/1/validationConditions").toString()).doesNotContain("$.version");
+    }
+
+    @Test
+    void representativeDddStart2RegressionPreservesOrderShapesAndEndpointScopedConditions(@TempDir Path tempDir) throws Exception {
+        Path srcRoot = tempDir.resolve("src/main/java");
+        Path dtoDir = srcRoot.resolve("io/atworks/order");
+        Files.createDirectories(dtoDir);
+        Files.writeString(dtoDir.resolve("OrderRequest.java"), """
+            package io.atworks.order;
+
+            import java.util.List;
+
+            public class OrderRequest {
+                private List<OrderProduct> orderProducts;
+                private OrdererMemberId ordererMemberId;
+                private ShippingInfo shippingInfo;
+
+                static class OrderProduct {
+                    private Long productId;
+                    private int quantity;
+                }
+
+                static class OrdererMemberId {
+                    private Long id;
+                }
+
+                static class ShippingInfo {
+                    private Address address;
+                    private Receiver receiver;
+                    private String message;
+                }
+
+                static class Address {
+                    private String zipCode;
+                    private String address1;
+                    private String address2;
+                }
+
+                static class Receiver {
+                    private String name;
+                    private String phone;
+                }
+            }
+        """);
+
+        SourceTrace trace = new SourceTrace("src/main/java/io/atworks/order/OrderController.java", 10, 20);
+        ApiEndpoint orderConfirm = new ApiEndpoint(
+            "POST",
+            "/orders/orderConfirm",
+            "io.atworks.order.OrderController",
+            "orderConfirm",
+            List.of(new RequestBinding("orderRequest", BindingLocation.BODY, "OrderRequest", true, null, null, null, List.of(), trace)),
+            new ResponseBinding("__mvc_view__", trace),
+            trace
+        );
+        ApiEndpoint order = new ApiEndpoint(
+            "POST",
+            "/orders/order",
+            "io.atworks.order.OrderController",
+            "submit",
+            List.of(new RequestBinding("orderRequest", BindingLocation.BODY, "OrderRequest", true, null, null, null, List.of(), trace)),
+            new ResponseBinding("__mvc_view__", trace),
+            trace
+        );
+        ApiEndpoint shipping = new ApiEndpoint(
+            "POST",
+            "/admin/orders/{orderNo}/shipping",
+            "io.atworks.controller.AdminOrderController",
+            "startShipping",
+            List.of(
+                new RequestBinding("orderNo", BindingLocation.PATH, "String", true, null, null, null, List.of(), trace),
+                new RequestBinding("version", BindingLocation.QUERY, "long", true, null, null, null, List.of(), trace)
+            ),
+            new ResponseBinding("__mvc_view__", trace),
+            trace
+        );
+        ApiEndpoint cancel = new ApiEndpoint(
+            "GET",
+            "/my/orders/{orderNo}/cancel",
+            "io.atworks.controller.CancelOrderController",
+            "cancel",
+            List.of(new RequestBinding("orderNo", BindingLocation.PATH, "String", true, null, null, null, List.of(), trace)),
+            new ResponseBinding("__mvc_view__", trace),
+            trace
+        );
+        StaticScanResult scanResult = new StaticScanResult(
+            List.of(orderConfirm, order, shipping, cancel),
+            4,
+            List.of(),
+            new IngestionMetadata(Instant.now(), Instant.now(), 4, "BRANCH", "main", 0)
+        );
+        RepositorySource repositorySource = buildRepositorySource(tempDir, scanResult);
+        ExecutionSpecExporter exporter = new ExecutionSpecExporter();
+
+        List<ApiCondition> conditions = List.of(
+            new ApiCondition(
+                io.atworks.specscan.analysis.domain.ConditionLocation.BODY,
+                "$.orderProducts",
+                "NOT_EMPTY",
+                "true",
+                "orderProducts must not be empty",
+                0.8,
+                "test",
+                trace,
+                "/orders/order"
+            ),
+            new ApiCondition(
+                io.atworks.specscan.analysis.domain.ConditionLocation.BODY,
+                "$.orderProducts[*].productId",
+                "REQUIRED",
+                "true",
+                "productId required",
+                0.8,
+                "test",
+                trace,
+                "/orders/order"
+            ),
+            new ApiCondition(
+                io.atworks.specscan.analysis.domain.ConditionLocation.BODY,
+                "$.shippingInfo.receiver.name",
+                "NOT_BLANK",
+                "true",
+                "receiver name required",
+                0.8,
+                "test",
+                trace,
+                "/orders/order"
+            ),
+            new ApiCondition(
+                io.atworks.specscan.analysis.domain.ConditionLocation.QUERY,
+                "$.version",
+                "OPTIMISTIC_LOCK_MATCH",
+                "must match current resource version",
+                "matchVersion(req.getVersion())",
+                0.5,
+                "test",
+                trace,
+                "/admin/orders/{orderNo}/shipping"
+            ),
+            new ApiCondition(
+                io.atworks.specscan.analysis.domain.ConditionLocation.AUTH,
+                "$.currentUser",
+                "HAS_CANCELLATION_PERMISSION",
+                "orderer or ROLE_ADMIN",
+                "hasCancellationPermission(order, canceller)",
+                0.5,
+                "test",
+                trace,
+                "/my/orders/{orderNo}/cancel"
+            ),
+            new ApiCondition(
+                io.atworks.specscan.analysis.domain.ConditionLocation.RESOURCE,
+                "$.order.state",
+                "STATE_IN",
+                "PAYMENT_WAITING,PREPARING",
+                "if (!isNotYetShipped()) throw new AlreadyShippedException();",
+                0.5,
+                "test",
+                trace,
+                "/my/orders/{orderNo}/cancel"
+            )
+        );
+
+        JsonNode executionJson = objectMapper.readTree(exporter.export(scanResult, List.of(), conditions, repositorySource));
+
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/orderProducts/items/properties/productId/type").asText()).isEqualTo("integer");
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/shippingInfo/properties/receiver/properties/name/type").asText()).isEqualTo("string");
+        assertThat(executionJson.at("/operations/0/request/bodySchema/properties/orderRequest").isMissingNode()).isTrue();
+        assertThat(executionJson.at("/operations/1/request/bodySchema/properties/orderProducts/items/properties/productId/type").asText()).isEqualTo("integer");
+        assertThat(executionJson.at("/operations/1/request/bodySchema/properties/ordererMemberId/properties/id/type").asText()).isEqualTo("integer");
+        assertThat(executionJson.at("/operations/1/request/bodySchema/properties/shippingInfo/properties/address/properties/zipCode/type").asText()).isEqualTo("string");
+        assertThat(executionJson.at("/operations/1/validationConditions").toString())
+            .contains("$.orderProducts")
+            .contains("$.orderProducts[*].productId")
+            .contains("$.shippingInfo.receiver.name");
+        assertThat(executionJson.at("/operations/2/validationConditions").toString())
+            .contains("OPTIMISTIC_LOCK_MATCH")
+            .doesNotContain("HAS_CANCELLATION_PERMISSION");
+        assertThat(executionJson.at("/operations/3/validationConditions").toString())
+            .contains("HAS_CANCELLATION_PERMISSION")
+            .contains("STATE_IN")
+            .doesNotContain("OPTIMISTIC_LOCK_MATCH");
     }
 
     private RepositorySource buildRepositorySource(Path tempDir, StaticScanResult scanResult) {

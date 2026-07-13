@@ -45,16 +45,21 @@ public class OpenApiAssemblyService {
         RepositorySource source,
         Path outputPath
     ) throws IngestionException {
-        List<IngestionWarning> warnings = new ArrayList<>(extractResult.warnings());
+        List<IngestionWarning> warnings = new ArrayList<>(scanResult.warnings());
+        warnings.addAll(extractResult.warnings());
         ValidationEvidenceGraph graph = new ValidationEvidenceGraphBuilder().build(scanResult, extractResult, source);
 
         NormalizedResult normalizedResult;
         try {
             normalizedResult = normalizationService.normalize(extractResult.candidates(), scanResult.endpoints(), graph);
+            warnings.addAll(normalizedResult.warnings());
             for (ValidationCandidate reject : normalizedResult.rejected()) {
+                if ("SERVICE_HINT".equals(reject.sourceType())) {
+                    continue;
+                }
                 warnings.add(new IngestionWarning(
                     "NORMALIZATION_REJECTED",
-                    "Candidate rejected during LLM normalization schema validation.",
+                    "Candidate rejected during rule-based normalization.",
                     reject.targetPath(),
                     "MEDIUM"
                 ));
@@ -70,23 +75,11 @@ public class OpenApiAssemblyService {
         } catch (Exception e) {
             throw new IngestionException(
                 IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
-                "Failed to run LLM normalization: " + e.getMessage()
+                "Failed to run rule-based normalization: " + e.getMessage()
             );
         }
 
-        String yamlContent;
-        try {
-            yamlContent = openApiGenerator.generateYaml(
-                scanResult,
-                extractResult.directConditions(),
-                normalizedResult.conditions()
-            );
-        } catch (Exception e) {
-            throw new IngestionException(
-                IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
-                "Failed to generate OpenAPI YAML document: " + e.getMessage()
-            );
-        }
+
 
         String structuredJson;
         try {
@@ -108,12 +101,23 @@ public class OpenApiAssemblyService {
                 scanResult,
                 extractResult.directConditions(),
                 normalizedResult.conditions(),
+                warnings,
                 source
             );
         } catch (Exception e) {
             throw new IngestionException(
                 IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
                 "Failed to generate execution model JSON document: " + e.getMessage()
+            );
+        }
+
+        String yamlContent;
+        try {
+            yamlContent = openApiGenerator.generateYaml(executionJson);
+        } catch (Exception e) {
+            throw new IngestionException(
+                IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
+                "Failed to generate OpenAPI YAML document: " + e.getMessage()
             );
         }
 

@@ -15,11 +15,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class ValidationExtractionService {
+
+    private static final Pattern GETTER_CHAIN_PATTERN = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*(?:\\.get[A-Z][A-Za-z0-9_]*\\(\\))+");
+    private static final Pattern GETTER_PATTERN = Pattern.compile("\\.get([A-Z][A-Za-z0-9_]*)\\(\\)");
+    private static final Pattern FIELD_COMPARISON_PATTERN = Pattern.compile("\\b([a-z][A-Za-z0-9_]*)\\s*(==|!=|<=|>=|<|>)");
 
     static {
         com.github.javaparser.StaticJavaParser.getConfiguration()
@@ -41,36 +51,39 @@ public class ValidationExtractionService {
 
         Path workspacePath = Paths.get(workspace.workspacePath());
         List<Path> sourceRoots = repositorySource.sourceRoots().stream()
-                .map(r -> workspacePath.resolve(r.rootPath()))
-                .filter(Files::exists)
-                .collect(Collectors.toList());
+            .map(r -> workspacePath.resolve(r.rootPath()))
+            .filter(Files::exists)
+            .collect(Collectors.toList());
 
         TypeResolver typeResolver = new TypeResolver(sourceRoots);
         ValidatorCandidateExtractor validatorExtractor = new ValidatorCandidateExtractor(workspacePath, sourceRoots);
         ServiceHintExtractor serviceExtractor = new ServiceHintExtractor(workspacePath, sourceRoots);
 
         for (ApiEndpoint endpoint : staticScanResult.endpoints()) {
-            // 1. Request bindings 중 DTO(BODY 및 QUERY 복잡 객체) 탐색
+            EndpointTargetIndex targetIndex = buildEndpointTargetIndex(endpoint, typeResolver);
+
             for (RequestBinding binding : endpoint.requestBindings()) {
+                if (binding.targetLocation() != BindingLocation.BODY) {
+                    continue;
+                }
+
                 String typeStr = binding.type();
                 typeResolver.resolveClassDeclaration(typeStr).ifPresent(dtoClass -> {
                     Path dtoFile = AstLookupUtils.getFilePath(dtoClass, workspacePath);
                     AnnotationConditionExtractor annotationExtractor = new AnnotationConditionExtractor(workspacePath, dtoFile);
 
                     try {
-                        // 1-1. Annotation 기반 Direct 및 Candidate 추출
                         List<ApiConditionDraft> drafts = annotationExtractor.extractDirectConditions(dtoClass);
                         directConditions.addAll(drafts);
 
                         List<ValidationCandidate> annCandidates = annotationExtractor.extractValidationCandidates(dtoClass);
                         candidates.addAll(annCandidates);
 
-                        // 1-2. 커스텀 어노테이션이 있는 경우 연동된 ConstraintValidator 분석
                         annCandidates.forEach(cand -> {
                             List<ValidationCandidate> valCandidates = validatorExtractor.extractFromCustomAnnotation(
-                                    cand.evidenceSnippet().split(" ")[0].replace("@", ""), 
-                                    cand.targetPath(), 
-                                    dtoFile
+                                cand.evidenceSnippet().split(" ")[0].replace("@", ""),
+                                cand.targetPath(),
+                                dtoFile
                             );
                             candidates.addAll(valCandidates);
                         });
@@ -86,7 +99,6 @@ public class ValidationExtractionService {
                 });
             }
 
-            // 2. 컨트롤러 메소드 내의 서비스 체인(MethodCall) 탐색 및 Service Hint 추출
             Optional<ClassOrInterfaceDeclaration> controllerClassOpt = typeResolver.resolveClassDeclaration(endpoint.controllerClass());
             controllerClassOpt.ifPresent(controllerDecl -> {
                 controllerDecl.getMethodsByName(endpoint.controllerMethod()).forEach(method -> {
@@ -94,12 +106,11 @@ public class ValidationExtractionService {
                         String calledMethod = call.getNameAsString();
                         call.getScope().ifPresent(scope -> {
                             String scopeVar = scope.toString();
-                            // 컨트롤러 내 필드 선언 목록에서 scopeVar(예: userService)의 타입 획득
                             String serviceType = AstLookupUtils.findFieldType(controllerDecl, scopeVar);
                             if (serviceType != null) {
                                 try {
                                     List<ValidationCandidate> serviceHints = serviceExtractor.extractFromServiceMethod(serviceType, calledMethod);
-                                    candidates.addAll(serviceHints);
+                                    candidates.addAll(resolveServiceHintCandidates(serviceHints, endpoint, targetIndex, warnings));
                                 } catch (Exception e) {
                                     warnings.add(new IngestionWarning(
                                         "SERVICE_SCAN_FAILED",
@@ -121,4 +132,256 @@ public class ValidationExtractionService {
             warnings
         );
     }
+
+    private List<ValidationCandidate> resolveServiceHintCandidates(
+        List<ValidationCandidate> serviceHints,
+        ApiEndpoint endpoint,
+        EndpointTargetIndex targetIndex,
+        List<IngestionWarning> warnings
+    ) {
+        List<ValidationCandidate> resolved = new ArrayList<>();
+        for (ValidationCandidate candidate : serviceHints) {
+            ServiceHintResolution resolution = resolveServiceHintTarget(candidate, targetIndex);
+            if (resolution.targetPath() != null) {
+                resolved.add(new ValidationCandidate(
+                    candidate.candidateId(),
+                    candidate.sourceType(),
+                    resolution.targetPath(),
+                    candidate.evidenceSnippet(),
+                    candidate.confidence(),
+                    candidate.sourceTrace()
+                ));
+                continue;
+            }
+
+            warnings.add(new IngestionWarning(
+                resolution.ambiguous() ? "SERVICE_HINT_AMBIGUOUS" : "SERVICE_HINT_REJECTED",
+                resolution.ambiguous()
+                    ? "Skipped ambiguous service hint target for " + endpoint.path() + ": " + candidate.evidenceSnippet()
+                    : "Skipped unresolved service hint target for " + endpoint.path() + ": " + candidate.evidenceSnippet(),
+                endpoint.path(),
+                "MEDIUM",
+                Map.of(
+                    "endpoint", endpoint.httpMethod() + " " + endpoint.path(),
+                    "candidateId", candidate.candidateId(),
+                    "targetPath", String.valueOf(candidate.targetPath()),
+                    "reasonCategory", resolution.ambiguous() ? "AMBIGUOUS_GRAPH_EVIDENCE" : "NO_QUALIFYING_RULE"
+                )
+            ));
+        }
+        return resolved;
+    }
+
+    private ServiceHintResolution resolveServiceHintTarget(ValidationCandidate candidate, EndpointTargetIndex targetIndex) {
+        Set<String> uniqueLeafMatches = new LinkedHashSet<>();
+        boolean ambiguous = false;
+
+        for (String token : extractTargetTokens(candidate)) {
+            String normalized = normalizeTargetToken(token);
+            if (normalized.isBlank()) {
+                continue;
+            }
+
+            String exactOrEquivalent = findExactOrEquivalentTarget(normalized, targetIndex);
+            if (exactOrEquivalent != null) {
+                return new ServiceHintResolution(exactOrEquivalent, false);
+            }
+
+            List<String> matches = findLeafMatches(normalized, targetIndex);
+            if (matches.size() == 1) {
+                uniqueLeafMatches.add(matches.get(0));
+            } else if (matches.size() > 1) {
+                ambiguous = true;
+            }
+        }
+
+        if (uniqueLeafMatches.size() == 1) {
+            return new ServiceHintResolution(uniqueLeafMatches.iterator().next(), false);
+        }
+        if (uniqueLeafMatches.size() > 1) {
+            return new ServiceHintResolution(null, true);
+        }
+
+        String intrinsicTarget = inferIntrinsicServiceHintTarget(candidate.evidenceSnippet());
+        if (!intrinsicTarget.isBlank()) {
+            return new ServiceHintResolution(intrinsicTarget, false);
+        }
+        return new ServiceHintResolution(null, ambiguous);
+    }
+
+    private List<String> extractTargetTokens(ValidationCandidate candidate) {
+        LinkedHashSet<String> tokens = new LinkedHashSet<>();
+        String evidence = candidate.evidenceSnippet();
+        if (evidence != null && !evidence.isBlank()) {
+            Matcher chainMatcher = GETTER_CHAIN_PATTERN.matcher(evidence);
+            while (chainMatcher.find()) {
+                String getterPath = toGetterPath(chainMatcher.group());
+                if (!getterPath.isBlank()) {
+                    tokens.add(getterPath);
+                }
+            }
+
+            Matcher fieldComparisonMatcher = FIELD_COMPARISON_PATTERN.matcher(evidence);
+            while (fieldComparisonMatcher.find()) {
+                tokens.add(fieldComparisonMatcher.group(1));
+            }
+        }
+
+        tokens.add(candidate.targetPath());
+        return new ArrayList<>(tokens);
+    }
+
+    private String toGetterPath(String expression) {
+        List<String> segments = new ArrayList<>();
+        Matcher matcher = GETTER_PATTERN.matcher(expression);
+        while (matcher.find()) {
+            segments.add(decapitalize(matcher.group(1)));
+        }
+        return String.join(".", segments);
+    }
+
+    private EndpointTargetIndex buildEndpointTargetIndex(ApiEndpoint endpoint, TypeResolver typeResolver) {
+        Set<String> fullPaths = new LinkedHashSet<>();
+        Set<String> parameterTargets = new LinkedHashSet<>();
+
+        for (RequestBinding binding : endpoint.requestBindings()) {
+            if (binding.targetLocation() != BindingLocation.BODY) {
+                parameterTargets.add(binding.parameterName());
+            }
+
+            Map<String, Object> schema = typeResolver.resolveExpandedSchema(binding.type(), List.of(), List.of());
+            collectPropertyPaths("", schema, fullPaths);
+        }
+
+        Map<String, List<String>> pathsByLeaf = new LinkedHashMap<>();
+        for (String path : fullPaths) {
+            pathsByLeaf.computeIfAbsent(leafName(path), _k -> new ArrayList<>()).add(path);
+        }
+        return new EndpointTargetIndex(fullPaths, parameterTargets, pathsByLeaf);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void collectPropertyPaths(String prefix, Map<String, Object> schema, Set<String> fullPaths) {
+        if (schema == null || schema.isEmpty()) {
+            return;
+        }
+
+        Object propertiesObj = schema.get("properties");
+        if (propertiesObj instanceof Map<?, ?> properties) {
+            for (Map.Entry<?, ?> entry : properties.entrySet()) {
+                if (!(entry.getKey() instanceof String propertyName) || !(entry.getValue() instanceof Map<?, ?> childSchemaRaw)) {
+                    continue;
+                }
+                Map<String, Object> childSchema = (Map<String, Object>) childSchemaRaw;
+                String path = prefix.isBlank() ? propertyName : prefix + "." + propertyName;
+                fullPaths.add(path);
+                collectPropertyPaths(path, childSchema, fullPaths);
+            }
+        }
+
+        Object itemsObj = schema.get("items");
+        if (itemsObj instanceof Map<?, ?> itemsRaw) {
+            collectPropertyPaths(prefix + "[*]", (Map<String, Object>) itemsRaw, fullPaths);
+        }
+    }
+
+    private String normalizeTargetToken(String token) {
+        if (token == null) {
+            return "";
+        }
+        String normalized = token.trim();
+        if (normalized.isEmpty() || normalized.equals("unknown")) {
+            return "";
+        }
+        if (normalized.startsWith("$.")) {
+            normalized = normalized.substring(2);
+        }
+        return normalized;
+    }
+
+    private String findExactOrEquivalentTarget(String normalized, EndpointTargetIndex targetIndex) {
+        for (String path : targetIndex.fullPaths()) {
+            if (path.equals(normalized) || areEquivalentTargets(path, normalized)) {
+                return path;
+            }
+        }
+        for (String parameter : targetIndex.parameterTargets()) {
+            if (parameter.equals(normalized) || areEquivalentTargets(parameter, normalized)) {
+                return parameter;
+            }
+        }
+        return null;
+    }
+
+    private List<String> findLeafMatches(String normalized, EndpointTargetIndex targetIndex) {
+        List<String> matches = new ArrayList<>(targetIndex.pathsByLeaf().getOrDefault(leafName(normalized), List.of()));
+        if (!matches.isEmpty()) {
+            return matches;
+        }
+        List<String> equivalentMatches = new ArrayList<>();
+        for (String path : targetIndex.fullPaths()) {
+            if (areEquivalentTargets(leafName(path), normalized)) {
+                equivalentMatches.add(path);
+            }
+        }
+        return equivalentMatches;
+    }
+
+    private boolean areEquivalentTargets(String left, String right) {
+        return canonicalTarget(left).equals(canonicalTarget(right));
+    }
+
+    private String canonicalTarget(String token) {
+        String normalized = normalizeTargetToken(token)
+            .toLowerCase()
+            .replace("[*]", "")
+            .replace(".", "")
+            .replace("_", "")
+            .replace("-", "")
+            .replace("number", "no");
+        return normalized;
+    }
+
+    private String leafName(String path) {
+        String normalized = normalizeTargetToken(path);
+        if (normalized.isBlank()) {
+            return "";
+        }
+        int arrayIndex = normalized.lastIndexOf("[*].");
+        if (arrayIndex != -1) {
+            return normalized.substring(arrayIndex + 4);
+        }
+        int dotIndex = normalized.lastIndexOf('.');
+        return dotIndex == -1 ? normalized : normalized.substring(dotIndex + 1);
+    }
+
+    private String inferIntrinsicServiceHintTarget(String evidence) {
+        if (evidence == null || evidence.isBlank()) {
+            return "";
+        }
+        String normalized = evidence.replaceAll("\\s+", "").toLowerCase();
+        if (normalized.contains("permission") || normalized.contains("authorized") || normalized.contains("role")) {
+            return "currentUser";
+        }
+        if (normalized.contains("state") || normalized.contains("status") || normalized.contains("shipped")
+            || normalized.contains("cancelled") || normalized.contains("canceled")) {
+            return "order.state";
+        }
+        return "";
+    }
+
+    private String decapitalize(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return Character.toLowerCase(value.charAt(0)) + value.substring(1);
+    }
+
+    private record EndpointTargetIndex(
+        Set<String> fullPaths,
+        Set<String> parameterTargets,
+        Map<String, List<String>> pathsByLeaf
+    ) {}
+
+    private record ServiceHintResolution(String targetPath, boolean ambiguous) {}
 }

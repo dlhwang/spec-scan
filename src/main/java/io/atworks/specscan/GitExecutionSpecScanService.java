@@ -20,6 +20,7 @@ import io.atworks.specscan.ingestion.domain.RepositorySource;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -54,12 +55,16 @@ public class GitExecutionSpecScanService {
                 scanResult.endpoints(),
                 graph
             );
+            ArrayList<io.atworks.specscan.ingestion.domain.IngestionWarning> warnings = new ArrayList<>(scanResult.warnings());
+            warnings.addAll(extractionResult.warnings());
+            warnings.addAll(normalizedResult.warnings());
 
             ExecutionSpecExporter executionSpecExporter = new ExecutionSpecExporter();
             return executionSpecExporter.export(
                 scanResult,
                 extractionResult.directConditions(),
                 normalizedResult.conditions(),
+                warnings,
                 repositorySource
             );
         } finally {

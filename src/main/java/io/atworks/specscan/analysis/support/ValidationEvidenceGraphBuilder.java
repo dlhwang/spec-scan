@@ -236,13 +236,16 @@ public class ValidationEvidenceGraphBuilder {
                 return;
             }
 
-            String ruleId = "BUSINESS_RULE:" + methodRef.qualifiedSignature() + ":" + Math.abs(ifStmt.getCondition().toString().hashCode());
-            String ruleLabel = ifStmt.getCondition().toString();
+            String ruleCondition = ifStmt.getCondition().toString();
+            RuleClass ruleClass = classifyRule(ruleCondition, ifStmt.toString());
+            String ruleId = "BUSINESS_RULE:" + methodRef.qualifiedSignature() + ":" + ruleClass.name() + ":" + Math.abs(ruleCondition.hashCode());
+            String ruleLabel = ruleClass.name() + " | " + ruleCondition;
             int ruleLine = ifStmt.getBegin().map(pos -> pos.line).orElse(0);
             String ruleSnippet = ifStmt.toString().trim();
 
             addNode(nodes, nodeIds, ruleId, GraphNodeType.BUSINESS_RULE, ruleLabel, methodRef.relativeFile(), ruleLine, ruleSnippet);
-            addEdge(edges, methodRef.nodeId(), ruleId, GraphEdgeType.EVALUATES, "if statement");
+            addEdge(edges, methodRef.nodeId(), ruleId, GraphEdgeType.EVALUATES, ruleClass.name() + " | if statement");
+
 
             for (ValidationOutcome outcome : outcomes) {
                 if (outcome.throwStmt() != null) {
@@ -530,6 +533,30 @@ public class ValidationEvidenceGraphBuilder {
         };
     }
 
+    private RuleClass classifyRule(String condition, String snippet) {
+        String combined = (condition + " " + snippet).toLowerCase();
+        if (combined.contains("version") || combined.contains("matchversion")) {
+            return RuleClass.VERSION_CHECK;
+        }
+        if (combined.contains("permission") || combined.contains("authorized") || combined.contains("admin") || combined.contains("owner")) {
+            return RuleClass.PERMISSION_CHECK;
+        }
+        if (combined.contains("== null") || combined.contains("!= null") || combined.contains("ispresent()") || combined.contains("isempty()")) {
+            return RuleClass.EXISTENCE_CHECK;
+        }
+        if (combined.contains("state") || combined.contains("status")) {
+            return RuleClass.STATE_CHECK;
+        }
+        return RuleClass.GENERIC;
+    }
+
+    private enum RuleClass {
+        VERSION_CHECK,
+        PERMISSION_CHECK,
+        STATE_CHECK,
+        EXISTENCE_CHECK,
+        GENERIC
+    }
     private record ResolvedSourceMethod(
         String qualifiedSignature,
         String nodeId,

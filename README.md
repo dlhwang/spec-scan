@@ -20,7 +20,7 @@ graph TD
     B -->|UOW-02: AST Scan| C[ApiEndpoints & Request/Response DTOs]
     C -->|UOW-03: Validation Extract| D[Direct Conditions & Raw Candidates]
     D -->|UOW-04: Chunking & Filter| E[Guarded Candidate Chunks]
-    E -->|UOW-04: Normalization| F[LLM Normalized ApiConditions]
+    E -->|UOW-04: Normalization| F[Rule-based Normalized ApiConditions]
     F -->|UOW-05: Assembly| G[OpenAPI 3.0 YAML Spec]
 ```
 
@@ -30,7 +30,7 @@ graph TD
    - DTO의 표준 Bean Validation 어노테이션 추출 및 커스텀 어노테이션 분리
    - `ConstraintValidator` 및 스프링 `Validator` 내 `errors.rejectValue(...)` 추적
    - 서비스 레이어 내 `if-throw BusinessException` 예외 흐름 정적 파싱 및 간접 필드 유추
-4. **Candidate Chunk and Normalization (UOW-04)**: 추출 후보들을 엔드포인트별/타입별 청크로 분할하고, 필수 정보가 결락된 청크를 무효화(Invalid check) 가드 처리한 뒤 LLM(Mock)을 통해 표준 검증 규격으로 정규화합니다.
+4. **Candidate Chunk and Normalization (UOW-04)**: 추출 후보들을 엔드포인트별/타입별 청크로 분할하고, 필수 정보가 결락된 청크를 무효화(Invalid check) 가드 처리한 뒤 endpoint-scoped graph evidence를 반영한 규칙 기반 정규화로 표준 검증 규격으로 변환합니다.
 5. **Contract Assembly and Output (UOW-05)**: 수집/정규화된 모든 규칙 사양과 API 명세를 병합하여 제약 조건 속성이 온전히 주입된 OpenAPI 3.0 YAML 문서를 조립 후 지정된 파일 경로에 출력합니다.
 
 ---
@@ -38,7 +38,7 @@ graph TD
 ## 🚀 How to Run
 
 ### 1. Build and Run Tests
-전체 단위 및 통합 테스트 스위트(11개 검증 통과)를 구동하여 컴포넌트 동작을 검증합니다.
+전체 단위 및 통합 테스트 스위트를 구동하여 컴포넌트 동작을 검증합니다.
 ```powershell
 ./gradlew test
 ```

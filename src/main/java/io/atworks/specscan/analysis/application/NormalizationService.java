@@ -5,6 +5,7 @@ import io.atworks.specscan.analysis.support.CandidateChunkGenerator;
 import io.atworks.specscan.analysis.support.CandidateChunkValidator;
 import io.atworks.specscan.analysis.support.RuleBasedConditionNormalizer;
 import io.atworks.specscan.ingestion.domain.IngestionException;
+import io.atworks.specscan.ingestion.domain.IngestionWarning;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +23,7 @@ public class NormalizationService {
     }
 
     /**
-     * 유효성 추출 후보군을 입력받아 청크 분할, 무결성 필터링 및 LLM 정규화 연산을 수행하여 NormalizedResult를 반환합니다.
+     * 유효성 추출 후보군을 입력받아 청크 분할, 무결성 필터링 및 규칙 기반 정규화 연산을 수행하여 NormalizedResult를 반환합니다.
      */
     public NormalizedResult normalize(List<ValidationCandidate> candidates, List<ApiEndpoint> endpoints) throws IngestionException {
         return normalize(candidates, endpoints, new ValidationEvidenceGraph(List.of(), List.of()));
@@ -36,6 +37,8 @@ public class NormalizationService {
         List<ApiCondition> conditions = new ArrayList<>();
         List<ValidationCandidate> rejected = new ArrayList<>();
         List<CandidateChunk> invalidChunks = new ArrayList<>();
+        List<IngestionWarning> warnings = new ArrayList<>();
+        List<String> conditionKeys = new ArrayList<>();
 
         // 1. Chunk Generation
         List<CandidateChunk> chunks = chunkGenerator.generateChunks(candidates, endpoints);
@@ -48,32 +51,59 @@ public class NormalizationService {
                 continue;
             }
 
-            // 3. Rule-based normalization before introducing real LLM calls.
+            // 3. Deterministic rule-based normalization.
             ApiEndpoint endpoint = endpoints.stream()
                 .filter(item -> item.path().equals(chunk.endpointPath()))
                 .findFirst()
                 .orElse(null);
-            conditions.addAll(normalizeChunkRuleBased(chunk, endpoint, graph, rejected));
+            appendUniqueConditions(conditions, conditionKeys, normalizeChunkRuleBased(chunk, endpoint, graph, rejected, warnings));
+            if ("SERVICE_HINT".equals(chunk.sourceType())) {
+                appendUniqueConditions(conditions, conditionKeys, ruleBasedConditionNormalizer.deriveGraphConditions(chunk, endpoint, graph));
+            }
         }
 
-        return new NormalizedResult(conditions, rejected, invalidChunks);
+        return new NormalizedResult(conditions, rejected, invalidChunks, warnings);
     }
 
     private List<ApiCondition> normalizeChunkRuleBased(
         CandidateChunk chunk,
         ApiEndpoint endpoint,
         ValidationEvidenceGraph graph,
-        List<ValidationCandidate> rejected
+        List<ValidationCandidate> rejected,
+        List<IngestionWarning> warnings
     ) {
         List<ApiCondition> conditions = new ArrayList<>();
         for (ValidationCandidate cand : chunk.candidates()) {
             ruleBasedConditionNormalizer.normalize(cand, chunk, endpoint, graph)
                 .ifPresentOrElse(
                     conditions::add,
-                    () -> rejected.add(cand)
+                    () -> {
+                        rejected.add(cand);
+                        if ("SERVICE_HINT".equals(cand.sourceType())) {
+                            ruleBasedConditionNormalizer.buildServiceHintWarning(cand, chunk, endpoint, graph)
+                                .ifPresent(warnings::add);
+                        }
+                    }
                 );
         }
         return conditions;
+    }
+
+    private void appendUniqueConditions(List<ApiCondition> conditions, List<String> conditionKeys, List<ApiCondition> additions) {
+        for (ApiCondition condition : additions) {
+            String key = String.join("|",
+                String.valueOf(condition.targetLocation()),
+                String.valueOf(condition.targetPath()),
+                String.valueOf(condition.operator()),
+                String.valueOf(condition.expected()),
+                String.valueOf(condition.endpointPath())
+            );
+            if (conditionKeys.contains(key)) {
+                continue;
+            }
+            conditionKeys.add(key);
+            conditions.add(condition);
+        }
     }
 
 }
