@@ -657,6 +657,10 @@ class OpenApiAssemblyServiceTest {
 
         assertThat(executionJson.at("/operations/0/responseAssertions").toString()).contains("STATUS");
         assertThat(executionJson.at("/operations/1/responseAssertions").toString()).contains("STATUS");
+
+        assertThat(executionJson.at("/operations/0/excludedBusinessRules").toString()).contains("$.version");
+        assertThat(executionJson.at("/operations/0/excludedBusinessRules").toString()).contains("OPTIMISTIC_LOCK_MATCH");
+        assertThat(executionJson.at("/operations/1/excludedBusinessRules").toString()).contains("HAS_CANCELLATION_PERMISSION");
     }
 
     @Test
@@ -841,6 +845,12 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionJson.at("/operations/1/responseAssertions").toString()).contains("STATUS");
         assertThat(executionJson.at("/operations/2/responseAssertions").toString()).contains("STATUS");
         assertThat(executionJson.at("/operations/3/responseAssertions").toString()).contains("STATUS");
+
+        assertThat(executionJson.at("/operations/2/excludedBusinessRules").toString())
+            .contains("OPTIMISTIC_LOCK_MATCH");
+        assertThat(executionJson.at("/operations/3/excludedBusinessRules").toString())
+            .contains("HAS_CANCELLATION_PERMISSION")
+            .contains("STATE_IN");
     }
 
     private RepositorySource buildRepositorySource(Path tempDir, StaticScanResult scanResult) {

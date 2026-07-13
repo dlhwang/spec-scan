@@ -90,6 +90,7 @@ public class ExecutionSpecExporter {
         operation.put("response200", buildResponse(endpoint, typeResolver));
         operation.put("requestPreconditions", requestSpec.requestPreconditions());
         operation.put("responseAssertions", requestSpec.responseAssertions());
+        operation.put("excludedBusinessRules", requestSpec.excludedBusinessRules());
         return operation;
     }
 
@@ -104,8 +105,47 @@ public class ExecutionSpecExporter {
         request.put("pathParams", buildParameterGroup(endpoint, BindingLocation.PATH));
         request.put("queryParams", buildParameterGroup(endpoint, BindingLocation.QUERY));
         request.put("headers", buildParameterGroup(endpoint, BindingLocation.HEADER));
-        List<Map<String, Object>> requestPreconditions = buildRequestPreconditions(endpoint, drafts, conditions);
-        List<Map<String, Object>> responseAssertions = buildResponseAssertions(endpoint, drafts, conditions);
+
+        List<Map<String, Object>> requestPreconditions = new ArrayList<>();
+        List<Map<String, Object>> responseAssertions = new ArrayList<>();
+        List<Map<String, Object>> excludedBusinessRules = new ArrayList<>();
+
+        Set<String> preconditionKeys = new LinkedHashSet<>();
+        Set<String> assertionKeys = new LinkedHashSet<>();
+        Set<String> excludedKeys = new LinkedHashSet<>();
+
+        // 기본 성공 응답 STATUS 200 검증 어설션 자동 추가
+        Map<String, Object> statusAssertion = buildConditionMap("STATUS", "$", "EQUALS", "200", "AUTOMATIC_RESPONSE_SPEC");
+        responseAssertions.add(statusAssertion);
+        assertionKeys.add("STATUS|$|EQUALS|200|AUTOMATIC_RESPONSE_SPEC");
+
+        for (ApiConditionDraft draft : drafts) {
+            if (isFilteredCondition(draft.targetPath(), null, draft.operator())) {
+                addEndpointCondition(excludedBusinessRules, excludedKeys, endpoint, draft.targetPath(), draft.operator(), draft.expected(),
+                    "BEAN_VALIDATION_ANNOTATION", null);
+            } else {
+                addEndpointCondition(requestPreconditions, preconditionKeys, endpoint, draft.targetPath(), draft.operator(), draft.expected(),
+                    "BEAN_VALIDATION_ANNOTATION", null);
+            }
+        }
+
+        for (ApiCondition condition : conditions) {
+            if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
+                continue;
+            }
+            if (isFilteredCondition(condition.targetPath(), condition.targetLocation(), condition.operator())) {
+                addEndpointCondition(excludedBusinessRules, excludedKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
+                    "SERVICE_LOGIC_HINT", condition.targetLocation());
+            } else {
+                if (condition.conditionType() == io.atworks.specscan.analysis.domain.ConditionType.ASSERTION) {
+                    addEndpointCondition(responseAssertions, assertionKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
+                        "SERVICE_LOGIC_HINT", condition.targetLocation());
+                } else {
+                    addEndpointCondition(requestPreconditions, preconditionKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
+                        "SERVICE_LOGIC_HINT", condition.targetLocation());
+                }
+            }
+        }
 
         RequestBinding bodyBinding = endpoint.requestBindings().stream()
             .filter(binding -> binding.targetLocation() == BindingLocation.BODY)
@@ -114,7 +154,7 @@ public class ExecutionSpecExporter {
         if (bodyBinding == null) {
             request.put("bodySchema", null);
             request.put("bodyExample", null);
-            return new RequestSpec(request, requestPreconditions, responseAssertions, Set.of());
+            return new RequestSpec(request, requestPreconditions, responseAssertions, excludedBusinessRules, Set.of());
         }
 
         List<ApiConditionDraft> bodyDrafts = new ArrayList<>();
@@ -137,7 +177,7 @@ public class ExecutionSpecExporter {
         Map<String, Object> bodySchema = typeResolver.resolveExpandedSchema(bodyBinding.type(), bodyDrafts, bodyConditions);
         request.put("bodySchema", bodySchema);
         request.put("bodyExample", buildExample(bodySchema));
-        return new RequestSpec(request, requestPreconditions, responseAssertions, Set.of());
+        return new RequestSpec(request, requestPreconditions, responseAssertions, excludedBusinessRules, Set.of());
     }
 
     private Map<String, Object> buildResponse(ApiEndpoint endpoint, TypeResolver typeResolver) {
@@ -208,66 +248,7 @@ public class ExecutionSpecExporter {
         return parameters;
     }
 
-    private List<Map<String, Object>> buildRequestPreconditions(
-        ApiEndpoint endpoint,
-        List<ApiConditionDraft> drafts,
-        List<ApiCondition> conditions
-    ) {
-        List<Map<String, Object>> preconditions = new ArrayList<>();
-        Set<String> conditionKeys = new LinkedHashSet<>();
 
-        for (ApiConditionDraft draft : drafts) {
-            if (isFilteredCondition(draft.targetPath(), null, draft.operator())) {
-                continue;
-            }
-            addEndpointCondition(preconditions, conditionKeys, endpoint, draft.targetPath(), draft.operator(), draft.expected(),
-                "BEAN_VALIDATION_ANNOTATION", null);
-        }
-        for (ApiCondition condition : conditions) {
-            if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
-                continue;
-            }
-            // conditionType가 PRECONDITION인 것만 수집 (기본값)
-            if (condition.conditionType() != io.atworks.specscan.analysis.domain.ConditionType.PRECONDITION) {
-                continue;
-            }
-            if (isFilteredCondition(condition.targetPath(), condition.targetLocation(), condition.operator())) {
-                continue;
-            }
-            addEndpointCondition(preconditions, conditionKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
-                "SERVICE_LOGIC_HINT", condition.targetLocation());
-        }
-        return preconditions;
-    }
-
-    private List<Map<String, Object>> buildResponseAssertions(
-        ApiEndpoint endpoint,
-        List<ApiConditionDraft> drafts,
-        List<ApiCondition> conditions
-    ) {
-        List<Map<String, Object>> assertions = new ArrayList<>();
-        Set<String> conditionKeys = new LinkedHashSet<>();
-
-        // 기본 성공 응답 STATUS 200 검증 어설션 자동 추가
-        Map<String, Object> statusAssertion = buildConditionMap("STATUS", "$", "EQUALS", "200", "AUTOMATIC_RESPONSE_SPEC");
-        assertions.add(statusAssertion);
-        conditionKeys.add("STATUS|$|EQUALS|200|AUTOMATIC_RESPONSE_SPEC");
-
-        for (ApiCondition condition : conditions) {
-            if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
-                continue;
-            }
-            if (condition.conditionType() != io.atworks.specscan.analysis.domain.ConditionType.ASSERTION) {
-                continue;
-            }
-            if (isFilteredCondition(condition.targetPath(), condition.targetLocation(), condition.operator())) {
-                continue;
-            }
-            addEndpointCondition(assertions, conditionKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
-                "SERVICE_LOGIC_HINT", condition.targetLocation());
-        }
-        return assertions;
-    }
 
     private boolean isFilteredCondition(String targetPath, ConditionLocation location, String operator) {
         if (location == ConditionLocation.AUTH || location == ConditionLocation.RESOURCE) {
@@ -563,6 +544,7 @@ public class ExecutionSpecExporter {
         Map<String, Object> request,
         List<Map<String, Object>> requestPreconditions,
         List<Map<String, Object>> responseAssertions,
+        List<Map<String, Object>> excludedBusinessRules,
         Set<String> bodyFieldNames
     ) {}
 
