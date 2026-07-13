@@ -3,3 +3,5 @@
 /.idea/
 *.iml
 /auto-oas.jar
+/.gjc/
+/.local-tools/

@@ -1,0 +1,27 @@
+# JetBrains IDEs
+.idea/
+*.iml
+
+# VS Code
+.vscode/
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Micro-Loop Runtime State Files
+# (These are dynamic transaction files created during local execution and should not be version controlled in the kit)
+goals.json
+ledger.jsonl
+token-log.jsonl
+**/token-log.jsonl
+**/goals.json
+**/ledger.jsonl
+**/token-logs/
+
+# Local Specs and Plans (Runtime generation artifacts)
+**/specs/deep-interview-*.md
+**/plans/*/pending-approval.md
+
+# Nested Git repository safeguard
+.git/
