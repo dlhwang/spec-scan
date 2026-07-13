@@ -681,3 +681,11 @@
 **User Input**: "D:\\workspace\\auto-oas\\src\\main\\java\\io\\atworks\\specscan\\SpecScanWebServer.java여기에 말도안되게 하드 코딩해서 해놓긴해는데 일단 \\src\\main\\resources 에 html이나 js를 몰아 넣고 API를 만들어서 확인할 수 있는 UI를 만들어 줄 수 있겠니?"
 **AI Response**: "하드코딩되어 있던 HTML 문자열을 완전히 제거하고, src/main/resources/static/ 하위에 premium dark mode 테마 및 glassmorphism, bento grid 통계 카드를 적용한 모던 UI(index.html, style.css, app.js)를 신설했다. SpecScanWebServer.java를 리팩토링하여 클래스패스에서 정적 자원을 동적으로 읽어 서빙하도록 개선했고, 엔드포인트 세부 정보 카드 내에 Tab UI를 추가하여 preconditions, assertions, 그리고 필터링 배제된 excludedBusinessRules를 한눈에 볼 수 있도록 시각화했다."
 **Context**: CONSTRUCTION - Web UI Premium Redesign & Static Resource Serving
+
+---
+
+## Web Server Shutdown
+**Timestamp**: 2026-07-13T15:17:15+09:00
+**User Input**: "일단 켜져있는거 꺼봐"
+**AI Response**: "요청에 따라 백그라운드에서 동작 중이던 SpecScanWebServer(runWeb 태스크, task-236)를 manage_task 도구를 통해 취소(종료)했다."
+**Context**: PROCESS_CONTROL - Web Server Shutdown
