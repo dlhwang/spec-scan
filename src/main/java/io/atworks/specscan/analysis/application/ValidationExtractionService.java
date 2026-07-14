@@ -37,6 +37,7 @@ public class ValidationExtractionService {
     }
 
     public ValidationExtractionResult extract(StaticScanResult staticScanResult, RepositorySource repositorySource) throws IngestionException {
+        long extractionStartedAt = System.nanoTime();
         List<ApiConditionDraft> directConditions = new ArrayList<>();
         List<ValidationCandidate> candidates = new ArrayList<>();
         List<IngestionWarning> warnings = new ArrayList<>();
@@ -59,7 +60,25 @@ public class ValidationExtractionService {
         ValidatorCandidateExtractor validatorExtractor = new ValidatorCandidateExtractor(workspacePath, sourceRoots);
         ServiceHintExtractor serviceExtractor = new ServiceHintExtractor(workspacePath, sourceRoots);
 
+        int endpointCount = staticScanResult.endpoints().size();
+        System.out.printf("  [Step 3] Prepared %d source roots; scanning %d endpoints%n", sourceRoots.size(), endpointCount);
+        int endpointNumber = 0;
         for (ApiEndpoint endpoint : staticScanResult.endpoints()) {
+            endpointNumber++;
+            long endpointStartedAt = System.nanoTime();
+            int conditionsBefore = directConditions.size();
+            int candidatesBefore = candidates.size();
+            int warningsBefore = warnings.size();
+            System.out.printf(
+                "  [Step 3][%d/%d] START %s %s (%s#%s)%n",
+                endpointNumber,
+                endpointCount,
+                endpoint.httpMethod(),
+                endpoint.path(),
+                endpoint.controllerClass(),
+                endpoint.controllerMethod()
+            );
+
             EndpointTargetIndex targetIndex = buildEndpointTargetIndex(endpoint, typeResolver);
 
             for (RequestBinding binding : endpoint.requestBindings()) {
@@ -109,8 +128,17 @@ public class ValidationExtractionService {
                             String serviceType = AstLookupUtils.findFieldType(controllerDecl, scopeVar);
                             if (serviceType != null) {
                                 try {
+                                    long serviceScanStartedAt = System.nanoTime();
+                                    System.out.printf("    - Service scan START %s.%s%n", serviceType, calledMethod);
                                     List<ValidationCandidate> serviceHints = serviceExtractor.extractFromServiceMethod(serviceType, calledMethod);
                                     candidates.addAll(resolveServiceHintCandidates(serviceHints, endpoint, targetIndex, warnings));
+                                    System.out.printf(
+                                        "    - Service scan DONE  %s.%s: %d hints (%s)%n",
+                                        serviceType,
+                                        calledMethod,
+                                        serviceHints.size(),
+                                        elapsed(serviceScanStartedAt)
+                                    );
                                 } catch (Exception e) {
                                     warnings.add(new IngestionWarning(
                                         "SERVICE_SCAN_FAILED",
@@ -124,13 +152,37 @@ public class ValidationExtractionService {
                     });
                 });
             });
+
+            System.out.printf(
+                "  [Step 3][%d/%d] DONE  +%d conditions, +%d candidates, +%d warnings (%s)%n",
+                endpointNumber,
+                endpointCount,
+                directConditions.size() - conditionsBefore,
+                candidates.size() - candidatesBefore,
+                warnings.size() - warningsBefore,
+                elapsed(endpointStartedAt)
+            );
         }
+
+        System.out.printf(
+            "  [Step 3] Completed %d endpoints: %d conditions, %d candidates, %d warnings (%s)%n",
+            endpointCount,
+            directConditions.size(),
+            candidates.size(),
+            warnings.size(),
+            elapsed(extractionStartedAt)
+        );
 
         return new ValidationExtractionResult(
             directConditions,
             candidates,
             warnings
         );
+    }
+
+    private static String elapsed(long startedAt) {
+        double seconds = (System.nanoTime() - startedAt) / 1_000_000_000.0;
+        return String.format(java.util.Locale.ROOT, "%.1fs", seconds);
     }
 
     private List<ValidationCandidate> resolveServiceHintCandidates(
