@@ -15,6 +15,7 @@ public final class RuleOutputMigrationService {
     private final CandidateToOutputAdapter adapter = new CandidateToOutputAdapter();
     private final CandidateOutputComparator comparator = new CandidateOutputComparator();
     private final ResponseMetadataAdapter responseMetadataAdapter = new ResponseMetadataAdapter();
+    private final RequestBindingConditionAdapter requestBindingAdapter = new RequestBindingConditionAdapter();
 
     public RuleOutputMigrationResult migrate(StaticScanResult scan, RepositorySource source,
                                              List<ApiCondition> legacyConditions) {
@@ -31,8 +32,9 @@ public final class RuleOutputMigrationService {
             for (FactNode node : graph.nodes()) if (node.type() == FactNodeType.API_METHOD
                     || node.type() == FactNodeType.METHOD) methodIds.add(node.id());
             GraphRuleEngineResult evaluated = engine.evaluate(graph, new MethodScope(graph.graphId(), methodIds));
+            EndpointRuleOutput candidateOutput = adapter.adapt(endpoint, evaluated.candidates().businessRules());
             outputs.put(OperationKey.of(endpoint).externalKey(), responseMetadataAdapter.augment(endpoint,
-                adapter.adapt(endpoint, evaluated.candidates().businessRules())));
+                requestBindingAdapter.augment(endpoint, candidateOutput)));
         }
         List<CandidateOutputComparisonReport> reports = scan.endpoints().stream()
             .map(endpoint -> comparator.compare(endpoint, legacyConditions,

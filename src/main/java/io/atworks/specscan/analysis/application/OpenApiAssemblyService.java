@@ -14,6 +14,7 @@ import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
 import io.atworks.specscan.analysis.support.OpenApiGenerator;
 import io.atworks.specscan.analysis.support.StructuredSpecExporter;
 import io.atworks.specscan.analysis.support.ValidationEvidenceGraphBuilder;
+import io.atworks.specscan.analysis.support.NormalizationRejectionClassifier;
 import io.atworks.specscan.ingestion.domain.IngestionErrorCode;
 import io.atworks.specscan.ingestion.domain.IngestionException;
 import io.atworks.specscan.ingestion.domain.IngestionWarning;
@@ -34,6 +35,7 @@ public class OpenApiAssemblyService {
     private final ObjectMapper objectMapper;
     private final RuleOutputMigrationService ruleOutputMigrationService;
     private final OutputMigrationMode migrationMode;
+    private final NormalizationRejectionClassifier rejectionClassifier = new NormalizationRejectionClassifier();
 
     public OpenApiAssemblyService() {
         this(resolveMigrationMode());
@@ -68,7 +70,7 @@ public class OpenApiAssemblyService {
                     continue;
                 }
                 warnings.add(new IngestionWarning(
-                    "NORMALIZATION_REJECTED",
+                    rejectionClassifier.classify(reject),
                     "Candidate rejected during rule-based normalization.",
                     reject.targetPath(),
                     "MEDIUM"
