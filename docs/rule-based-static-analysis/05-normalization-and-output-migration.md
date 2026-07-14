@@ -300,6 +300,158 @@ legacy 구현의 실제 제거는 Unit 06 품질 게이트 이후 수행한다.
 
 기존 public output schema 변경이 필요하면 조용히 필드를 바꾸지 않는다. 호환성 영향, migration 방법과 legacy fallback을 별도로 기록한다.
 
+## 실제 프로젝트 검증 기반 보완 계획
+
+### 확인된 현상
+
+`ddd-start2`와 `RealEstate`를 `COMPARE` 모드로 실행한 결과 다음 문제가 확인됐다.
+
+- `ddd-start2`에서는 endpoint와 관계없는 legacy `REQUIRED` 조건이 여러 endpoint에 반복됐다.
+- `RealEstate`의 6개 operation에서 `requestPreconditions`, `responseAssertions`, `excludedBusinessRules`가 모두 0건이었다.
+- `RealEstate`에서 요청 필드 후보 10건이 `NORMALIZATION_REJECTED`로 탈락했지만 보고서만으로 구체적인 탈락 원인을 알 수 없었다.
+- `propertyRepository.findById(propertyId).orElseThrow(...)` 후보가 단건 조회가 아닌 목록 조회 endpoint에 귀속되면서 `SERVICE_HINT_REJECTED`가 발생했다.
+- 동일 path의 GET, POST, PUT, DELETE가 비교 보고서에서 HTTP method 없이 반복됐다.
+- response metadata를 실제로 판정하지 않고 `RESPONSE_METADATA_UNRESOLVED`를 일괄 생성했다.
+- legacy와 신규 양쪽 조건이 모두 없는 경우에도 빈 `differences`만 출력돼, 동등함과 관찰 결과 없음이 구분되지 않았다.
+
+따라서 현재 `COMPARE` 결과는 전환 승인 자료가 아니라 `NEW_ONLY` 전환을 차단하는 진단 자료다. 아래 작업을 완료하기 전까지 기본 모드는 `COMPARE`로 유지하고 legacy 제거를 진행하지 않는다.
+
+### 보완 Work 05-A: operation 식별 계약
+
+endpoint의 유일 식별자를 path 단독이 아닌 최소 `HTTP method + normalized path`로 정의한다.
+
+- migration output map과 비교 report key에서 path 단독 key를 제거한다.
+- `CandidateOutputComparisonReport`에 `httpMethod`를 포함한다.
+- 같은 path를 공유하는 GET, POST, PUT, DELETE 결과가 서로 덮어쓰이지 않게 한다.
+- controller method overload가 있으면 declaration signature까지 내부 귀속 key로 사용한다.
+- 기존 path-only 직렬화 소비자가 있다면 호환 필드는 유지하되 내부 식별자로 사용하지 않는다.
+
+완료 조건:
+
+- `RealEstate`의 6개 operation이 각각 한 번만 비교되고 method/path가 정확하다.
+- `/api/estate/properties/{propertyId}`의 GET, PUT, DELETE 결과가 서로 독립적이다.
+
+### 보완 Work 05-B: service 후보의 endpoint 귀속
+
+controller에서 service, domain, repository로 이어지는 호출 그래프를 사용해 후보를 실제 호출 endpoint에 귀속한다.
+
+- 이름이나 path 유사도로 service hint를 endpoint에 연결하지 않는다.
+- controller API method에서 도달 가능한 method graph만 해당 operation의 후보로 사용한다.
+- `propertyId`를 사용하는 `findById(...).orElseThrow(...)`가 단건 조회 operation에 연결되는지 검증한다.
+- 도달 경로가 없거나 둘 이상이면 임의 연결하지 않고 구체적인 diagnostic을 남긴다.
+- endpoint 귀속 실패와 Rule 의미 해석 실패를 서로 다른 진단으로 구분한다.
+
+완료 조건:
+
+- `RealEstate`의 `findById(propertyId).orElseThrow(...)`가 `GET /api/estate/properties/{propertyId}`에 귀속된다.
+- 목록 조회 API에 단건 조회 조건이 섞이지 않는다.
+- 동일 service method를 여러 endpoint가 실제 호출하면 각 호출 근거가 보존된다.
+
+### 보완 Work 05-C: legacy 조건 scope 정정
+
+`endpointPath == null`인 legacy 조건을 모든 endpoint의 조건으로 간주하지 않는다.
+
+- legacy condition의 원본 endpoint, controller method 또는 source trace를 이용해 scope를 복원한다.
+- scope를 복원할 수 없는 조건은 전역 조건으로 확장하지 않고 `LEGACY_SCOPE_UNRESOLVED`로 기록한다.
+- `REQUIRED`와 같은 DTO 구조 조건은 해당 request DTO를 실제로 사용하는 operation에만 연결한다.
+- method/path가 다른 endpoint 간 target key 충돌을 방지한다.
+
+완료 조건:
+
+- `/categories`에 주문 DTO의 `$.shippingInfo`, `$.orderProducts`가 나타나지 않는다.
+- scope가 불명확한 legacy 조건은 비교 대상에서 조용히 누락되거나 전역 복제되지 않고 진단된다.
+
+### 보완 Work 05-D: 정규화 탈락 원인과 요청 조건 승격
+
+현재의 포괄적인 `NORMALIZATION_REJECTED`를 실행 가능한 보완 정보로 세분화한다.
+
+- 필수 Evidence 누락, endpoint binding 실패, target 미해석, operator 미지원, expected 누락을 별도 reason code로 기록한다.
+- Bean Validation, enum, request binding의 `required`처럼 source 근거가 있는 구조 조건의 역할을 명시한다.
+- schema 제약과 Rule Engine 비즈니스 조건의 중복 정책을 정한다.
+- 요청값만으로 계산 가능한 조건은 `requestPreconditions`로 승격한다.
+- 외부 상태가 필요한 조건은 탈락시키지 말고 의미가 해석된 경우 `excludedBusinessRules`로 보존한다.
+
+완료 조건:
+
+- `RealEstate`에서 탈락한 10개 후보 각각에 안정적인 reason code와 Evidence가 있다.
+- 단순 미지원 후보와 실제 결함으로 누락된 후보를 보고서에서 구분할 수 있다.
+- 실행 가능한 요청 조건이 존재하는 fixture에서 `requestPreconditions`가 1건 이상 생성된다.
+
+### 보완 Work 05-E: response metadata 실제 추출
+
+`ResponseMetadataAdapter`가 모든 endpoint에 unresolved 진단을 무조건 추가하지 않도록 한다.
+
+- `@ResponseStatus`, `ResponseEntity` status, 명시적 OpenAPI response와 resolved return schema를 Evidence source로 지원한다.
+- status, response body와 response header assertion을 별도 location으로 생성한다.
+- 명시적 Evidence가 없으면 `200`을 추측하지 않는다.
+- metadata가 실제로 없거나 충돌할 때만 `RESPONSE_METADATA_UNRESOLVED` 또는 충돌 진단을 생성한다.
+- response schema 자체와 검증 가능한 response assertion을 구분한다. 반환 DTO가 존재한다는 사실만으로 값 assertion을 만들지 않는다.
+
+완료 조건:
+
+- 명시적 `201` annotation fixture는 status assertion을 생성한다.
+- Evidence가 없는 endpoint는 임의 status assertion 없이 unresolved 이유를 보존한다.
+- 정상 metadata가 확인된 endpoint에는 `RESPONSE_METADATA_UNRESOLVED`가 생성되지 않는다.
+
+### 보완 Work 05-F: 비교 보고서의 판정 가능성
+
+비교 보고서를 사람이 전환 여부를 판단할 수 있는 형태로 확장한다.
+
+- report entry에 `httpMethod`, `path`, operation 식별자를 포함한다.
+- 전체 및 operation별 `EQUIVALENT`, `LEGACY_ONLY`, `NEW_ONLY`, `CONFLICTING`, `UNRESOLVED_BY_NEW_ENGINE` 개수를 제공한다.
+- legacy와 신규 양쪽이 모두 비어 있으면 `NO_CONDITIONS_OBSERVED`로 구분한다.
+- 실제 동등 비교에는 phase, target location/path, operator, expected와 Evidence provenance를 사용한다.
+- `LEGACY_ONLY`가 scope 미해석 때문인지 신규 엔진 누락 때문인지 구분한다.
+- 출력 순서와 summary가 동일 입력에서 결정적이어야 한다.
+
+완료 조건:
+
+- 빈 `differences`가 동등함을 암시하지 않는다.
+- 보고서 summary만으로 `NEW_ONLY` 전환 차단 원인을 확인할 수 있다.
+- 같은 path의 여러 HTTP method가 별도 집계된다.
+
+### 보완 Work 05-G: 실제 프로젝트 회귀 세트
+
+synthetic fixture 외에 실제 프로젝트에서 확인된 구조를 고정 회귀 테스트로 추가한다.
+
+- `ddd-start2`: request DTO `REQUIRED` scope와 주문 상태/권한 조건 분류
+- `RealEstate`: 동일 path 다중 method, controller-service-repository 호출 귀속, `orElseThrow` 존재 조건
+- 원격 저장소 전체를 테스트에 매번 clone하지 않고 최소 재현 fixture를 저장한다.
+- 필요하면 별도 수동 검증 task에서만 실제 저장소 URL을 사용한다.
+
+필수 회귀 assertion:
+
+- operation 수와 method/path 조합이 보존된다.
+- endpoint 간 조건 누수가 없다.
+- 후보가 사라질 때 reason code가 남는다.
+- 세 출력 영역 중 비어 있는 영역은 빈 이유를 진단할 수 있다.
+- `COMPARE`는 legacy 외부 출력을 유지하고, `LEGACY_ONLY` rollback이 동작한다.
+
+### 구현 순서와 커밋 단위
+
+의존성과 검증 가능성을 고려해 다음 순서로 진행한다.
+
+1. **05-A operation 식별 계약**: method/path key와 report schema
+2. **05-B endpoint 귀속**: 호출 그래프 기반 후보 연결
+3. **05-C legacy scope**: 전역 복제 제거와 unresolved scope 진단
+4. **05-D 정규화 진단 및 요청 조건 승격**
+5. **05-E response metadata 추출**
+6. **05-F 비교 summary와 empty-state 표현**
+7. **05-G 실제 프로젝트 회귀 fixture 및 최종 게이트**
+
+각 항목은 독립 커밋을 원칙으로 하며, 해당 단계의 focused test가 통과한 뒤 다음 단계로 이동한다.
+
+### 전환 재개 조건
+
+다음을 모두 만족해야 Unit 07의 `NEW_ONLY` 전환 판정을 다시 수행한다.
+
+- 실제 프로젝트에서 operation 충돌과 endpoint 간 조건 누수가 0건이다.
+- `LEGACY_ONLY`와 `UNRESOLVED_BY_NEW_ENGINE` 항목이 모두 검토되고 원인이 분류됐다.
+- 실행 가능한 조건이 있는 fixture에서 신규 출력이 비어 있지 않다.
+- response assertion은 명시적 Evidence가 있을 때만 생성된다.
+- 출력 소비자가 method/path 기반 신규 report와 실행 모델을 정상적으로 읽는다.
+- 전체 테스트, Unit 06 품질 게이트와 Unit 07 delivery verification이 모두 통과한다.
+
 ## 완료 기준
 
 - 세 출력 영역의 의미와 결정 규칙이 코드 및 테스트에서 일치한다.
