@@ -19,9 +19,11 @@ public final class CandidateOutputComparator {
         }
         Map<String, ExecutableCondition> currentByTarget = new TreeMap<>();
         for (ExecutableCondition condition : current.requestPreconditions())
-            currentByTarget.put(targetKey("REQUEST", condition.targetLocation(), condition.targetPath()), condition);
+            currentByTarget.put(targetKey("REQUEST", condition.targetLocation(), condition.targetPath(),
+                condition.operator()), condition);
         for (ExecutableCondition condition : current.responseAssertions())
-            currentByTarget.put(targetKey("RESPONSE", condition.targetLocation(), condition.targetPath()), condition);
+            currentByTarget.put(targetKey("RESPONSE", condition.targetLocation(), condition.targetPath(),
+                condition.operator()), condition);
         Set<String> keys = new TreeSet<>(); keys.addAll(legacyByTarget.keySet()); keys.addAll(currentByTarget.keySet());
         List<MigrationDifference> differences = new ArrayList<>();
         for (String key : keys) {
@@ -67,9 +69,12 @@ public final class CandidateOutputComparator {
     }
     private String targetKey(ApiCondition condition) {
         return targetKey(condition.conditionType() == ConditionType.ASSERTION ? "RESPONSE" : "REQUEST",
-            condition.targetLocation().name(), condition.targetPath());
+            condition.targetLocation().name(), condition.targetPath(), condition.operator());
     }
     private String targetKey(String phase, String location, String path) {
-        return phase + "|" + location + "|" + path;
+        return targetKey(phase, location, path, null);
+    }
+    private String targetKey(String phase, String location, String path, String operator) {
+        return phase + "|" + location + "|" + path + "|" + Objects.toString(operator, "");
     }
 }

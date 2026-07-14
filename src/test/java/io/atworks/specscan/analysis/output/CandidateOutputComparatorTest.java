@@ -33,9 +33,9 @@ class CandidateOutputComparatorTest {
             List.of(category, order), EndpointRuleOutput.empty(endpoint.path()));
 
         assertThat(report.differences()).filteredOn(d -> d.kind() == MigrationDifferenceKind.LEGACY_ONLY)
-            .extracting(MigrationDifference::key).containsExactly("REQUEST|UNKNOWN|$.name");
+            .extracting(MigrationDifference::key).containsExactly("REQUEST|UNKNOWN|$.name|REQUIRED");
         assertThat(report.differences()).filteredOn(d -> d.kind() == MigrationDifferenceKind.LEGACY_SCOPE_UNRESOLVED)
-            .extracting(MigrationDifference::key).containsExactly("REQUEST|UNKNOWN|$.shippingInfo");
+            .extracting(MigrationDifference::key).containsExactly("REQUEST|UNKNOWN|$.shippingInfo|REQUIRED");
     }
 
     private ApiCondition condition(String path, SourceTrace trace) {
