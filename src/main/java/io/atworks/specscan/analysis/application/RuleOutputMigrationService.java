@@ -19,7 +19,8 @@ public final class RuleOutputMigrationService {
     public RuleOutputMigrationResult migrate(StaticScanResult scan, RepositorySource source,
                                              List<ApiCondition> legacyConditions) {
         Map<String, EndpointRuleOutput> outputs = new LinkedHashMap<>();
-        scan.endpoints().forEach(endpoint -> outputs.put(endpoint.path(), EndpointRuleOutput.empty(endpoint.path())));
+        scan.endpoints().forEach(endpoint -> outputs.put(OperationKey.of(endpoint).externalKey(),
+            EndpointRuleOutput.empty(endpoint.path())));
         FactGraphBuildResult build = new DefaultFactCodeGraphBuilder().build(scan, source, FactGraphTraversalBudget.defaults());
         GraphRuleEngine engine = new DefaultGraphRuleEngine(new DefaultValidationCandidateDetector(List.of()),
             InitialRulePacks.all());
@@ -30,11 +31,12 @@ public final class RuleOutputMigrationService {
             for (FactNode node : graph.nodes()) if (node.type() == FactNodeType.API_METHOD
                     || node.type() == FactNodeType.METHOD) methodIds.add(node.id());
             GraphRuleEngineResult evaluated = engine.evaluate(graph, new MethodScope(graph.graphId(), methodIds));
-            outputs.put(endpoint.path(), responseMetadataAdapter.augment(endpoint,
+            outputs.put(OperationKey.of(endpoint).externalKey(), responseMetadataAdapter.augment(endpoint,
                 adapter.adapt(endpoint, evaluated.candidates().businessRules())));
         }
         List<CandidateOutputComparisonReport> reports = scan.endpoints().stream()
-            .map(endpoint -> comparator.compare(endpoint.path(), legacyConditions, outputs.get(endpoint.path())))
+            .map(endpoint -> comparator.compare(endpoint, legacyConditions,
+                outputs.get(OperationKey.of(endpoint).externalKey())))
             .toList();
         return new RuleOutputMigrationResult(outputs, reports);
     }

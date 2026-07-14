@@ -5,8 +5,9 @@ import io.atworks.specscan.analysis.domain.output.*;
 import java.util.*;
 
 public final class CandidateOutputComparator {
-    public CandidateOutputComparisonReport compare(String endpointPath, List<ApiCondition> legacy,
+    public CandidateOutputComparisonReport compare(ApiEndpoint endpoint, List<ApiCondition> legacy,
                                                    EndpointRuleOutput current) {
+        String endpointPath = endpoint.path();
         Map<String, ApiCondition> legacyByTarget = new TreeMap<>();
         for (ApiCondition condition : legacy) if (condition.endpointPath() == null
                 || endpointPath.equals(condition.endpointPath())) legacyByTarget.put(targetKey(condition), condition);
@@ -28,7 +29,8 @@ public final class CandidateOutputComparator {
         for (CandidateOutputDiagnostic diagnostic : current.diagnostics())
             differences.add(new MigrationDifference(MigrationDifferenceKind.UNRESOLVED_BY_NEW_ENGINE,
                 diagnostic.candidateId(), diagnostic.code()));
-        return new CandidateOutputComparisonReport(endpointPath, differences);
+        return new CandidateOutputComparisonReport(endpoint.httpMethod(), endpointPath,
+            endpoint.controllerClass() + "#" + endpoint.controllerMethod(), differences);
     }
     private boolean equivalent(ApiCondition legacy, ExecutableCondition current) {
         return Objects.equals(legacy.operator(), current.operator()) && current.expectedValues().size() == 1

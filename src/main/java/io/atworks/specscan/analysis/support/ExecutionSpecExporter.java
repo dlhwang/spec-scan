@@ -14,6 +14,7 @@ import io.atworks.specscan.analysis.domain.output.CandidateOutputDiagnostic;
 import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
 import io.atworks.specscan.analysis.domain.output.ExcludedBusinessRule;
 import io.atworks.specscan.analysis.domain.output.ExecutableCondition;
+import io.atworks.specscan.analysis.domain.output.OperationKey;
 import io.atworks.specscan.analysis.support.legacy.LegacyConditionExclusionPolicy;
 import io.atworks.specscan.ingestion.domain.IngestionWarning;
 import io.atworks.specscan.ingestion.domain.RepositorySource;
@@ -55,7 +56,8 @@ public class ExecutionSpecExporter {
         TypeResolver typeResolver = new TypeResolver(resolveSourceRoots(repositorySource));
         List<Map<String, Object>> operations = new ArrayList<>();
         for (ApiEndpoint endpoint : scanResult.endpoints()) {
-            EndpointRuleOutput output = ruleOutputs.getOrDefault(endpoint.path(), EndpointRuleOutput.empty(endpoint.path()));
+            EndpointRuleOutput output = ruleOutputs.getOrDefault(OperationKey.of(endpoint).externalKey(),
+                EndpointRuleOutput.empty(endpoint.path()));
             RequestSpec base = buildRequest(endpoint, List.of(), List.of(), typeResolver);
             RequestSpec projected = new RequestSpec(base.request(), mapExecutable(output.requestPreconditions()),
                 mapExecutable(output.responseAssertions()), mapExcluded(output.excludedBusinessRules()), Set.of());
