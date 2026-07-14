@@ -333,15 +333,13 @@ class OpenApiPipelineRegressionTest {
             .contains("$.shippingInfo.receiver.name");
         assertThat(shipping.at("/requestPreconditions").toString())
             .doesNotContain("OPTIMISTIC_LOCK_MATCH");
-        assertThat(shipping.at("/responseAssertions").toString())
-            .contains("STATUS");
+        assertThat(shipping.at("/responseAssertions")).isEmpty();
         assertThat(shipping.at("/excludedBusinessRules").toString())
             .contains("OPTIMISTIC_LOCK_MATCH");
         assertThat(cancel.at("/requestPreconditions").toString())
             .doesNotContain("HAS_CANCELLATION_PERMISSION")
             .doesNotContain("STATE_IN");
-        assertThat(cancel.at("/responseAssertions").toString())
-            .contains("STATUS");
+        assertThat(cancel.at("/responseAssertions")).isEmpty();
         assertThat(cancel.at("/excludedBusinessRules").toString())
             .contains("HAS_CANCELLATION_PERMISSION")
             .contains("STATE_IN");

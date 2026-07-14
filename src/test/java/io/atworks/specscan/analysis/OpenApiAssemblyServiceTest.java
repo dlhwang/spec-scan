@@ -137,6 +137,7 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionOutputPath).exists();
         Path graphOutputPath = tempDir.resolve("validation-evidence-graph.json");
         assertThat(graphOutputPath).exists();
+        assertThat(tempDir.resolve("api-condition-migration-report.json")).exists();
 
         String yamlContent = Files.readString(outputPath);
         JsonNode structuredJson = objectMapper.readTree(Files.readString(structuredOutputPath));
@@ -184,9 +185,7 @@ class OpenApiAssemblyServiceTest {
         assertThat(requestPreconditions.toString()).doesNotContain("unknownField");
 
         JsonNode responseAssertions = executionJson.at("/operations/0/responseAssertions");
-        assertThat(responseAssertions).hasSize(1);
-        assertThat(responseAssertions.get(0).get("targetLocation").asText()).isEqualTo("STATUS");
-        assertThat(responseAssertions.get(0).get("expected").asText()).isEqualTo("200");
+        assertThat(responseAssertions).isEmpty();
         assertThat(graphJson.at("/nodes").isArray()).isTrue();
         assertThat(graphJson.at("/edges").isArray()).isTrue();
     }
@@ -655,8 +654,8 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionJson.at("/operations/1/requestPreconditions").toString()).doesNotContain("HAS_CANCELLATION_PERMISSION");
         assertThat(executionJson.at("/operations/1/requestPreconditions").toString()).doesNotContain("$.version");
 
-        assertThat(executionJson.at("/operations/0/responseAssertions").toString()).contains("STATUS");
-        assertThat(executionJson.at("/operations/1/responseAssertions").toString()).contains("STATUS");
+        assertThat(executionJson.at("/operations/0/responseAssertions")).isEmpty();
+        assertThat(executionJson.at("/operations/1/responseAssertions")).isEmpty();
 
         assertThat(executionJson.at("/operations/0/excludedBusinessRules").toString()).contains("$.version");
         assertThat(executionJson.at("/operations/0/excludedBusinessRules").toString()).contains("OPTIMISTIC_LOCK_MATCH");
@@ -842,9 +841,9 @@ class OpenApiAssemblyServiceTest {
             .doesNotContain("HAS_CANCELLATION_PERMISSION")
             .doesNotContain("STATE_IN");
 
-        assertThat(executionJson.at("/operations/1/responseAssertions").toString()).contains("STATUS");
-        assertThat(executionJson.at("/operations/2/responseAssertions").toString()).contains("STATUS");
-        assertThat(executionJson.at("/operations/3/responseAssertions").toString()).contains("STATUS");
+        assertThat(executionJson.at("/operations/1/responseAssertions")).isEmpty();
+        assertThat(executionJson.at("/operations/2/responseAssertions")).isEmpty();
+        assertThat(executionJson.at("/operations/3/responseAssertions")).isEmpty();
 
         assertThat(executionJson.at("/operations/2/excludedBusinessRules").toString())
             .contains("OPTIMISTIC_LOCK_MATCH");

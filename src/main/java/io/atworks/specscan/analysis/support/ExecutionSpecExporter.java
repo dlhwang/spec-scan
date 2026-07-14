@@ -10,6 +10,11 @@ import io.atworks.specscan.analysis.domain.BindingLocation;
 import io.atworks.specscan.analysis.domain.ConditionLocation;
 import io.atworks.specscan.analysis.domain.RequestBinding;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
+import io.atworks.specscan.analysis.domain.output.CandidateOutputDiagnostic;
+import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
+import io.atworks.specscan.analysis.domain.output.ExcludedBusinessRule;
+import io.atworks.specscan.analysis.domain.output.ExecutableCondition;
+import io.atworks.specscan.analysis.support.legacy.LegacyConditionExclusionPolicy;
 import io.atworks.specscan.ingestion.domain.IngestionWarning;
 import io.atworks.specscan.ingestion.domain.RepositorySource;
 import io.atworks.specscan.ingestion.domain.SourceRootCandidate;
@@ -25,9 +30,11 @@ import java.util.Set;
 public class ExecutionSpecExporter {
 
     private final ObjectMapper objectMapper;
+    private final LegacyConditionExclusionPolicy legacyExclusionPolicy;
 
     public ExecutionSpecExporter() {
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        this.legacyExclusionPolicy = new LegacyConditionExclusionPolicy();
     }
 
     public String export(
@@ -37,6 +44,34 @@ public class ExecutionSpecExporter {
         RepositorySource repositorySource
     ) {
         return export(scanResult, drafts, conditions, scanResult.warnings(), repositorySource);
+    }
+
+    public String export(
+        StaticScanResult scanResult,
+        Map<String, EndpointRuleOutput> ruleOutputs,
+        List<IngestionWarning> warnings,
+        RepositorySource repositorySource
+    ) {
+        TypeResolver typeResolver = new TypeResolver(resolveSourceRoots(repositorySource));
+        List<Map<String, Object>> operations = new ArrayList<>();
+        for (ApiEndpoint endpoint : scanResult.endpoints()) {
+            EndpointRuleOutput output = ruleOutputs.getOrDefault(endpoint.path(), EndpointRuleOutput.empty(endpoint.path()));
+            RequestSpec base = buildRequest(endpoint, List.of(), List.of(), typeResolver);
+            RequestSpec projected = new RequestSpec(base.request(), mapExecutable(output.requestPreconditions()),
+                mapExecutable(output.responseAssertions()), mapExcluded(output.excludedBusinessRules()), Set.of());
+            Map<String, Object> operation = buildOperation(endpoint, projected, typeResolver);
+            if (!output.diagnostics().isEmpty()) operation.put("conditionDiagnostics", mapDiagnostics(output.diagnostics()));
+            operations.add(operation);
+        }
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("operations", operations);
+        payload.put("warningCount", warnings.size());
+        if (!warnings.isEmpty()) payload.put("warnings", buildWarnings(warnings));
+        try {
+            return objectMapper.writeValueAsString(payload);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to serialize execution spec export.", e);
+        }
     }
 
     public String export(
@@ -113,11 +148,6 @@ public class ExecutionSpecExporter {
         Set<String> preconditionKeys = new LinkedHashSet<>();
         Set<String> assertionKeys = new LinkedHashSet<>();
         Set<String> excludedKeys = new LinkedHashSet<>();
-
-        // 기본 성공 응답 STATUS 200 검증 어설션 자동 추가
-        Map<String, Object> statusAssertion = buildConditionMap("STATUS", "$", "EQUALS", "200", "AUTOMATIC_RESPONSE_SPEC");
-        responseAssertions.add(statusAssertion);
-        assertionKeys.add("STATUS|$|EQUALS|200|AUTOMATIC_RESPONSE_SPEC");
 
         for (ApiConditionDraft draft : drafts) {
             if (isFilteredCondition(draft.targetPath(), null, draft.operator())) {
@@ -251,24 +281,7 @@ public class ExecutionSpecExporter {
 
 
     private boolean isFilteredCondition(String targetPath, ConditionLocation location, String operator) {
-        if (location == ConditionLocation.AUTH || location == ConditionLocation.RESOURCE) {
-            return true;
-        }
-        if (targetPath != null) {
-            String lowerPath = targetPath.toLowerCase();
-            if (lowerPath.contains("currentuser") || lowerPath.contains("order.state") || lowerPath.contains("orderstate")) {
-                return true;
-            }
-        }
-        if (operator != null) {
-            if ("EXISTS_IN_REPOSITORY".equals(operator)
-                || "OPTIMISTIC_LOCK_MATCH".equals(operator)
-                || "HAS_CANCELLATION_PERMISSION".equals(operator)
-                || "STATE_IN".equals(operator)) {
-                return true;
-            }
-        }
-        return false;
+        return legacyExclusionPolicy.excludes(targetPath, location, operator);
     }
     private void addEndpointCondition(
         List<Map<String, Object>> endpointConditions,
@@ -436,6 +449,52 @@ public class ExecutionSpecExporter {
         item.put("expected", expected);
         item.put("source", source);
         return item;
+    }
+
+    private List<Map<String, Object>> mapExecutable(List<ExecutableCondition> conditions) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (ExecutableCondition condition : conditions) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("targetLocation", condition.targetLocation());
+            item.put("targetPath", condition.targetPath());
+            item.put("operator", condition.operator());
+            Object expected = condition.expectedValues().size() == 1
+                ? condition.expectedValues().get(0) : condition.expectedValues();
+            item.put("expected", expected);
+            item.put("expectedSource", condition.expectedSource());
+            item.put("ruleId", condition.ruleId());
+            item.put("confidence", condition.confidence());
+            item.put("evidence", condition.evidence());
+            result.add(item);
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> mapExcluded(List<ExcludedBusinessRule> rules) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (ExcludedBusinessRule rule : rules) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("ruleId", rule.ruleId()); item.put("category", rule.category());
+            item.put("constraintKind", rule.constraintKind()); item.put("reasonCode", rule.reasonCode());
+            item.put("extractionStatus", rule.extractionStatus()); item.put("semanticStatus", rule.semanticStatus());
+            item.put("targetStatus", rule.targetStatus()); item.put("targetPath", rule.targetPath());
+            item.put("operator", rule.operator()); item.put("expectedValues", rule.expectedValues());
+            item.put("expectedSource", rule.expectedSource()); item.put("confidence", rule.confidence());
+            item.put("evidence", rule.evidence());
+            result.add(item);
+        }
+        return result;
+    }
+
+    private List<Map<String, Object>> mapDiagnostics(List<CandidateOutputDiagnostic> diagnostics) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (CandidateOutputDiagnostic diagnostic : diagnostics) {
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("code", diagnostic.code()); item.put("message", diagnostic.message());
+            item.put("candidateId", diagnostic.candidateId()); item.put("ruleId", diagnostic.ruleId());
+            result.add(item);
+        }
+        return result;
     }
 
     private List<Map<String, Object>> buildWarnings(List<IngestionWarning> warnings) {

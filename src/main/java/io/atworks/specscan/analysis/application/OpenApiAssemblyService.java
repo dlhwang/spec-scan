@@ -8,6 +8,8 @@ import io.atworks.specscan.analysis.domain.StaticScanResult;
 import io.atworks.specscan.analysis.domain.ValidationCandidate;
 import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
 import io.atworks.specscan.analysis.domain.ValidationEvidenceGraph;
+import io.atworks.specscan.analysis.domain.output.OutputMigrationMode;
+import io.atworks.specscan.analysis.domain.output.RuleOutputMigrationResult;
 import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
 import io.atworks.specscan.analysis.support.OpenApiGenerator;
 import io.atworks.specscan.analysis.support.StructuredSpecExporter;
@@ -30,13 +32,21 @@ public class OpenApiAssemblyService {
     private final StructuredSpecExporter structuredSpecExporter;
     private final ExecutionSpecExporter executionSpecExporter;
     private final ObjectMapper objectMapper;
+    private final RuleOutputMigrationService ruleOutputMigrationService;
+    private final OutputMigrationMode migrationMode;
 
     public OpenApiAssemblyService() {
+        this(resolveMigrationMode());
+    }
+
+    public OpenApiAssemblyService(OutputMigrationMode migrationMode) {
         this.normalizationService = new NormalizationService();
         this.openApiGenerator = new OpenApiGenerator();
         this.structuredSpecExporter = new StructuredSpecExporter();
         this.executionSpecExporter = new ExecutionSpecExporter();
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+        this.ruleOutputMigrationService = new RuleOutputMigrationService();
+        this.migrationMode = migrationMode;
     }
 
     public void assemble(
@@ -95,15 +105,17 @@ public class OpenApiAssemblyService {
             );
         }
 
+        RuleOutputMigrationResult migration = null;
+        if (migrationMode != OutputMigrationMode.LEGACY_ONLY) {
+            migration = ruleOutputMigrationService.migrate(scanResult, source, normalizedResult.conditions());
+        }
+
         String executionJson;
         try {
-            executionJson = executionSpecExporter.export(
-                scanResult,
-                extractResult.directConditions(),
-                normalizedResult.conditions(),
-                warnings,
-                source
-            );
+            executionJson = migrationMode == OutputMigrationMode.NEW_ONLY
+                ? executionSpecExporter.export(scanResult, migration.outputs(), warnings, source)
+                : executionSpecExporter.export(scanResult, extractResult.directConditions(),
+                    normalizedResult.conditions(), warnings, source);
         } catch (Exception e) {
             throw new IngestionException(
                 IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
@@ -139,6 +151,8 @@ public class OpenApiAssemblyService {
             Files.writeString(resolveStructuredOutputPath(outputPath), structuredJson);
             Files.writeString(resolveExecutionOutputPath(outputPath), executionJson);
             Files.writeString(resolveGraphOutputPath(outputPath), graphJson);
+            if (migration != null) Files.writeString(resolveMigrationReportPath(outputPath),
+                objectMapper.writeValueAsString(migration.comparisonReports()));
         } catch (IOException e) {
             throw new IngestionException(
                 IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
@@ -169,5 +183,17 @@ public class OpenApiAssemblyService {
             return Path.of("validation-evidence-graph.json");
         }
         return parent.resolve("validation-evidence-graph.json");
+    }
+
+    private Path resolveMigrationReportPath(Path outputPath) {
+        Path parent = outputPath.getParent();
+        return parent == null ? Path.of("api-condition-migration-report.json")
+            : parent.resolve("api-condition-migration-report.json");
+    }
+
+    private static OutputMigrationMode resolveMigrationMode() {
+        String configured = System.getProperty("specscan.output.migration-mode", "COMPARE");
+        try { return OutputMigrationMode.valueOf(configured.trim().toUpperCase()); }
+        catch (RuntimeException ignored) { return OutputMigrationMode.COMPARE; }
     }
 }
