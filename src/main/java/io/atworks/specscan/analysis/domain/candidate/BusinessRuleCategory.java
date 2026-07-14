@@ -1,0 +1,3 @@
+package io.atworks.specscan.analysis.domain.candidate;
+
+public enum BusinessRuleCategory { UNKNOWN, EXISTENCE, AUTHENTICATION, AUTHORIZATION, STATE_PRECONDITION, VERSION_CONSISTENCY, UNIQUENESS, RANGE, TEMPORAL, CAPACITY, INVARIANT, OTHER }
