@@ -713,3 +713,500 @@
 **User Input**: "api-execution-model.json을 만든 의도를 그대로 니가 한번 만들어봐. 나는 정답지가 필요해서 그래."
 **AI Response**: "요청에 따라 D:\\workspace\\ddd-start2-demp 프로젝트의 모든 컨트롤러(AdminOrderController, ProductController, EventApi, CancelOrderController, MyOrderController, OrderController), DTO, 그리고 관련 서비스 비즈니스 로직(StartShippingService, CancelOrderService, PlaceOrderService) 및 도메인 엔티티(Order.java)의 검증 가드들을 직접 수동 분석했다. 이를 취합하여 이상적인 정답지(ground truth) 형태의 api-execution-model.json 파일을 D:\\workspace\\ddd-start2-demp\\api-execution-model.json 경로에 새로 생성해 보관했다."
 **Context**: CONSTRUCTION - Ground Truth Execution Model Manual Generation
+
+---
+
+## Rule-Based Static Analysis Workflow Resumption
+**Timestamp**: 2026-07-14T01:42:46.581Z
+**User Input**: "D:\workspace\auto-oas\.agents\unified-aidlc-kit\core-workflow.md을 읽고 진행해줘
+
+docs/rule-based-static-analysis 바탕 개발 진행해줘. 워크플로에 맞는 단계를 찾아서 그 다음 부터 시작해
+처음부터 시작하지말고"
+**AI Response**: "기존 aidlc-state와 정적분석 개선 설계를 대조하여 Inception 단계를 반복하지 않고 Construction의 신규 Unit 00 Micro-Loop로 재개했다. Functional/NFR/Infrastructure Design은 Unit 성격상 생략했고, Deep Interview Gating은 모호성 없음으로 기록했다. Planner, Critic, Architect, Intent Reconciliation 검토와 pending-approval 계획을 생성했으며 명시적 승인 전 코드 변경은 수행하지 않았다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U00 Consensus Planning
+
+---
+
+## Rule-Based Static Analysis U00 Approval Prompt
+**Timestamp**: 2026-07-14T01:45:56.752Z
+**User Input**: "D:\workspace\auto-oas\.agents\unified-aidlc-kit\core-workflow.md을 읽고 진행해줘
+
+docs/rule-based-static-analysis 바탕 개발 진행해줘. 워크플로에 맞는 단계를 찾아서 그 다음 부터 시작해
+처음부터 시작하지말고"
+**AI Response**: "Unit 00 Consensus Planning의 4단계 검토를 완료하고 pending-approval.md와 전용 approval-questions.md를 생성했다. 워크플로 승인 게이트에 따라 Goal-Driven Execution과 코드 변경 전 명시적 응답을 요청한다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U00 Pending Approval
+
+---
+
+## Rule-Based Static Analysis U00 Plan Approval
+**Timestamp**: 2026-07-14T01:48:48.094Z
+**User Input**: "승인 및 구현 계속"
+**AI Response**: "승인을 Option A로 기록하고 Goal Tree와 append-only ledger를 초기화했다. G001 fixture 및 baseline expectations 구현을 active 상태로 전이했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U00 Goal-Driven Execution
+
+---
+
+## Rule-Based Static Analysis U00 Implementation Completion
+**Timestamp**: 2026-07-14T01:56:13.846Z
+**User Input**: "승인 및 구현 계속"
+**AI Response**: "Unit 00의 synthetic false-positive, type-resolution-failure, holdout fixture와 baseline manifest 및 계약 테스트를 구현했다. 최초 테스트 실패는 기존 CandidateChunkGenerator scope 계약과 synthetic controller 이름 불일치로 확인하여 blocker Goal로 기록하고 수정했다. 신규 테스트 3/3, 전체 테스트 44/44, diff check를 통과했으며 src/main 변경이 없음을 확인했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U00 Goal-Driven Execution Complete
+
+---
+
+## Rule-Based Static Analysis U00 Completion Approval Prompt
+**Timestamp**: 2026-07-14T01:56:13.846Z
+**User Input**: "승인 및 구현 계속"
+**AI Response**: "워크플로의 Unit 완료 승인 게이트에 따라 completion-questions.md를 생성하고 Unit 01 전환 전 명시적 승인을 요청한다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U00 Completion Pending Approval
+
+---
+
+## Rule-Based Static Analysis U00 Completion Approval
+**Timestamp**: 2026-07-14T01:59:29.736Z
+**User Input**: "A) 승인 및 계속 — Unit 00을 승인하고 Unit 01 Fact Code Graph의 Construction Micro-Loop로 이동한다."
+**AI Response**: "Unit 00 완료를 승인 상태로 기록하고 Unit 01 Fact Code Graph로 전환했다. Unit 01은 신규 데이터 모델과 추출 로직을 포함하므로 Functional Design을 실행한다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U00 Approved, U01 Started
+
+---
+
+## Rule-Based Static Analysis U01 Functional Design Questions
+**Timestamp**: 2026-07-14T01:59:29.736Z
+**User Input**: "A) 승인 및 계속 — Unit 00을 승인하고 Unit 01 Fact Code Graph의 Construction Micro-Loop로 이동한다."
+**AI Response**: "기존 graph domain과 상위 설계를 대조해 node payload 모델, 안정적 node ID, 기본 호출 탐색 깊이를 구현 전 필수 결정으로 식별하고 Functional Design 계획에 트레이드오프 질문을 작성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 Functional Design
+
+---
+
+## Rule-Based Static Analysis U01 Functional Design Answers
+**Timestamp**: 2026-07-14T02:08:14.089Z
+**User Input**: "Trade-off Question 1 - Option A: 공통 record와 타입별 payload record 조합 (Recommended)
+Trade-off Question 2 - Option A: 소스 좌표와 AST role 기반 구조 ID (Recommended)
+Trade-off Question 3 - Option X
+독립적인 복합 Traversal Budget 사용 (Recommended)
+
+API method를 깊이 0으로 보고 기본 최대 깊이는 5로 설정한다. 깊이는 최종 안전장치로 사용하고, 전체 방문 메서드 수와 분석 대상 범위를 함께 제한한다.
+
+초기 PoC 기본값은 다음과 같이 둔다.
+
+fact-graph:
+  traversal:
+    max-depth: 5
+    max-visited-methods-per-api: 100
+    max-edges-per-api: 300
+
+탐색 대상은 다음 조건을 만족하는 메서드로 제한한다.
+
+소스코드가 현재 분석 프로젝트에 존재하는 메서드
+애플리케이션 기본 패키지 내부의 메서드
+API에서 도달 가능한 service, domain, validator, policy, helper 메서드
+조건식, 반환값 또는 예외 흐름과 연결된 메서드
+
+다음 호출은 기본적으로 내부 탐색 대상에서 제외한다.
+
+JDK 및 외부 라이브러리 구현
+Spring Framework 내부 구현
+프록시 및 generated 코드
+Repository 구현체 내부
+단순 getter, setter 및 명백한 값 객체 접근 메서드
+
+다만 제외된 호출도 호출 사실과 시그니처는 Fact Graph에 기록할 수 있다.
+
+순환 호출은 방문 경로 또는 메서드 식별자를 이용해 차단한다.
+
+탐색이 budget에 의해 중단된 경우 결과를 조용히 잘라내지 않고 diagnostic을 남긴다.
+
+{
+  \"apiMethod\": \"OrderController.cancel\",
+  \"truncated\": true,
+  \"reason\": \"MAX_VISITED_METHODS_EXCEEDED\",
+  \"configuredBudget\": {
+    \"maxDepth\": 5,
+    \"maxVisitedMethods\": 100,
+    \"maxEdges\": 300
+  },
+  \"observed\": {
+    \"maxDepth\": 4,
+    \"visitedMethods\": 100,
+    \"edges\": 247
+  }
+}
+**Pros**:
+깊은 helper chain과 폭이 넓은 호출 그래프를 각각 통제할 수 있음
+legacy builder와 독립적인 Fact Graph 탐색 계약을 정의할 수 있음
+분석 누락이 탐색 한계 때문인지 Rule 미지원 때문인지 구분 가능함
+프로젝트 구조가 달라도 탐색 결과의 일관성이 상대적으로 높음
+**Cons**:
+depth-only 방식보다 구현과 테스트 항목이 늘어남
+초기 budget 기본값을 fixture 기반으로 조정해야 함
+탐색 대상 판별 정책이 필요함
+**Impact Analysis**:
+Compatibility: legacy builder와 독립적으로 동작하며 결과 비교는 별도 fixture와 diff로 수행
+Performance: 깊이, 방문 메서드 수, 엣지 수를 함께 제한하므로 예측 가능
+Maintainability: budget과 diagnostic이 명시적인 계약으로 유지됨
+Implementation Cost: 중간
+Risk: 낮음"
+**AI Response**: "세 답변을 검증하고 공통 FactNode와 sealed payload, 구조 기반 결정적 ID, 독립 복합 Traversal Budget을 Functional Design 문서 3종에 반영했다. 추가 모호성이 없어 설계 승인 게이트로 전환했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 Functional Design Generated
+
+---
+
+## Rule-Based Static Analysis U01 Functional Design Approval Prompt
+**Timestamp**: 2026-07-14T02:08:14.089Z
+**User Input**: "Trade-off Question 1 - Option A; Trade-off Question 2 - Option A; Trade-off Question 3 - Option X with independent composite traversal budget"
+**AI Response**: "Functional Design 산출물 검토 후 승인 또는 변경 요청을 선택할 수 있는 approval-questions.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 Functional Design Pending Approval
+
+---
+
+## Rule-Based Static Analysis U01 Functional Design Approval
+**Timestamp**: 2026-07-14T02:13:07.928Z
+**User Input**: "A) 승인 및 계속 — Functional Design을 확정하고 NFR 평가 후 Micro-Loop Consensus Planning으로 진행한다."
+**AI Response**: "Functional Design을 승인 상태로 기록하고 NFR Requirements 평가를 시작했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 Functional Design Approved
+
+---
+
+## Rule-Based Static Analysis U01 NFR Requirements Questions
+**Timestamp**: 2026-07-14T02:13:07.928Z
+**User Input**: "A) 승인 및 계속 — Functional Design을 확정하고 NFR 평가 후 Micro-Loop Consensus Planning으로 진행한다."
+**AI Response**: "복합 traversal budget, 결정성, failure isolation, static-analysis-only safety와 PBT 적용성을 평가했다. 공식 jqwik 문서에서 JUnit Platform 호환성을 확인하고 기존 JUnit 유지 또는 동반 업그레이드 선택을 NFR 질문으로 작성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 NFR Requirements
+
+---
+
+## Rule-Based Static Analysis U01 NFR Requirements Answer
+**Timestamp**: 2026-07-14T02:24:28.074Z
+**User Input**: "Option A: 현재 JUnit 5.9.3 유지 + jqwik 1.7.4 추가 (Recommended)"
+**AI Response**: "Option A를 확정하고 bounded traversal, failure isolation, determinism, diagnostic, static-analysis-only safety, PBT 재현성 요구와 jqwik 1.7.4 기술 결정을 NFR 문서에 반영했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 NFR Requirements Generated
+
+---
+
+## Rule-Based Static Analysis U01 NFR Requirements Approval Prompt
+**Timestamp**: 2026-07-14T02:24:28.074Z
+**User Input**: "Option A: 현재 JUnit 5.9.3 유지 + jqwik 1.7.4 추가 (Recommended)"
+**AI Response**: "NFR Requirements와 Tech Stack Decisions 검토 후 승인 또는 변경 요청을 선택할 수 있는 approval-questions.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 NFR Requirements Pending Approval
+
+---
+
+## Rule-Based Static Analysis U01 NFR Requirements Approval
+**Timestamp**: 2026-07-14T02:27:35.450Z
+**User Input**: "승인 후 NFR Design으로 계속"
+**AI Response**: "NFR Requirements를 승인 상태로 기록하고 NFR Design을 시작했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 NFR Requirements Approved
+
+---
+
+## Rule-Based Static Analysis U01 NFR Design
+**Timestamp**: 2026-07-14T02:27:35.450Z
+**User Input**: "승인 후 NFR Design으로 계속"
+**AI Response**: "추가 질문 없이 bounded traversal, partial result, deterministic identity, immutable snapshot, traversal scope policy, cycle guard, static-analysis safety 및 PBT pattern과 logical component 책임을 설계했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 NFR Design Generated
+
+---
+
+## Rule-Based Static Analysis U01 NFR Design Approval Prompt
+**Timestamp**: 2026-07-14T02:27:35.450Z
+**User Input**: "승인 후 NFR Design으로 계속"
+**AI Response**: "NFR Design 검토 후 승인 또는 변경 요청을 선택할 수 있는 approval-questions.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 NFR Design Pending Approval
+
+---
+
+## Rule-Based Static Analysis U01 NFR Design Approval
+**Timestamp**: 2026-07-14T02:30:34.866Z
+**User Input**: "NFR Design을 확정하고 Micro-Loop Consensus Planning으로 진행한다."
+**AI Response**: "NFR Design을 승인 상태로 기록하고 Consensus Planning으로 이동했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 NFR Design Approved
+
+---
+
+## Rule-Based Static Analysis U01 Consensus Planning
+**Timestamp**: 2026-07-14T02:30:34.866Z
+**User Input**: "NFR Design을 확정하고 Micro-Loop Consensus Planning으로 진행한다."
+**AI Response**: "단일-agent 다중 역할로 Planner, Critic, Architect, Intent Reconciliation 검토를 수행했다. 신규 fact domain/support package와 jqwik 테스트를 포함한 File Plan을 확정했고 4단계가 모두 통과하여 pending-approval.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 Consensus Planning Complete
+
+---
+
+## Rule-Based Static Analysis U01 Consensus Plan Approval Prompt
+**Timestamp**: 2026-07-14T02:30:34.866Z
+**User Input**: "NFR Design을 확정하고 Micro-Loop Consensus Planning으로 진행한다."
+**AI Response**: "Goal-Driven Execution 전 명시적 승인을 위한 approval-questions.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 Consensus Plan Pending Approval
+
+---
+
+## Rule-Based Static Analysis U01 Plan Approval and Execution
+**Timestamp**: 2026-07-14T03:33:01.971Z
+**User Input**: "A: 승인 및 Fact Graph 구현 계속"
+**AI Response**: "Unit 01 plan을 승인 상태로 기록하고 Goal Tree를 실행했다. fact domain, deterministic ID, accumulator, AST visitors, traversal policy, bounded builder, example tests와 jqwik properties를 구현했다. nudge budget 7/10 경고 임계점에서 전략을 재검토하고 동일 턴 내 구현과 검증을 완료했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 Goal-Driven Execution
+
+---
+
+## Rule-Based Static Analysis U01 Verification Completion
+**Timestamp**: 2026-07-14T03:33:01.971Z
+**User Input**: "A: 승인 및 Fact Graph 구현 계속"
+**AI Response**: "신규 fact test 9개와 전체 suite 53개를 모두 통과했다. jqwik properties는 500/500/200 tries와 재현 seed를 기록했다. JUnit Platform 1.9.3 호환성과 legacy graph 무변경을 확인했다. 전역 diff check의 기존 poc_report.md whitespace는 사용자 변경으로 보존하고 작업 범위 scoped diff check를 통과했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 Complete Pending Approval
+
+---
+
+## Rule-Based Static Analysis U01 Completion Approval
+**Timestamp**: 2026-07-14T12:36:35+09:00
+**User Input**: "오케 다음 고고"
+**AI Response**: "Unit 01 완료를 승인으로 기록하고 Unit 02 Functional Design으로 이동했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U01 Completion Approved
+
+---
+
+## Rule-Based Static Analysis U02 Functional Design Questions
+**Timestamp**: 2026-07-14T12:36:35+09:00
+**User Input**: "오케 다음 고고"
+**AI Response**: "Unit 02 문서와 기존 후보 모델을 대조해 category 미해석 표현, 후보 식별 단위, diagnostic 필수 조건에 관한 세 가지 트레이드오프 질문을 작성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 Functional Design Questions
+
+---
+
+## Rule-Based Static Analysis U02 Functional Design Answers
+**Timestamp**: 2026-07-14T12:46:35+09:00
+**User Input**: "전부 A로 답변할게"
+**AI Response**: "세 트레이드오프 질문을 모두 Option A로 확정했다. UNKNOWN category, 조건 Fact별 구조 후보와 Rule별 의미 후보, 상태 기반 diagnostic 필수 조건을 채택했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 Functional Design Answers Validated
+
+---
+
+## Rule-Based Static Analysis U02 Functional Design Generated
+**Timestamp**: 2026-07-14T12:46:35+09:00
+**User Input**: "전부 A로 답변할게"
+**AI Response**: "Business Logic Model, Business Rules, Domain Entities와 Functional Design 승인 질문을 생성했다. 기존 출력 모델은 변경하지 않고 신규 후보 계약을 병렬 도입하도록 설계했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 Functional Design Pending Approval
+
+---
+
+## Rule-Based Static Analysis U02 Functional Design Approval
+**Timestamp**: 2026-07-14T12:52:37+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Unit 02 Functional Design을 승인 상태로 기록하고 NFR 필요성 평가로 이동했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 Functional Design Approved
+
+---
+
+## Rule-Based Static Analysis U02 NFR Requirements Assessment
+**Timestamp**: 2026-07-14T12:52:37+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "상태 불변식, 결정적 candidate ID, evidence 참조 무결성, immutable result와 실패 격리가 Unit 02 고유 수용 기준이므로 NFR Requirements 실행이 필요하다고 평가했다. 신규 기술 선택 없이 승인된 JUnit과 jqwik를 재사용한다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 NFR Requirements Generated
+
+---
+
+## Rule-Based Static Analysis U02 NFR Requirements Approval Prompt
+**Timestamp**: 2026-07-14T12:52:37+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "NFR Requirements와 Tech Stack Decisions 검토 후 진행 상태를 선택할 approval-questions.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 NFR Requirements Pending Approval
+
+---
+
+## Rule-Based Static Analysis U02 NFR Requirements Approval
+**Timestamp**: 2026-07-14T12:56:51+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Unit 02 NFR Requirements를 승인 상태로 기록하고 NFR Design으로 이동했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 NFR Requirements Approved
+
+---
+
+## Rule-Based Static Analysis U02 NFR Design
+**Timestamp**: 2026-07-14T12:56:51+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Two-stage candidate, deterministic identity, validated construction, partial result, evidence integrity, immutable snapshot, linear indexing, explicit unknown boundary, static-analysis safety와 complementary PBT pattern을 설계하고 logical component 책임을 정의했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 NFR Design Generated
+
+---
+
+## Rule-Based Static Analysis U02 NFR Design Approval Prompt
+**Timestamp**: 2026-07-14T12:56:51+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "NFR Design 검토 후 Micro-Loop Consensus Planning 진행 상태를 선택할 approval-questions.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 NFR Design Pending Approval
+
+---
+
+## Rule-Based Static Analysis U02 NFR Design Approval
+**Timestamp**: 2026-07-14T13:01:11+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Unit 02 NFR Design을 승인 상태로 기록하고 Micro-Loop로 이동했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 NFR Design Approved
+
+---
+
+## Rule-Based Static Analysis U02 Deep Interview Gating
+**Timestamp**: 2026-07-14T13:01:11+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Functional Design의 세 trade-off, NFR Requirements와 NFR Design이 승인돼 구현 경계와 기술 선택에 미해결 ambiguity가 없으므로 Deep Interview를 생략했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 Deep Interview Gating Skipped
+
+---
+
+## Rule-Based Static Analysis U02 Consensus Planning
+**Timestamp**: 2026-07-14T13:01:11+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "단일-agent 다중 역할로 Planner, Critic, Architect, Intent Reconciliation 검토를 수행했다. 후보 domain과 support, example/PBT test의 File Plan을 확정했고 Rule engine과 output migration을 제외했다. 4단계가 모두 통과해 pending-approval.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 Consensus Planning Complete
+
+---
+
+## Rule-Based Static Analysis U02 Consensus Plan Approval Prompt
+**Timestamp**: 2026-07-14T13:01:11+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Goal-Driven Execution 전 명시적 승인을 위한 approval-questions.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 Consensus Plan Pending Approval
+
+---
+
+## Rule-Based Static Analysis U02 Plan Approval and Execution
+**Timestamp**: 2026-07-14T13:15:42+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Unit 02 Consensus Plan을 승인 상태로 기록하고 Goal Tree를 실행했다. candidate domain, 결정적 ID, 상태 및 참조 validator, Fact classifier, Evidence mapper, factory와 accumulator 및 example/PBT tests를 구현했다. Rule engine과 output migration은 변경하지 않았다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 Goal-Driven Execution
+
+---
+
+## Rule-Based Static Analysis U02 Verification Completion
+**Timestamp**: 2026-07-14T13:15:42+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "신규 candidate test 12개와 전체 suite 65개를 모두 통과했다. jqwik properties는 500/500/200/200 tries와 재현 seed를 기록했다. 기존 output model과 Unit 01 Fact 파일 비변경 및 작업 범위 scoped diff check 통과를 확인했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 Complete Pending Approval
+
+---
+
+## Rule-Based Static Analysis U02 Completion Approval
+**Timestamp**: 2026-07-14T13:25:39+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Unit 02 완료를 승인으로 기록하고 Unit 03 Functional Design으로 이동했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U02 Completion Approved
+
+---
+
+## Rule-Based Static Analysis U03 Functional Design Questions
+**Timestamp**: 2026-07-14T13:25:39+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Unit 03 문서와 현재 Fact 및 candidate 계약을 대조해 failure outcome detector 범위, engine result/report 계약, Rule Pack precedence 동작에 관한 세 가지 트레이드오프 질문을 작성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 Functional Design Questions
+
+---
+
+## Rule-Based Static Analysis U03 Functional Design Answers
+**Timestamp**: 2026-07-14T13:28:13+09:00
+**User Input**: "전부 A로 답변"
+**AI Response**: "세 트레이드오프 질문을 모두 Option A로 확정했다. 명시적 throw와 failure policy, candidate aggregate와 execution report 조합, 비파괴 precedence diagnostic을 채택했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 Functional Design Answers Validated
+
+---
+
+## Rule-Based Static Analysis U03 Functional Design Generated
+**Timestamp**: 2026-07-14T13:28:13+09:00
+**User Input**: "전부 A로 답변"
+**AI Response**: "Business Logic Model, Business Rules, Domain Entities와 Functional Design 승인 질문을 생성했다. Rule engine SPI와 실행 계약을 정의하고 구체 Rule Pack 및 output migration을 제외했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 Functional Design Pending Approval
+
+---
+
+## Rule-Based Static Analysis U03 Functional Design Approval
+**Timestamp**: 2026-07-14T13:31:35+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Unit 03 Functional Design을 승인 상태로 기록하고 NFR 필요성 평가로 이동했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 Functional Design Approved
+
+---
+
+## Rule-Based Static Analysis U03 NFR Requirements Assessment
+**Timestamp**: 2026-07-14T13:31:35+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Rule 실행 복잡도, failure isolation, 결정적 dedup과 precedence, report counter 정합성이 Unit 03 고유 수용 기준이므로 NFR Requirements 실행이 필요하다고 평가했다. 신규 기술 선택 없이 기존 JUnit과 jqwik를 재사용한다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 NFR Requirements Generated
+
+---
+
+## Rule-Based Static Analysis U03 NFR Requirements Approval Prompt
+**Timestamp**: 2026-07-14T13:31:35+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "NFR Requirements와 Tech Stack Decisions 검토 후 진행 상태를 선택할 approval-questions.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 NFR Requirements Pending Approval
+
+---
+
+## Rule-Based Static Analysis U03 NFR Requirements Approval
+**Timestamp**: 2026-07-14T13:34:27+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Unit 03 NFR Requirements를 승인 상태로 기록하고 NFR Design으로 이동했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 NFR Requirements Approved
+
+---
+
+## Rule-Based Static Analysis U03 NFR Design
+**Timestamp**: 2026-07-14T13:34:27+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Detect-Then-Match, conservative failure policy, isolated Rule invocation, immutable registry, deterministic dedup, non-destructive precedence, linear index, trace-derived report, unresolved fallback, static-analysis safety와 complementary PBT pattern을 설계하고 logical component 책임을 정의했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 NFR Design Generated
+
+---
+
+## Rule-Based Static Analysis U03 NFR Design Approval Prompt
+**Timestamp**: 2026-07-14T13:34:27+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "NFR Design 검토 후 Micro-Loop Consensus Planning 진행 상태를 선택할 approval-questions.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 NFR Design Pending Approval
+
+---
+
+## Rule-Based Static Analysis U03 NFR Design Approval
+**Timestamp**: 2026-07-14T13:37:36+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Unit 03 NFR Design을 승인 상태로 기록하고 Micro-Loop로 이동했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 NFR Design Approved
+
+---
+
+## Rule-Based Static Analysis U03 Deep Interview Gating
+**Timestamp**: 2026-07-14T13:37:36+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Functional Design의 세 trade-off, NFR Requirements와 NFR Design이 승인돼 주요 구현 선택에 미해결 ambiguity가 없으므로 Deep Interview를 생략했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 Deep Interview Gating Skipped
+
+---
+
+## Rule-Based Static Analysis U03 Consensus Planning
+**Timestamp**: 2026-07-14T13:37:36+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Planner, Critic, Architect, Intent Reconciliation 검토를 수행했다. nested branch outcome과 Evidence-aware candidate identity의 선행 계약 충돌을 발견해 최소 upstream correction과 회귀 테스트를 File Plan에 포함했다. Rule domain, support와 example/PBT 계획을 확정했고 4단계가 모두 통과했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 Consensus Planning Complete
+
+---
+
+## Rule-Based Static Analysis U03 Consensus Plan Approval Prompt
+**Timestamp**: 2026-07-14T13:37:36+09:00
+**User Input**: "승인 및 계속"
+**AI Response**: "Goal-Driven Execution 전 명시적 승인을 위한 approval-questions.md를 생성했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 Consensus Plan Pending Approval
+
+---
+
+## Rule-Based Static Analysis U03 Plan Approval and Execution
+**Timestamp**: 2026-07-14T13:56:40+09:00
+**User Input**: "승인"
+**AI Response**: "Unit 03 Consensus Plan을 승인하고 Goal Tree를 실행했다. nested branch outcome과 Evidence-aware candidate identity를 선행 수정하고 Rule domain/SPI, conservative detector, immutable registry, isolated invocation, exact dedup, conflict/precedence, unresolved fallback, report와 tests를 구현했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 Goal-Driven Execution
+
+---
+
+## Rule-Based Static Analysis U03 Verification Completion
+**Timestamp**: 2026-07-14T13:56:40+09:00
+**User Input**: "승인"
+**AI Response**: "신규 Rule test 14개와 upstream regression을 포함한 전체 suite 82개를 모두 통과했다. Rule properties는 200/300/200/300 tries와 seed를 기록했다. legacy output 비변경과 scoped diff check 통과를 확인했다."
+**Context**: CONSTRUCTION - Rule-Based Static Analysis U03 Complete Pending Approval
+
+---
