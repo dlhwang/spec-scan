@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "brief": "Unit 00에서 production 로직을 변경하지 않고 정적분석 기준 fixture와 baseline 계약을 구현하고 검증한다.",
+  "goals": [
+    {
+      "id": "G001",
+      "title": "Baseline fixture와 expectations 생성",
+      "objective": "false-positive, type-resolution-failure, holdout fixture와 migration disposition expectations를 생성한다.",
+      "status": "complete",
+      "createdAt": "2026-07-14T01:48:48.094Z",
+      "updatedAt": "2026-07-14T01:53:00.398Z",
+      "evidence": "Created four UTF-8 test resources: false-positive, type-resolution-failure, holdout, and baseline-expectations.json. Resource validation test passed in the first Gradle run."
+    },
+    {
+      "id": "G002",
+      "title": "Baseline 계약 테스트 구현",
+      "objective": "fixture 구분, expectations 내용, 현재 하드코딩과 미지원 동작을 검증하는 characterization test를 구현한다.",
+      "status": "complete",
+      "createdAt": "2026-07-14T01:48:48.094Z",
+      "updatedAt": "2026-07-14T01:54:16.774Z",
+      "evidence": "PASS: .\\gradlew.bat test --tests io.atworks.specscan.analysis.RuleBasedStaticAnalysisBaselineTest. 3/3 tests passed; BUILD SUCCESSFUL in 13s."
+    },
+    {
+      "id": "G003",
+      "title": "Unit 00 전체 검증",
+      "objective": "대상 테스트, 관련 회귀 테스트, 전체 Gradle 테스트, diff 검증을 실행하고 Evidence를 기록한다.",
+      "status": "complete",
+      "createdAt": "2026-07-14T01:48:48.094Z",
+      "updatedAt": "2026-07-14T01:56:13.846Z",
+      "evidence": "PASS: baseline test 3/3; related regression classes BUILD SUCCESSFUL in 15s; full .\\gradlew.bat test 44 tests, 0 failures, 0 errors, 0 skipped across 11 suites, BUILD SUCCESSFUL in 23s; git diff --check passed; src/main changes none."
+    },
+    {
+      "id": "G004",
+      "title": "Synthetic endpoint scope fixture 수정",
+      "objective": "CandidateChunkGenerator의 기존 간접 매칭 계약에 맞게 synthetic controller 이름을 구성하고 G002 테스트를 재실행한다.",
+      "status": "complete",
+      "createdAt": "2026-07-14T01:53:00.398Z",
+      "updatedAt": "2026-07-14T01:54:16.774Z",
+      "evidence": "PASS: Synthetic controller naming aligned with existing CandidateChunkGenerator scope contract; RuleBasedStaticAnalysisBaselineTest passed 3/3.",
+      "steering": {
+        "kind": "review_blocker",
+        "blockedGoalId": "G002"
+      }
+    }
+  ]
+}

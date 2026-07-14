@@ -1,0 +1,12 @@
+{"eventId":"2b3461be-8c08-4ea9-b0b2-f72768879014","event":"plan_created","goalIds":["G001","G002","G003"],"timestamp":"2026-07-14T01:48:48.094Z"}
+{"eventId":"ff4866eb-a0ff-42f4-9e12-b4a56732fd68","event":"goal_started","goalId":"G001","timestamp":"2026-07-14T01:48:48.094Z"}
+{"eventId":"e7ed8404-e6ba-49ff-a786-1b7751b120f0","event":"goal_checkpointed","goalId":"G001","status":"complete","evidence":"Created false-positive, type-resolution-failure, holdout, and expectations resources; resource validation test passed.","timestamp":"2026-07-14T01:53:00.398Z"}
+{"eventId":"570f53c2-bb84-4cb0-8ffd-ff0c359786e4","event":"goal_started","goalId":"G002","timestamp":"2026-07-14T01:53:00.398Z"}
+{"eventId":"032a6de0-d209-4be2-88ee-1f551bcad1e1","event":"goal_checkpointed","goalId":"G002","status":"review_blocked","evidence":"RuleBasedStaticAnalysisBaselineTest: 1/3 passed; two candidates were scoped to global due synthetic controller naming mismatch.","timestamp":"2026-07-14T01:53:00.398Z"}
+{"eventId":"a8d897d0-b645-4a7c-a9eb-fd93bf55fc35","event":"review_blockers_recorded","goalId":"G002","blockerGoalId":"G004","timestamp":"2026-07-14T01:53:00.398Z"}
+{"eventId":"1a268673-4627-4082-a722-f1fcb12e0c9c","event":"goal_started","goalId":"G004","timestamp":"2026-07-14T01:53:00.398Z"}
+{"eventId":"06c34cd9-7804-4371-94fb-34ef691defb4","event":"goal_checkpointed","goalId":"G004","status":"complete","evidence":"Synthetic endpoint scope corrected; baseline test passed 3/3.","timestamp":"2026-07-14T01:54:16.774Z"}
+{"eventId":"6599ca33-8bbd-467f-933d-b3636ad36bb3","event":"goal_started","goalId":"G002","timestamp":"2026-07-14T01:54:16.774Z"}
+{"eventId":"9cee800b-dc83-464c-826e-cb54e9bd43c5","event":"goal_checkpointed","goalId":"G002","status":"complete","evidence":"RuleBasedStaticAnalysisBaselineTest passed 3/3; BUILD SUCCESSFUL in 13s.","timestamp":"2026-07-14T01:54:16.774Z"}
+{"eventId":"193469f2-b5a6-4130-9889-ce0046182936","event":"goal_started","goalId":"G003","timestamp":"2026-07-14T01:54:16.774Z"}
+{"eventId":"09d19c12-adb7-455a-8120-f34b2c982da8","event":"goal_checkpointed","goalId":"G003","status":"complete","evidence":"Baseline 3/3; related regression BUILD SUCCESSFUL; full suite 44/44 passed; diff check passed; src/main unchanged.","timestamp":"2026-07-14T01:56:13.846Z"}

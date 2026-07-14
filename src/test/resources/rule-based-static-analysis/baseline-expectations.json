@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "reachable-generic-service-hint",
+      "dataset": "synthetic",
+      "currentOutcome": "REJECTED_NO_QUALIFYING_RULE",
+      "disposition": "UNSUPPORTED",
+      "reason": "현재 GENERIC rule은 정규화 가능한 의미로 승격되지 않는다."
+    },
+    {
+      "id": "hardcoded-cancellation-permission",
+      "dataset": "legacy-regression",
+      "currentOutcome": "AUTH_CURRENT_USER_CANCELLATION_PERMISSION",
+      "disposition": "REPLACE",
+      "reason": "target과 operator가 소스 근거 없이 특정 주문 예제 값으로 생성된다."
+    },
+    {
+      "id": "unrelated-string-matches",
+      "dataset": "synthetic/false-positive",
+      "currentOutcome": "UNCLASSIFIED_BASELINE_INPUT",
+      "disposition": "PRESERVE",
+      "reason": "향후 matches 이름만으로 인증 검증을 생성하지 않아야 한다."
+    },
+    {
+      "id": "unresolved-receiver-type",
+      "dataset": "synthetic/type-resolution-failure",
+      "currentOutcome": "TYPE_RESOLUTION_UNAVAILABLE",
+      "disposition": "UNSUPPORTED",
+      "reason": "파싱 가능한 소스와 resolved signature 부재를 구분해야 한다."
+    },
+    {
+      "id": "renamed-domain-guard",
+      "dataset": "holdout",
+      "currentOutcome": "HELD_OUT",
+      "disposition": "PRESERVE",
+      "reason": "Rule 구현 중 직접 튜닝하지 않는 교차 검증 입력이다."
+    }
+  ]
+}
+
