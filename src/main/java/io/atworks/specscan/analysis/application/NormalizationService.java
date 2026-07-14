@@ -9,6 +9,7 @@ import io.atworks.specscan.ingestion.domain.IngestionWarning;
 
 import java.util.ArrayList;
 import java.util.List;
+import io.atworks.specscan.analysis.domain.output.OperationKey;
 
 public class NormalizationService {
 
@@ -53,7 +54,7 @@ public class NormalizationService {
 
             // 3. Deterministic rule-based normalization.
             ApiEndpoint endpoint = endpoints.stream()
-                .filter(item -> item.path().equals(chunk.endpointPath()))
+                .filter(item -> OperationKey.of(item).externalKey().equals(chunk.operationKey()))
                 .findFirst()
                 .orElse(null);
             appendUniqueConditions(conditions, conditionKeys, normalizeChunkRuleBased(chunk, endpoint, graph, rejected, warnings));

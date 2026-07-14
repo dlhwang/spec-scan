@@ -6,5 +6,11 @@ public record CandidateChunk(
     String chunkId,
     String endpointPath,
     String sourceType,
-    List<ValidationCandidate> candidates
-) {}
+    List<ValidationCandidate> candidates,
+    String operationKey
+) {
+    public CandidateChunk(String chunkId, String endpointPath, String sourceType,
+                          List<ValidationCandidate> candidates) {
+        this(chunkId, endpointPath, sourceType, candidates, null);
+    }
+}

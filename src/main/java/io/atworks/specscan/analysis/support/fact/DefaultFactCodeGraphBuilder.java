@@ -27,7 +27,8 @@ public final class DefaultFactCodeGraphBuilder {
     }
 
     private void buildEndpoint(ApiEndpoint endpoint, Path workspace, TypeResolver resolver, FactGraphTraversalBudget budget, List<FactCodeGraph> graphs, List<FactGraphDiagnostic> diagnostics) {
-        Optional<MethodDeclaration> root = resolver.resolveClassDeclaration(endpoint.controllerClass()).flatMap(c -> c.getMethodsByName(endpoint.controllerMethod()).stream().findFirst());
+        Optional<MethodDeclaration> root = resolver.resolveClassDeclaration(endpoint.controllerClass())
+            .flatMap(c -> selectApiMethod(c.getMethodsByName(endpoint.controllerMethod()), endpoint));
         if (root.isEmpty()) { diagnostics.add(diagnostic(endpoint.controllerClass() + "." + endpoint.controllerMethod(), "API_ROOT_UNRESOLVED", false, budget, new FactGraphTraversalStats(0,0,0), null, "controller method source not found")); return; }
         MethodDeclaration method = root.get(); String owner = endpoint.controllerClass() + "." + method.getSignature().asString();
         FactGraphAccumulator acc = new FactGraphAccumulator(budget); SourceRange range = FactExpressionVisitor.range(method, workspace);
@@ -37,6 +38,21 @@ public final class DefaultFactCodeGraphBuilder {
         FactGraphTraversalStats stats = new FactGraphTraversalStats(state.maxDepth, state.visited.size(), acc.edgeCount());
         if (acc.edgeLimitReached()) diagnostics.add(diagnostic(owner, "MAX_EDGES_EXCEEDED", true, budget, stats, range, "edge addition stopped at configured limit"));
         FactCodeGraph graph = acc.snapshot("FACT_GRAPH:" + rootNode.id(), rootNode.id()); validator.validate(graph, budget, stats); graphs.add(graph);
+    }
+
+    private Optional<MethodDeclaration> selectApiMethod(List<MethodDeclaration> methods, ApiEndpoint endpoint) {
+        if (methods.isEmpty()) return Optional.empty();
+        int sourceLine = endpoint.sourceTrace() == null ? -1 : endpoint.sourceTrace().startLine();
+        if (sourceLine > 0) {
+            Optional<MethodDeclaration> byLine = methods.stream()
+                .filter(method -> method.getRange().map(range -> sourceLine >= range.begin.line
+                    && sourceLine <= range.end.line).orElse(false)).findFirst();
+            if (byLine.isPresent()) return byLine;
+        }
+        int bindingCount = endpoint.requestBindings().size();
+        List<MethodDeclaration> byArity = methods.stream()
+            .filter(method -> method.getParameters().size() == bindingCount).toList();
+        return Optional.of((byArity.size() == 1 ? byArity : methods).get(0));
     }
 
     private void traverse(MethodDeclaration method, FactNode methodNode, String owner, String appBase, int depth, Path workspace, TypeResolver resolver, FactGraphTraversalBudget budget, FactGraphAccumulator acc, List<FactGraphDiagnostic> diagnostics, TraversalState state, Set<String> path) {

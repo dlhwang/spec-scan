@@ -3,6 +3,7 @@ package io.atworks.specscan.analysis.support;
 import io.atworks.specscan.analysis.domain.*;
 
 import java.util.*;
+import io.atworks.specscan.analysis.domain.output.OperationKey;
 
 public class CandidateChunkGenerator {
 
@@ -16,27 +17,29 @@ public class CandidateChunkGenerator {
         Map<String, Map<String, List<ValidationCandidate>>> grouped = new LinkedHashMap<>();
 
         for (ValidationCandidate candidate : candidates) {
-            String resolvedPath = resolveEndpointPath(candidate, endpoints);
+            String operationKey = resolveOperationKey(candidate, endpoints);
             String sourceType = candidate.sourceType();
 
-            grouped.computeIfAbsent(resolvedPath, k -> new LinkedHashMap<>())
+            grouped.computeIfAbsent(operationKey, k -> new LinkedHashMap<>())
                    .computeIfAbsent(sourceType, k -> new ArrayList<>())
                    .add(candidate);
         }
 
         for (Map.Entry<String, Map<String, List<ValidationCandidate>>> pathEntry : grouped.entrySet()) {
-            String path = pathEntry.getKey();
+            String operationKey = pathEntry.getKey();
+            String path = endpointPath(operationKey);
             for (Map.Entry<String, List<ValidationCandidate>> typeEntry : pathEntry.getValue().entrySet()) {
                 String type = typeEntry.getKey();
                 String chunkId = "chunk-" + UUID.randomUUID().toString().substring(0, 8);
-                chunks.add(new CandidateChunk(chunkId, path, type, typeEntry.getValue()));
+                chunks.add(new CandidateChunk(chunkId, path, type, typeEntry.getValue(), operationKey));
             }
         }
 
         return chunks;
     }
 
-    private String resolveEndpointPath(ValidationCandidate candidate, List<ApiEndpoint> endpoints) {
+    private String resolveOperationKey(ValidationCandidate candidate, List<ApiEndpoint> endpoints) {
+        if (candidate.operationKey() != null && !candidate.operationKey().isBlank()) return candidate.operationKey();
         if (candidate.sourceTrace() == null || candidate.sourceTrace().fileRelativePath() == null) {
             return "global";
         }
@@ -47,7 +50,7 @@ public class CandidateChunkGenerator {
         for (ApiEndpoint endpoint : endpoints) {
             String controllerFile = endpoint.controllerClass().replace(".", "/") + ".java";
             if (candFile.endsWith(controllerFile)) {
-                return endpoint.path();
+                return OperationKey.of(endpoint).externalKey();
             }
         }
 
@@ -56,7 +59,7 @@ public class CandidateChunkGenerator {
             for (RequestBinding binding : endpoint.requestBindings()) {
                 String dtoFile = binding.type().replace(".", "/") + ".java";
                 if (candFile.endsWith(dtoFile)) {
-                    return endpoint.path();
+                    return OperationKey.of(endpoint).externalKey();
                 }
             }
         }
@@ -67,10 +70,15 @@ public class CandidateChunkGenerator {
             String baseName = simpleName.replace("Impl", "").replace("Service", "");
             if (endpoint.controllerClass().toLowerCase().contains(baseName.toLowerCase()) || 
                 endpoint.controllerMethod().toLowerCase().contains(baseName.toLowerCase())) {
-                return endpoint.path();
+                return OperationKey.of(endpoint).externalKey();
             }
         }
 
         return "global";
+    }
+
+    private String endpointPath(String operationKey) {
+        int separator = operationKey.indexOf(' ');
+        return separator < 0 ? operationKey : operationKey.substring(separator + 1);
     }
 }

@@ -153,6 +153,14 @@ public class ValidationExtractionService {
                 });
             });
 
+            String operationKey = io.atworks.specscan.analysis.domain.output.OperationKey.of(endpoint).externalKey();
+            for (int candidateIndex = candidatesBefore; candidateIndex < candidates.size(); candidateIndex++) {
+                ValidationCandidate candidate = candidates.get(candidateIndex);
+                if (candidate.operationKey() == null) {
+                    candidates.set(candidateIndex, candidate.withOperationKey(operationKey));
+                }
+            }
+
             System.out.printf(
                 "  [Step 3][%d/%d] DONE  +%d conditions, +%d candidates, +%d warnings (%s)%n",
                 endpointNumber,

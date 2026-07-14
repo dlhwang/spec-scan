@@ -8,5 +8,16 @@ public record ValidationCandidate(
     String targetPath,
     String evidenceSnippet,
     double confidence,
-    SourceTrace sourceTrace
-) {}
+    SourceTrace sourceTrace,
+    String operationKey
+) {
+    public ValidationCandidate(String candidateId, String sourceType, String targetPath,
+                               String evidenceSnippet, double confidence, SourceTrace sourceTrace) {
+        this(candidateId, sourceType, targetPath, evidenceSnippet, confidence, sourceTrace, null);
+    }
+
+    public ValidationCandidate withOperationKey(String value) {
+        return new ValidationCandidate(candidateId, sourceType, targetPath, evidenceSnippet,
+            confidence, sourceTrace, value);
+    }
+}
