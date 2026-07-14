@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -395,7 +396,25 @@ public class EndpointExtractor {
         String rawType = method.getType().asString();
         String unwrappedType = classifyResponseType(method, rawType);
         SourceTrace trace = SourceTraceResolver.resolve(method.getType(), workspaceRoot, file);
-        return new ResponseBinding(unwrappedType, trace);
+        Integer status = explicitResponseStatus(method);
+        return new ResponseBinding(unwrappedType, trace, status, status == null ? null : "@ResponseStatus");
+    }
+
+    private Integer explicitResponseStatus(MethodDeclaration method) {
+        return method.getAnnotationByName("ResponseStatus").map(annotation -> {
+            String value = annotation.toString().toUpperCase(java.util.Locale.ROOT);
+            Map<String, Integer> statuses = Map.ofEntries(
+                Map.entry("CONTINUE", 100), Map.entry("OK", 200), Map.entry("CREATED", 201),
+                Map.entry("ACCEPTED", 202), Map.entry("NO_CONTENT", 204), Map.entry("BAD_REQUEST", 400),
+                Map.entry("UNAUTHORIZED", 401), Map.entry("FORBIDDEN", 403), Map.entry("NOT_FOUND", 404),
+                Map.entry("CONFLICT", 409), Map.entry("UNPROCESSABLE_ENTITY", 422),
+                Map.entry("INTERNAL_SERVER_ERROR", 500));
+            for (Map.Entry<String, Integer> entry : statuses.entrySet()) {
+                if (value.matches("(?s).*\\b" + entry.getKey() + "\\b.*")) return entry.getValue();
+            }
+            java.util.regex.Matcher numeric = java.util.regex.Pattern.compile("\\b([1-5][0-9]{2})\\b").matcher(value);
+            return numeric.find() ? Integer.valueOf(numeric.group(1)) : null;
+        }).orElse(null);
     }
 
     private boolean isFrameworkParameter(Parameter parameter) {
