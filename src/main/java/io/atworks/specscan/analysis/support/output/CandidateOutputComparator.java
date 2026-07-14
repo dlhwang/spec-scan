@@ -9,8 +9,14 @@ public final class CandidateOutputComparator {
                                                    EndpointRuleOutput current) {
         String endpointPath = endpoint.path();
         Map<String, ApiCondition> legacyByTarget = new TreeMap<>();
-        for (ApiCondition condition : legacy) if (condition.endpointPath() == null
-                || endpointPath.equals(condition.endpointPath())) legacyByTarget.put(targetKey(condition), condition);
+        List<ApiCondition> unresolvedScope = new ArrayList<>();
+        for (ApiCondition condition : legacy) {
+            if (endpointPath.equals(condition.endpointPath()) || sourceBelongsToEndpoint(condition, endpoint)) {
+                legacyByTarget.put(targetKey(condition), condition);
+            } else if (condition.endpointPath() == null && condition.sourceTrace() != null) {
+                unresolvedScope.add(condition);
+            }
+        }
         Map<String, ExecutableCondition> currentByTarget = new TreeMap<>();
         for (ExecutableCondition condition : current.requestPreconditions())
             currentByTarget.put(targetKey("REQUEST", condition.targetLocation(), condition.targetPath()), condition);
@@ -29,8 +35,28 @@ public final class CandidateOutputComparator {
         for (CandidateOutputDiagnostic diagnostic : current.diagnostics())
             differences.add(new MigrationDifference(MigrationDifferenceKind.UNRESOLVED_BY_NEW_ENGINE,
                 diagnostic.candidateId(), diagnostic.code()));
+        for (ApiCondition condition : unresolvedScope) differences.add(new MigrationDifference(
+            MigrationDifferenceKind.LEGACY_SCOPE_UNRESOLVED, targetKey(condition),
+            condition.sourceTrace().fileRelativePath()));
         return new CandidateOutputComparisonReport(endpoint.httpMethod(), endpointPath,
             endpoint.controllerClass() + "#" + endpoint.controllerMethod(), differences);
+    }
+    private boolean sourceBelongsToEndpoint(ApiCondition condition, ApiEndpoint endpoint) {
+        if (condition.endpointPath() != null || condition.sourceTrace() == null) return false;
+        String source = normalizedFile(condition.sourceTrace().fileRelativePath());
+        if (source.isBlank()) return false;
+        if (endpoint.sourceTrace() != null && source.equals(normalizedFile(endpoint.sourceTrace().fileRelativePath()))) {
+            return lineOverlaps(condition.sourceTrace(), endpoint.sourceTrace());
+        }
+        return endpoint.requestBindings().stream().map(RequestBinding::sourceTrace).filter(Objects::nonNull)
+            .anyMatch(trace -> source.equals(normalizedFile(trace.fileRelativePath())));
+    }
+    private boolean lineOverlaps(io.atworks.specscan.ingestion.domain.SourceTrace left,
+                                 io.atworks.specscan.ingestion.domain.SourceTrace right) {
+        return left.startLine() <= right.endLine() && right.startLine() <= left.endLine();
+    }
+    private String normalizedFile(String value) {
+        return value == null ? "" : value.replace('\\', '/');
     }
     private boolean equivalent(ApiCondition legacy, ExecutableCondition current) {
         return Objects.equals(legacy.operator(), current.operator()) && current.expectedValues().size() == 1
