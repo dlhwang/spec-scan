@@ -63,6 +63,10 @@ final class FactExpressionVisitor {
     private FactNode expressionNode(Expression expression, String owner, Path workspace, String role, Function<MethodCallExpr, TypeResolution> resolver) {
         if (expression instanceof MethodCallExpr call) return callNode(call, owner, workspace, resolver.apply(call));
         SourceRange range = range(expression, workspace);
+        if (expression instanceof BinaryExpr binary) return new FactNode(
+            ids.generate(FactNodeType.CONDITION, owner, range, "nested:" + role), FactNodeType.CONDITION,
+            range, binary.toString(), TypeResolution.notApplicable(),
+            new FactNodePayload.ConditionPayload(BinaryExpr.class.getSimpleName(), binary.getOperator().asString()));
         if (expression instanceof FieldAccessExpr field) {
             try {
                 var declaration = field.resolve();

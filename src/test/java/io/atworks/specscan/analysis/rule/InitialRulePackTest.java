@@ -34,14 +34,21 @@ class InitialRulePackTest {
     }
 
     @Test void enumGuardExtractsOnlySourceConstantsFromAnAllowedSet() {
-        SourceRange range = range();
-        FactNode condition = condition("condition", "&&", "phase != Phase.READY && phase != Phase.RETRYABLE");
+        FactNode condition = condition("condition", "&&", "renamed expression without operator text");
+        FactNode firstComparison = condition("first-comparison", "!=", "first comparison");
+        FactNode secondComparison = condition("second-comparison", "!=", "second comparison");
+        FactNode firstValue = field("first-value", "phase"); FactNode secondValue = field("second-value", "phase");
         FactNode ready = enumConstant("ready", "READY"); FactNode retry = enumConstant("retry", "RETRYABLE");
         FactNode outcome = outcome(); FactNode root = root();
-        FactCodeGraph graph = new FactCodeGraph("graph", root.id(), List.of(root, condition, ready, retry, outcome), List.of(
+        FactCodeGraph graph = new FactCodeGraph("graph", root.id(), List.of(root, condition, firstComparison,
+            secondComparison, firstValue, secondValue, ready, retry, outcome), List.of(
             edge("control", root, condition, FactEdgeType.CONTROLS, -1, "IF"),
-            edge("ready-edge", condition, ready, FactEdgeType.OPERAND_OF, 0, "LEFT"),
-            edge("retry-edge", condition, retry, FactEdgeType.OPERAND_OF, 1, "RIGHT"),
+            edge("first-comparison-edge", condition, firstComparison, FactEdgeType.OPERAND_OF, 0, "LEFT"),
+            edge("second-comparison-edge", condition, secondComparison, FactEdgeType.OPERAND_OF, 1, "RIGHT"),
+            edge("first-value-edge", firstComparison, firstValue, FactEdgeType.OPERAND_OF, 0, "LEFT"),
+            edge("ready-edge", firstComparison, ready, FactEdgeType.OPERAND_OF, 1, "RIGHT"),
+            edge("second-value-edge", secondComparison, secondValue, FactEdgeType.OPERAND_OF, 0, "LEFT"),
+            edge("retry-edge", secondComparison, retry, FactEdgeType.OPERAND_OF, 1, "RIGHT"),
             edge("failure", condition, outcome, FactEdgeType.THEN_OUTCOME, -1, "THROW")));
         PredicateCandidate predicate = predicate(graph, condition, PredicateType.COMPOSITE, outcome);
 
@@ -70,6 +77,92 @@ class InitialRulePackTest {
             .containsExactlyInAnyOrder(EnumAllowedValueGuardRule.ID, InputDomainMismatchGuardRule.ID,
                 NullRejectionGuardRule.ID, OptionalLookupFailureRule.ID, PasswordEncoderMatchFailureRule.ID,
                 SpringDataFindByIdOrElseThrowRule.ID);
+        assertThat(InitialRuleCatalog.descriptors()).extracting(RuleDescriptor::ruleId)
+            .containsExactlyInAnyOrder(EnumAllowedValueGuardRule.ID, InputDomainMismatchGuardRule.ID,
+                NullRejectionGuardRule.ID, OptionalLookupFailureRule.ID, PasswordEncoderMatchFailureRule.ID,
+                SpringDataFindByIdOrElseThrowRule.ID);
+    }
+
+    @Test void passwordRuleUsesResolvedSignatureAndPreservesAnUnresolvedTarget() {
+        PasswordFixture resolved = passwordFixture(true,
+            "org.springframework.security.crypto.password.PasswordEncoder.matches(java.lang.CharSequence, java.lang.String)");
+        assertThat(new PasswordEncoderMatchFailureRule().match(resolved.graph, resolved.predicate)).singleElement()
+            .satisfies(candidate -> assertThat(candidate.targetStatus()).isEqualTo(TargetResolutionStatus.RESOLVED));
+
+        PasswordFixture unresolved = passwordFixture(false,
+            "org.springframework.security.crypto.password.PasswordEncoder.matches(java.lang.CharSequence, java.lang.String)");
+        assertThat(new PasswordEncoderMatchFailureRule().match(unresolved.graph, unresolved.predicate)).singleElement()
+            .satisfies(candidate -> {
+                assertThat(candidate.semanticStatus()).isEqualTo(SemanticStatus.RESOLVED);
+                assertThat(candidate.targetStatus()).isEqualTo(TargetResolutionStatus.UNRESOLVED);
+                assertThat(candidate.diagnostics()).extracting(CandidateDiagnostic::code)
+                    .contains("PASSWORD_INPUT_ORIGIN_UNRESOLVED");
+            });
+
+        PasswordFixture sameName = passwordFixture(true,
+            "sample.CustomEncoder.matches(java.lang.CharSequence, java.lang.String)");
+        assertThat(new PasswordEncoderMatchFailureRule().match(sameName.graph, sameName.predicate)).isEmpty();
+
+        PasswordFixture explicitFalse = passwordFixture(true,
+            "org.springframework.security.crypto.password.PasswordEncoder.matches(java.lang.CharSequence, java.lang.String)",
+            "==", "false");
+        assertThat(new PasswordEncoderMatchFailureRule().match(explicitFalse.graph, explicitFalse.predicate))
+            .singleElement().extracting(BusinessRuleCandidate::category)
+            .isEqualTo(BusinessRuleCategory.AUTHENTICATION);
+    }
+
+    @Test void springDataRefinementHasExplicitPrecedenceIndependentOfPackOrder() {
+        FactNode root = root();
+        FactNode terminal = new FactNode("terminal", FactNodeType.METHOD_CALL, range(), "lookup.orElseThrow()",
+            TypeResolution.resolvedSignature("java.util.Optional.orElseThrow()"),
+            new FactNodePayload.MethodCallPayload("orElseThrow", 0, false));
+        FactNode lookup = new FactNode("lookup", FactNodeType.METHOD_CALL, range(), "repository.findById(id)",
+            TypeResolution.resolvedSignature("org.springframework.data.repository.CrudRepository.findById(java.lang.Object)"),
+            new FactNodePayload.MethodCallPayload("findById", 1, false));
+        FactCodeGraph graph = new FactCodeGraph("graph", root.id(), List.of(root, terminal, lookup), List.of(
+            edge("root-call", root, terminal, FactEdgeType.CALLS, -1, "CALL"),
+            edge("receiver", terminal, lookup, FactEdgeType.OPERAND_OF, -1, "RECEIVER")));
+        List<RulePack> reversed = new ArrayList<>(InitialRulePacks.all()); Collections.reverse(reversed);
+        GraphRuleEngineResult result = new DefaultGraphRuleEngine(new DefaultValidationCandidateDetector(List.of()), reversed)
+            .evaluate(graph, new MethodScope(graph.graphId(), Set.of(root.id())));
+
+        assertThat(result.candidates().businessRules()).extracting(BusinessRuleCandidate::ruleId)
+            .contains(OptionalLookupFailureRule.ID, SpringDataFindByIdOrElseThrowRule.ID);
+        assertThat(result.candidates().businessRules()).filteredOn(candidate ->
+            candidate.ruleId().equals(OptionalLookupFailureRule.ID)).singleElement()
+            .satisfies(candidate -> assertThat(candidate.diagnostics()).extracting(CandidateDiagnostic::code)
+                .contains("LOWER_PRECEDENCE_MATCH"));
+    }
+
+    private PasswordFixture passwordFixture(boolean inputOrigin, String signature) {
+        return passwordFixture(inputOrigin, signature, "!", null);
+    }
+
+    private PasswordFixture passwordFixture(boolean inputOrigin, String signature,
+                                            String operator, String booleanValue) {
+        FactNode root = root(); FactNode condition = condition("password-condition", operator, "password condition");
+        FactNode call = new FactNode("matches-call", FactNodeType.METHOD_CALL, range(), "encoder.matches(first, second)",
+            TypeResolution.resolvedSignature(signature), new FactNodePayload.MethodCallPayload("matches", 2, false));
+        FactNode input = field("password-input", "first"); FactNode stored = field("password-stored", "second");
+        FactNode parameter = new FactNode("password-parameter", FactNodeType.PARAMETER, range(), "String first",
+            TypeResolution.unresolved("DECLARED_ONLY"), new FactNodePayload.ParameterPayload("first", 0, "String"));
+        FactNode outcome = outcome();
+        List<FactEdge> edges = new ArrayList<>(List.of(
+            edge("password-control", root, condition, FactEdgeType.CONTROLS, -1, "IF"),
+            edge("call-operand", condition, call, FactEdgeType.OPERAND_OF, 0, "CALL"),
+            edge("input-argument", call, input, FactEdgeType.OPERAND_OF, 0, "ARGUMENT"),
+            edge("stored-argument", call, stored, FactEdgeType.OPERAND_OF, 1, "ARGUMENT"),
+            edge("password-failure", condition, outcome, FactEdgeType.THEN_OUTCOME, -1, "THROW")));
+        List<FactNode> nodes = new ArrayList<>(List.of(root, condition, call, input, stored, parameter, outcome));
+        if (booleanValue != null) {
+            FactNode literal = new FactNode("boolean-literal", FactNodeType.LITERAL, range(), booleanValue,
+                TypeResolution.notApplicable(), new FactNodePayload.LiteralPayload(booleanValue, "BooleanLiteralExpr"));
+            nodes.add(literal);
+            edges.add(edge("boolean-operand", condition, literal, FactEdgeType.OPERAND_OF, 1, "RIGHT"));
+        }
+        if (inputOrigin) edges.add(edge("password-read", input, parameter, FactEdgeType.READS, -1, "DECLARATION"));
+        FactCodeGraph graph = new FactCodeGraph("password-graph", root.id(), nodes, edges);
+        return new PasswordFixture(graph, predicate(graph, condition, PredicateType.COMPOSITE, outcome));
     }
 
     private Fixture comparison(String operator, FactNodeType rightType, boolean inputOrigin, boolean failureThen) {
@@ -106,4 +199,5 @@ class InitialRulePackTest {
     private FactEdge edge(String id, FactNode source, FactNode target, FactEdgeType type, int ordinal, String role) { return new FactEdge(id, source.id(), target.id(), type, ordinal, role); }
     private SourceRange range() { return new SourceRange("src/Test.java", 1, 1, 1, 30); }
     private record Fixture(FactCodeGraph graph, PredicateCandidate predicate) {}
+    private record PasswordFixture(FactCodeGraph graph, PredicateCandidate predicate) {}
 }

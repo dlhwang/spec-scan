@@ -60,6 +60,16 @@ final class StructuralRuleSupport {
             && nodes.get(edge.targetNodeId()).type() == FactNodeType.PARAMETER);
     }
 
+    Optional<String> originKey(FactNode node) {
+        Optional<String> declaration = graph.edges().stream()
+            .filter(edge -> edge.type() == FactEdgeType.READS && edge.sourceNodeId().equals(node.id()))
+            .map(FactEdge::targetNodeId).sorted().findFirst();
+        if (declaration.isPresent()) return declaration;
+        if (node.payload() instanceof FactNodePayload.FieldAccessPayload field)
+            return Optional.of("FIELD:" + field.rootExpressionKind() + ":" + field.fieldName());
+        return Optional.empty();
+    }
+
     boolean failureOnThen(String conditionId) {
         return graph.edges().stream().anyMatch(edge -> edge.sourceNodeId().equals(conditionId)
             && edge.type() == FactEdgeType.THEN_OUTCOME);
@@ -84,10 +94,18 @@ final class StructuralRuleSupport {
     BusinessRuleCandidate resolved(PredicateCandidate predicate, String ruleId, BusinessRuleCategory category,
                                    TargetResolutionStatus targetStatus, NormalizedConstraint constraint,
                                    double confidence, List<EvidenceRef> evidence) {
+        return resolved(predicate, ruleId, category, targetStatus, constraint, confidence, evidence,
+            predicate.diagnostics());
+    }
+
+    BusinessRuleCandidate resolved(PredicateCandidate predicate, String ruleId, BusinessRuleCategory category,
+                                   TargetResolutionStatus targetStatus, NormalizedConstraint constraint,
+                                   double confidence, List<EvidenceRef> evidence,
+                                   List<CandidateDiagnostic> diagnostics) {
         String fingerprint = evidence.stream().map(ref -> ref.nodeId() + ":" + ref.role()).sorted()
             .reduce((left, right) -> left + "|" + right).orElse(predicate.conditionNodeId());
         return candidates.create(predicate.candidateId(), ruleId, category, predicate.extractionStatus(),
             SemanticStatus.RESOLVED, targetStatus, constraint, confidence, evidence,
-            predicate.diagnostics(), fingerprint);
+            diagnostics, fingerprint);
     }
 }

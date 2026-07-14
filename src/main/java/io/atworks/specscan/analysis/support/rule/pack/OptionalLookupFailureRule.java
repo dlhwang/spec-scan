@@ -18,9 +18,18 @@ public final class OptionalLookupFailureRule implements GraphRule {
                 || !"orElseThrow".equals(payload.methodName()) || !isOptional(call.typeResolution())) return List.of();
         NormalizedConstraint constraint = new NormalizedConstraint(ConstraintKind.CONTROL_FLOW_ONLY,
             null, null, List.of(), call.id());
+        List<EvidenceRef> evidence = support.evidence(predicate, call, EvidenceRole.CALL);
+        FactNode lookup = support.operands(call.id()).stream()
+            .filter(node -> node.type() == FactNodeType.METHOD_CALL).findFirst().orElse(null);
+        if (lookup != null) {
+            List<FactNode> arguments = support.callArguments(lookup.id());
+            if (!arguments.isEmpty() && support.readsParameter(arguments.get(0)))
+                evidence = support.evidence(predicate, call, EvidenceRole.CALL,
+                    arguments.get(0), EvidenceRole.INPUT_ORIGIN);
+        }
         return List.of(support.resolved(predicate, ID, BusinessRuleCategory.EXISTENCE,
             TargetResolutionStatus.NOT_APPLICABLE, constraint, 1.0,
-            support.evidence(predicate, call, EvidenceRole.CALL)));
+            evidence));
     }
 
     private boolean isOptional(TypeResolution resolution) {

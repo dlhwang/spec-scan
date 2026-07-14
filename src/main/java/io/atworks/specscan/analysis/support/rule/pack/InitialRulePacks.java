@@ -22,6 +22,6 @@ public final class InitialRulePacks {
     }
     public static RulePack springDataJpa() {
         return new RulePack("spring-data-jpa", true, List.of(new SpringDataFindByIdOrElseThrowRule()),
-            RulePrecedence.none());
+            new RulePrecedence(Map.of(SpringDataFindByIdOrElseThrowRule.ID, 10)));
     }
 }

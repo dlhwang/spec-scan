@@ -13,23 +13,47 @@ public final class PasswordEncoderMatchFailureRule implements GraphRule {
         StructuralRuleSupport support = new StructuralRuleSupport(graph);
         FactNode condition = support.node(predicate.conditionNodeId());
         if (condition == null || !(condition.payload() instanceof FactNodePayload.ConditionPayload payload)
-                || !support.failureOnThen(condition.id()) || !"!".equals(payload.rootOperator())) return List.of();
+                || !rejectsMismatch(condition, payload, support)) return List.of();
         FactNode call = support.callOperand(condition.id()).orElse(null);
         if (call == null || !isPasswordMatch(call.typeResolution())) return List.of();
         List<FactNode> arguments = support.callArguments(call.id());
-        if (arguments.size() != 2 || !support.readsParameter(arguments.get(0))) return List.of();
-        FactNode input = arguments.get(0); FactNode stored = arguments.get(1);
+        FactNode input = arguments.size() > 0 ? arguments.get(0) : null;
+        FactNode stored = arguments.size() > 1 ? arguments.get(1) : null;
+        boolean targetResolved = input != null && support.readsParameter(input);
         NormalizedConstraint constraint = new NormalizedConstraint(ConstraintKind.RUNTIME_DEPENDENT,
-            input.snippet(), null, List.of(), call.id());
+            targetResolved ? input.snippet() : null, null, List.of(), call.id());
+        List<EvidenceRef> evidence = support.evidence(predicate, call, EvidenceRole.CALL);
+        if (targetResolved) evidence = support.evidence(predicate, call, EvidenceRole.CALL,
+            input, EvidenceRole.INPUT_ORIGIN);
+        if (stored != null && support.originKey(stored).isPresent())
+            evidence = targetResolved
+                ? support.evidence(predicate, call, EvidenceRole.CALL, input, EvidenceRole.INPUT_ORIGIN,
+                    stored, EvidenceRole.DOMAIN_ORIGIN)
+                : support.evidence(predicate, call, EvidenceRole.CALL, stored, EvidenceRole.DOMAIN_ORIGIN);
+        List<CandidateDiagnostic> diagnostics = new java.util.ArrayList<>(predicate.diagnostics());
+        if (!targetResolved) diagnostics.add(new CandidateDiagnostic(CandidateDiagnosticSeverity.WARNING,
+            "PASSWORD_INPUT_ORIGIN_UNRESOLVED", "Password input origin could not be linked to an API parameter",
+            call.id()));
         return List.of(support.resolved(predicate, ID, BusinessRuleCategory.AUTHENTICATION,
-            TargetResolutionStatus.RESOLVED, constraint, 1.0,
-            support.evidence(predicate, call, EvidenceRole.CALL, input, EvidenceRole.INPUT_ORIGIN,
-                stored, EvidenceRole.DOMAIN_ORIGIN)));
+            targetResolved ? TargetResolutionStatus.RESOLVED : TargetResolutionStatus.UNRESOLVED,
+            constraint, 1.0, evidence, diagnostics));
     }
     private boolean isPasswordMatch(TypeResolution resolution) {
         String signature = resolution.resolvedSignature();
         return resolution.status() == TypeResolutionStatus.RESOLVED && signature != null
             && signature.contains("org.springframework.security.crypto.password")
             && signature.endsWith(".matches(java.lang.CharSequence, java.lang.String)");
+    }
+    private boolean rejectsMismatch(FactNode condition, FactNodePayload.ConditionPayload payload,
+                                    StructuralRuleSupport support) {
+        if ("!".equals(payload.rootOperator())) return support.failureOnThen(condition.id());
+        FactNode booleanLiteral = support.operands(condition.id()).stream()
+            .filter(node -> node.payload() instanceof FactNodePayload.LiteralPayload literal
+                && "BooleanLiteralExpr".equals(literal.literalKind())).findFirst().orElse(null);
+        if (booleanLiteral == null) return false;
+        String value = ((FactNodePayload.LiteralPayload) booleanLiteral.payload()).value();
+        return ("==".equals(payload.rootOperator()) && "false".equals(value) && support.failureOnThen(condition.id()))
+            || ("==".equals(payload.rootOperator()) && "true".equals(value) && support.failureOnElse(condition.id()))
+            || ("!=".equals(payload.rootOperator()) && "false".equals(value) && support.failureOnElse(condition.id()));
     }
 }
