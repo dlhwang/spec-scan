@@ -441,6 +441,66 @@ synthetic fixture 외에 실제 프로젝트에서 확인된 구조를 고정 �
 
 각 항목은 독립 커밋을 원칙으로 하며, 해당 단계의 focused test가 통과한 뒤 다음 단계로 이동한다.
 
+### 후속 보완 Work 05-H: 구조 조건 동등화
+
+`ddd-start2` 비교에서 확인된 DTO 구조 조건과 request binding 조건의 표현 차이를 제거한다.
+
+- Bean Validation과 DTO field Evidence를 신규 `requestPreconditions`로 투영한다.
+- body binding 자체뿐 아니라 nested field의 `REQUIRED`, 크기, 범위, pattern과 enum 조건을 보존한다.
+- target location/path 정규화는 legacy 비교 key와 동일한 `BODY|$.field...` 계약을 사용한다.
+- query/path/header의 `required`는 해당 binding에만 적용한다.
+- 같은 target에 구조 조건과 비즈니스 조건이 함께 존재하면 operator별로 보존하고 덮어쓰지 않는다.
+- `version`의 binding `REQUIRED`와 `OPTIMISTIC_LOCK_MATCH`는 서로 다른 조건이므로 target만 같다는 이유로 conflicting 처리하지 않도록 비교 identity에 operator를 포함한다.
+
+완료 조건:
+
+- `POST /orders/order`의 nested `REQUIRED` 10건이 신규 출력에도 생성된다.
+- `POST /admin/orders/{orderNo}/shipping`의 `version` required 조건과 optimistic-lock Rule이 충돌로 오인되지 않는다.
+- 구조 조건에는 annotation 또는 DTO field source Evidence가 있다.
+
+### 후속 보완 Work 05-I: 상태·권한 Rule Evidence 추출
+
+legacy에 남은 주문 상태와 취소 권한 조건을 하드코딩 복사하지 않고 Fact Code Graph와 Rule Pack에서 재구성한다.
+
+- enum 비교, guard method, permission predicate와 failure outcome을 구조적으로 탐지한다.
+- 허용 상태 값은 실제 enum constant 또는 조건식 operand Evidence에서만 생성한다.
+- 권한 조건은 현재 사용자, 주문 소유자, 역할 검사 사이의 boolean 구조를 보존한다.
+- 외부 상태가 필요한 Rule은 `requestPreconditions`가 아니라 `excludedBusinessRules`로 분류한다.
+- target/operator/expected를 확정할 Evidence가 부족하면 literal을 추측하지 않고 diagnostic으로 남긴다.
+- legacy 전용 `$.order.state`, `PAYMENT_WAITING,PREPARING`, `orderer or ROLE_ADMIN` 하드코딩은 신규 Rule의 입력으로 사용하지 않는다.
+
+완료 조건:
+
+- 상태 및 권한 Rule에 predicate와 failure outcome Evidence가 모두 존재한다.
+- `ddd-start2`의 상태·권한 legacy-only 항목이 `EQUIVALENT` 또는 근거가 명시된 의도적 차이로 분류된다.
+- 이름만 유사한 method와 enum에서는 같은 Rule이 생성되지 않는다.
+
+### 후속 보완 Work 05-J: 명시적 응답 assertion 확장
+
+annotation 외에 코드에서 명시된 정상 응답 status와 header를 추출한다.
+
+- `ResponseEntity.ok(...)`, `ResponseEntity.status(...).body(...)`, `ResponseEntity.noContent().build()`를 지원한다.
+- 숫자 status와 `HttpStatus` enum을 정규화한다.
+- 명시적으로 설정된 response header만 `RESPONSE_HEADER` assertion으로 생성한다.
+- 여러 정상 status가 관찰되면 하나를 임의 선택하지 않고 scenario 또는 충돌 diagnostic으로 보존한다.
+- 단순 반환 DTO, framework 기본 동작 또는 기존 `response200` 필드만으로 status assertion을 만들지 않는다.
+
+완료 조건:
+
+- 명시적 `ResponseEntity` fixture에서 status assertion과 Evidence가 생성된다.
+- 명시적 status가 없는 fixture는 여전히 임의 `200` assertion을 만들지 않는다.
+- `ddd-start2`의 unresolved response 항목은 지원 가능한 명시적 Evidence와 실제 미해석 항목으로 분류된다.
+
+### 후속 구현 순서와 전환 목표
+
+1. **05-H 구조 조건 동등화**
+2. **05-I 상태·권한 Rule Evidence 추출**
+3. **05-J 명시적 응답 assertion 확장**
+4. `ddd-start2`와 `RealEstate` 실제 저장소 재검증
+5. Unit 06 품질 게이트와 Unit 07 delivery verification 재실행
+
+각 Work는 독립 커밋으로 완료한다. 최종 목표는 `LEGACY_ONLY = 0`, `CONFLICTING = 0`이지만, 근거 없는 호환 출력을 만들어 수치를 낮추지 않는다. `UNRESOLVED_BY_NEW_ENGINE`은 항목별 원인과 지원 여부가 분류돼야 한다.
+
 ### 전환 재개 조건
 
 다음을 모두 만족해야 Unit 07의 `NEW_ONLY` 전환 판정을 다시 수행한다.
