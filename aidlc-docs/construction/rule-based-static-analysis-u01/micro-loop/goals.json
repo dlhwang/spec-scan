@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "brief": "기존 graph와 병렬로 관찰 사실만 저장하는 bounded Fact Code Graph를 구현하고 검증한다.",
+  "goals": [
+    {"id":"G001","title":"Fact Graph domain model 구현","objective":"immutable node, edge, payload, graph, budget, diagnostic 모델과 invariant를 구현한다.","status":"complete","createdAt":"2026-07-14T03:18:50.737Z","updatedAt":"2026-07-14T03:26:29.244Z","evidence":"PASS: Gradle compileJava completed for immutable fact domain records and invariants."},
+    {"id":"G002","title":"Identity와 integrity support 구현","objective":"결정적 ID, accumulator, integrity validator를 구현한다.","status":"complete","createdAt":"2026-07-14T03:18:50.737Z","updatedAt":"2026-07-14T03:26:29.244Z","evidence":"PASS: Gradle compileJava completed for deterministic ID, accumulator, and integrity validator."},
+    {"id":"G003","title":"AST visitor와 traversal policy 구현","objective":"조건, 호출, 인자, field, outcome visitor와 내부 방문 정책을 구현한다.","status":"complete","createdAt":"2026-07-14T03:18:50.737Z","updatedAt":"2026-07-14T03:26:29.244Z","evidence":"PASS: Gradle compileJava completed for AST visitors and traversal policy."},
+    {"id":"G004","title":"Fact Graph builder 구현","objective":"API별 composite budget, cycle guard, diagnostic을 포함한 builder를 구현한다.","status":"complete","createdAt":"2026-07-14T03:18:50.737Z","updatedAt":"2026-07-14T03:26:29.244Z","evidence":"PASS: Gradle compileJava completed for DefaultFactCodeGraphBuilder."},
+    {"id":"G005","title":"Example-based tests 구현","objective":"domain, builder, branch, resolution, budget, cycle 테스트를 구현한다.","status":"complete","createdAt":"2026-07-14T03:18:50.737Z","updatedAt":"2026-07-14T03:33:01.971Z","evidence":"PASS: 6 example-based fact tests cover domain invariants, builder structure, local origin, enum constant, visited-method budget, edge budget, and recursive cycle reuse."},
+    {"id":"G006","title":"jqwik properties 구현","objective":"identity 결정성과 graph invariant property를 구현한다.","status":"complete","createdAt":"2026-07-14T03:18:50.737Z","updatedAt":"2026-07-14T03:33:01.971Z","evidence":"PASS: 3 jqwik properties; tries 500, 500, 200; seeds recorded in JUnit XML; shrinking enabled."},
+    {"id":"G007","title":"전체 검증","objective":"신규, baseline, legacy, 전체 테스트와 diff를 검증한다.","status":"complete","createdAt":"2026-07-14T03:18:50.737Z","updatedAt":"2026-07-14T03:33:01.971Z","evidence":"PASS: full Gradle suite 53 tests, 0 failures/errors/skips across 15 suites; scoped diff check passed; legacy graph files unchanged; JUnit Platform resolved consistently to 1.9.3."},
+    {"id":"G008","title":"jqwik IntRange import 복구","objective":"FactNodeIdGeneratorProperties에 jqwik constraints IntRange import를 추가하고 신규 테스트를 재실행한다.","status":"complete","createdAt":"2026-07-14T03:26:29.244Z","updatedAt":"2026-07-14T03:33:01.971Z","evidence":"PASS: added net.jqwik.api.constraints.IntRange import; fact test compilation and execution succeeded.","steering":{"kind":"review_blocker","blockedGoalId":"G005"}}
+  ]
+}

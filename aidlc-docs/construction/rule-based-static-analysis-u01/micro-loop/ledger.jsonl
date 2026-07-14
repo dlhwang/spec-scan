@@ -1,0 +1,20 @@
+{"eventId":"32885a95-fe1d-4dff-a294-f3cfe946945a","event":"plan_created","goalIds":["G001","G002","G003","G004","G005","G006","G007"],"timestamp":"2026-07-14T03:18:50.737Z"}
+{"eventId":"888ee0a2-1d93-4884-a812-15afebedc48e","event":"goal_started","goalId":"G001","timestamp":"2026-07-14T03:18:50.737Z"}
+{"eventId":"8f4a5610-04fa-4cfb-9b4e-8fab0a1259a5","event":"goal_checkpointed","goalId":"G001","status":"complete","evidence":"compileJava passed for fact domain model.","timestamp":"2026-07-14T03:26:29.244Z"}
+{"eventId":"03f53a00-5a8b-47eb-b2a2-fc0629c09241","event":"goal_started","goalId":"G002","timestamp":"2026-07-14T03:26:29.244Z"}
+{"eventId":"e7876ee1-058d-4bbf-ad44-99df5f068430","event":"goal_checkpointed","goalId":"G002","status":"complete","evidence":"compileJava passed for ID and integrity support.","timestamp":"2026-07-14T03:26:29.244Z"}
+{"eventId":"e285e596-d9a4-4be0-a9f3-7c131cf66bad","event":"goal_started","goalId":"G003","timestamp":"2026-07-14T03:26:29.244Z"}
+{"eventId":"dba314ac-724c-4741-b9a5-30a522dc396e","event":"goal_checkpointed","goalId":"G003","status":"complete","evidence":"compileJava passed for visitors and traversal policy.","timestamp":"2026-07-14T03:26:29.244Z"}
+{"eventId":"84e54d82-cd0e-4215-a03c-5846554bc5be","event":"goal_started","goalId":"G004","timestamp":"2026-07-14T03:26:29.244Z"}
+{"eventId":"62470374-2dbc-4a6c-89e6-56237f58b7c7","event":"goal_checkpointed","goalId":"G004","status":"complete","evidence":"compileJava passed for Fact Graph builder.","timestamp":"2026-07-14T03:26:29.244Z"}
+{"eventId":"bc552975-921c-4fcc-8b6f-868f80bedb61","event":"goal_started","goalId":"G005","timestamp":"2026-07-14T03:26:29.244Z"}
+{"eventId":"a9dc14c3-b70b-4958-bc15-2e5248790ef9","event":"goal_checkpointed","goalId":"G005","status":"review_blocked","evidence":"compileTestJava failed: missing net.jqwik.api.constraints.IntRange import.","timestamp":"2026-07-14T03:26:29.244Z"}
+{"eventId":"988869c0-4631-4ec5-9757-3009543231c7","event":"review_blockers_recorded","goalId":"G005","blockerGoalId":"G008","timestamp":"2026-07-14T03:26:29.244Z"}
+{"eventId":"fd3253cc-9580-436e-82e9-6b952e4a4be6","event":"goal_started","goalId":"G008","timestamp":"2026-07-14T03:26:29.244Z"}
+{"eventId":"9121b25d-1247-420d-a9b5-5e27e17f5975","event":"goal_checkpointed","goalId":"G008","status":"complete","evidence":"IntRange import added; fact tests compile and run.","timestamp":"2026-07-14T03:33:01.971Z"}
+{"eventId":"18081ac7-ba99-49e8-8d15-0a0e9b58a60a","event":"goal_started","goalId":"G005","timestamp":"2026-07-14T03:33:01.971Z"}
+{"eventId":"14442ecc-5fee-4fff-994e-970e67a93a1a","event":"goal_checkpointed","goalId":"G005","status":"complete","evidence":"6 example-based fact tests passed including budget and cycle cases.","timestamp":"2026-07-14T03:33:01.971Z"}
+{"eventId":"0fc2dd3f-ca67-4806-ae3d-c5961c5b22de","event":"goal_started","goalId":"G006","timestamp":"2026-07-14T03:33:01.971Z"}
+{"eventId":"77c6c025-6cff-4ee8-a95f-f443b0ac8c0c","event":"goal_checkpointed","goalId":"G006","status":"complete","evidence":"3 jqwik properties passed with 500/500/200 tries and recorded seeds.","timestamp":"2026-07-14T03:33:01.971Z"}
+{"eventId":"25d4ab8a-5b44-4e31-b022-147b0ab624d1","event":"goal_started","goalId":"G007","timestamp":"2026-07-14T03:33:01.971Z"}
+{"eventId":"f54be854-51b5-4e5b-9bbd-d1caf3da536b","event":"goal_checkpointed","goalId":"G007","status":"complete","evidence":"Full suite 53/53 passed; scoped diff clean; legacy graph unchanged; JUnit Platform 1.9.3 aligned.","timestamp":"2026-07-14T03:33:01.971Z"}

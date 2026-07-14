@@ -1,0 +1,3 @@
+package io.atworks.specscan.analysis.domain.fact;
+
+public enum FactNodeType { API_METHOD, METHOD, PARAMETER, LOCAL_VARIABLE, FIELD_ACCESS, ENUM_CONSTANT, LITERAL, NULL_LITERAL, METHOD_CALL, CONDITION, THROW, RETURN }

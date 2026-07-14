@@ -1,0 +1,3 @@
+package io.atworks.specscan.analysis.domain.fact;
+
+public enum FactEdgeType { CALLS, HAS_ARGUMENT, RECEIVER_OF, READS, ASSIGNED_FROM, COMPARES_WITH, OPERAND_OF, CONTROLS, THEN_OUTCOME, ELSE_OUTCOME, ORIGINATES_FROM }
