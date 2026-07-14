@@ -6,6 +6,33 @@
 
 이 Unit의 결과물은 다음 단계의 출력 마이그레이션에서 사용할 초기 Rule Pack과 Rule별 회귀 테스트다. 새로운 그래프 모델이나 Rule 엔진을 다시 설계하는 작업은 포함하지 않는다.
 
+이 Unit에서 구현하는 Rule은 최종 제품의 전체 기본 지원 범위를 의미하지 않는다. 현재 Rule은 Rule 엔진, Evidence 계약, 극성 계산, 타입 및 origin 해석, 충돌 정책이 실제로 동작하는지 검증하기 위한 **초기 제공 Rule**이다. 이후 표준 Java 및 지원 프레임워크에서 반복적으로 나타나는 검증 구조를 기본 제공 Rule Pack으로 지속 확장하고, 프로젝트 고유 규칙은 사용자가 별도 Rule로 추가할 수 있어야 한다.
+
+## Rule 제공 전략
+
+최종 Rule 구성은 다음 두 공급원을 함께 사용한다.
+
+1. **기본 제공 Rule Pack**
+   - 분석기가 공식적으로 지원하는 언어, 표준 라이브러리 및 프레임워크의 검증 구조를 제공한다.
+   - 사용자가 별도 Rule을 등록하지 않아도 일반적인 검증 조건을 유의미하게 추출할 수 있을 정도로 확장한다.
+   - 현재 Unit의 Rule을 출발점으로 사용하되, 현재 목록을 완성된 기본 지원 범위로 간주하지 않는다.
+
+2. **사용자 정의 Rule Pack**
+   - 조직, 프로젝트, 도메인 또는 자체 프레임워크에만 존재하는 검증 규칙을 사용자가 추가할 수 있게 한다.
+   - 기본 제공 Rule을 제거하거나 대체하는 기능으로 한정하지 않고, 기본 분석 결과를 확장하거나 더 구체적인 의미로 정제할 수 있어야 한다.
+   - 사용자 Rule도 기본 Rule과 동일하게 Fact Code Graph, resolved metadata, 상태 및 Evidence 계약을 따라야 한다.
+
+기본 Rule과 사용자 Rule은 동일한 Rule 실행 경로와 결과 모델을 사용해야 한다. Rule 공급 방식이 다르다는 이유로 별도의 분석 의미 체계나 출력 계약을 만들지 않는다.
+
+### 예시와 목록의 해석 원칙
+
+이 문서에 기재된 Rule, API, 프레임워크 또는 코드 구조는 구현 방향과 테스트 기준을 설명하기 위한 것이며 전체 지원 대상을 열거한 폐쇄 목록이 아니다.
+
+- 예시에 등장한 이름, 호출 형태 또는 도메인 표현만 지원하도록 구현하지 않는다.
+- 신규 기본 Rule의 우선순위는 예시와의 유사성이 아니라 실제 코드베이스에서의 반복성, 구조적 식별 가능성, 오탐 위험, Validation Condition으로의 변환 가능성을 기준으로 결정한다.
+- 사용자 정의 Rule 기능도 특정 예시 문장을 직접 실행 규칙으로 사용하지 않고, 검증 가능한 공통 Rule 모델로 정규화한 뒤 실행한다.
+- 문서의 예시가 Fact Code Graph 또는 Rule DSL의 전체 표현 능력을 제한하는 근거가 되어서는 안 된다.
+
 ## 선행 조건
 
 - Unit 01의 Fact Code Graph가 predicate, call, value origin, resolved type/signature, control-flow outcome을 제공한다.
@@ -217,6 +244,16 @@ null check 자체만으로 DB resource existence라고 해석하지 않는다. �
 
 프레임워크 dependency가 없는 분석에서는 해당 pack을 등록하지 않아도 Java/JDK Rule이 동작해야 한다. 범용 Rule과 refinement Rule이 같은 predicate에 매칭될 때의 정책은 registry 설정에 명시하고, 등록 순서에 따라 결과가 달라지지 않게 한다.
 
+현재 그룹과 Rule 목록은 초기 등록 구조를 검증하기 위한 최소 구성이다. 후속 기본 Rule은 책임과 dependency 경계를 기준으로 독립적인 pack에 추가할 수 있어야 하며, 신규 pack 추가 때문에 기존 Rule 구현이나 중앙 분류 로직을 수정하도록 강제하지 않는다.
+
+사용자 정의 Rule Pack이 도입되면 다음 원칙을 따른다.
+
+- 기본 제공 Rule Pack은 제품 기본값으로 유지한다.
+- 사용자 Rule은 명시적인 적용 범위와 버전을 가진다.
+- 기본 Rule과 사용자 Rule의 동시 매칭은 공통 충돌 정책과 diagnostic으로 처리한다.
+- 사용자 Rule의 등록 순서나 저장 순서가 최종 결과를 암묵적으로 바꾸지 않는다.
+- Rule의 활성화, 비활성화 및 정제 관계는 명시적인 메타데이터로 표현한다.
+
 ## 테스트 전략
 
 ### Rule별 필수 매트릭스
@@ -256,6 +293,42 @@ null check 자체만으로 DB resource existence라고 해석하지 않는다. �
 3. JDK Optional Rule을 구현한 뒤 Spring Data refinement와 충돌 정책을 추가한다.
 4. PasswordEncoder Rule로 resolved signature와 origin 요구 사항을 검증한다.
 5. 전체 fixture에서 pack 조합, 중복 제거, 등록 순서 독립성을 검증한다.
+6. 현재 Unit의 완료 후 별도 후속 작업으로 기본 제공 Rule Pack의 범위를 평가하고 확장한다.
+7. 기본 Rule 확장과 독립된 후속 작업으로 사용자 정의 Rule의 작성, 검증, 등록 및 실행 기능을 추가한다.
+
+후속 작업은 현재 5개 Rule에 개별 사례를 계속 덧붙이는 방식이 아니라, 공통 구조를 재사용할 수 있는 Rule 단위와 pack 경계를 먼저 정의한 뒤 진행한다.
+
+## 후속 확장 요구사항
+
+### 기본 제공 Rule Pack 확장
+
+기본 제공 Rule Pack은 다음 원칙으로 지속 확장한다.
+
+- 표준화되었거나 여러 코드베이스에서 반복되는 검증 구조를 우선한다.
+- 타입, signature, annotation, predicate, value origin 및 control-flow outcome처럼 관찰 가능한 근거로 식별할 수 있어야 한다.
+- 지원 범위를 늘리기 위해 신뢰도가 낮은 이름 기반 추론을 일반화하지 않는다.
+- 하나의 공통 구조로 처리할 수 있는 변형을 불필요하게 여러 하드코딩 Rule로 복제하지 않는다.
+- 지원 여부는 Rule 수가 아니라 fixture 및 holdout 코드에서의 정밀도, 재현율, 미지원 사유의 설명 가능성으로 평가한다.
+- 특정 프로젝트의 요구는 기본 Rule에 섞지 않고 사용자 정의 Rule 후보로 분리한다.
+
+### 사용자 정의 Rule 기능
+
+사용자는 UI를 통해 정해진 작성 계약을 따르는 Rule 정의를 등록할 수 있어야 한다. 입력 형식은 YAML과 구조화된 텍스트를 지원할 수 있으나, 실행 전에는 반드시 검증 가능한 공통 Rule Definition으로 정규화한다.
+
+사용자 정의 Rule 기능은 최소한 다음 책임을 가진다.
+
+- Rule 문법 및 schema 검증
+- Rule ID, 버전, 적용 범위와 활성 상태 관리
+- Fact Code Graph에서 참조 가능한 조건만 허용
+- 실행 전 dry-run과 매칭 결과 확인
+- 미매칭, 미지원, 타입 및 origin 해석 실패 diagnostic 제공
+- 생성되는 category, constraint 및 Evidence의 출처 검증
+- 기본 Rule과의 중복, 정제 및 충돌 처리
+- 동일 입력과 동일 Rule 버전에 대한 결정적 실행 결과 보장
+
+자연어에 가까운 텍스트 입력을 지원하더라도 해당 텍스트를 분석 실행 시마다 직접 해석하지 않는다. 텍스트는 검토 가능한 Rule Definition으로 변환하고 schema 검증을 통과한 결과만 저장하고 실행한다.
+
+사용자 Rule은 Fact Code Graph에 없는 사실을 만들어내거나, 근거가 없는 `targetPath`, `operator`, `expectedValues`를 선언적으로 주입하는 우회 수단이 되어서는 안 된다.
 
 ## 변경 예상 파일
 
@@ -271,7 +344,7 @@ Unit 01~03의 공개 계약이 구현을 막는 경우 해당 Unit의 설계를 
 
 ## 완료 기준
 
-- 5개 기본 Rule과 명시한 refinement Rule이 registry를 통해 독립적으로 활성화된다.
+- 5개 초기 Rule과 명시한 refinement Rule이 registry를 통해 독립적으로 활성화된다.
 - production Rule 코드에 예제 프로젝트의 클래스명, 변수명, 필드명과 Enum 상수명이 없다.
 - 동일 Rule이 이름과 도메인이 다른 최소 두 fixture에서 통과한다.
 - 각 Rule에 최소 하나의 false-positive 방지 테스트와 극성 반전 테스트가 있다.
@@ -281,6 +354,8 @@ Unit 01~03의 공개 계약이 구현을 막는 경우 해당 Unit의 설계를 
 - refinement 충돌 결과가 등록 순서와 무관하다.
 - 의미를 확정할 근거가 부족하면 더 일반적인 category, `UNRESOLVED` 또는 미매칭을 사용한다.
 - Unit 03의 다중 매칭, 중복 제거, Rule 실패 격리 테스트가 초기 pack에서도 통과한다.
+- 현재 Rule 목록이 최종 기본 제공 범위가 아니라 후속 확장의 출발점임이 registry 문서 또는 작업 문서에 명시된다.
+- 기본 Rule과 향후 사용자 Rule이 동일한 Evidence 및 결과 계약을 사용하도록 확장 경계가 문서화된다.
 
 ## 비목표
 
@@ -288,5 +363,6 @@ Unit 01~03의 공개 계약이 구현을 막는 경우 해당 Unit의 설계를 
 - helper method 내부 도메인 의미 자동 추론
 - 무제한 Enum 논리식 정규화
 - collection membership, switch, stream predicate 지원
-- 프로젝트별 Rule DSL
+- 이 Unit 안에서 프로젝트별 Rule DSL과 관리 UI를 구현하는 작업
+- 이 Unit 안에서 기본 제공 Rule의 전체 제품 범위를 완성하는 작업
 - 프레임워크 dependency 자동 탐색과 동적 plugin loading
