@@ -23,6 +23,7 @@ repositories {
 dependencies {
     implementation 'org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r'
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.15.2'
     implementation 'com.github.javaparser:javaparser-core:3.25.7'
     implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.25.7'
     
