@@ -38,6 +38,9 @@ public final class CandidateOutputComparator {
         for (ApiCondition condition : unresolvedScope) differences.add(new MigrationDifference(
             MigrationDifferenceKind.LEGACY_SCOPE_UNRESOLVED, targetKey(condition),
             condition.sourceTrace().fileRelativePath()));
+        if (differences.isEmpty()) differences.add(new MigrationDifference(
+            MigrationDifferenceKind.NO_CONDITIONS_OBSERVED,
+            OperationKey.of(endpoint).externalKey(), "Neither legacy nor new conditions were observed"));
         return new CandidateOutputComparisonReport(endpoint.httpMethod(), endpointPath,
             endpoint.controllerClass() + "#" + endpoint.controllerMethod(), differences);
     }

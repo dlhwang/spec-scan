@@ -154,7 +154,7 @@ public class OpenApiAssemblyService {
             Files.writeString(resolveExecutionOutputPath(outputPath), executionJson);
             Files.writeString(resolveGraphOutputPath(outputPath), graphJson);
             if (migration != null) Files.writeString(resolveMigrationReportPath(outputPath),
-                objectMapper.writeValueAsString(migration.comparisonReports()));
+                objectMapper.writeValueAsString(migration.comparisonDocument()));
         } catch (IOException e) {
             throw new IngestionException(
                 IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,

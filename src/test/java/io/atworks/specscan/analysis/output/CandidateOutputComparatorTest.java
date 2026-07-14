@@ -9,6 +9,16 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class CandidateOutputComparatorTest {
+    @Test void reportsEmptyObservationInsteadOfAmbiguousEmptyDifferences() {
+        SourceTrace trace = new SourceTrace("Controller.java", 1, 5);
+        ApiEndpoint endpoint = new ApiEndpoint("GET", "/empty", "Controller", "empty", List.of(),
+            new ResponseBinding("void", trace), trace);
+        CandidateOutputComparisonReport report = new CandidateOutputComparator().compare(endpoint, List.of(),
+            EndpointRuleOutput.empty(endpoint.path()));
+        assertThat(report.differences()).singleElement()
+            .extracting(MigrationDifference::kind).isEqualTo(MigrationDifferenceKind.NO_CONDITIONS_OBSERVED);
+    }
+
     @Test void scopesPathlessLegacyConditionsByRequestBindingSource() {
         SourceTrace controller = new SourceTrace("src/CategoryController.java", 10, 20);
         SourceTrace categoryDto = new SourceTrace("src/CategoryRequest.java", 1, 30);
