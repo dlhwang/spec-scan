@@ -248,8 +248,7 @@ private Optional<ApiCondition> normalizeValidator(ValidationCandidate candidate,
             + " "
             + normalizeText(ruleNode == null ? "" : ruleNode.snippet());
         return combined.contains("isnotyetshipped")
-            || combined.contains("payment_waiting")
-            || combined.contains("preparing");
+            || (combined.contains("payment_waiting") && combined.contains("preparing"));
     }
 
     private boolean supportsResolvedRule(ValidationCandidate candidate, ApiEndpoint endpoint, GraphNode ruleNode) {
@@ -274,8 +273,7 @@ private Optional<ApiCondition> normalizeValidator(ValidationCandidate candidate,
         }
         String combined = normalizeText(node.label()) + " " + normalizeText(node.snippet());
         return combined.contains("isnotyetshipped")
-            || combined.contains("payment_waiting")
-            || combined.contains("preparing");
+            || (combined.contains("payment_waiting") && combined.contains("preparing"));
     }
 
     private GraphRuleMatch findReachableRuleMatch(ValidationCandidate candidate, CandidateChunk chunk, ValidationEvidenceGraph graph) {
