@@ -11,7 +11,7 @@ public final class RuleInvocationBoundary {
 
     public List<BusinessRuleCandidate> invoke(GraphRule rule, FactCodeGraph graph, PredicateCandidate predicate,
                                                RuleExecutionStats stats) {
-        stats.executed();
+        stats.executed(rule.id());
         try {
             List<BusinessRuleCandidate> returned = rule.match(graph, predicate);
             if (returned == null) return failure(rule, predicate, stats, "RULE_RETURNED_NULL", null, "Rule returned null");

@@ -9,7 +9,7 @@ public final class RuleMatchAccumulator {
     private final RuleExecutionStats stats;
     public RuleMatchAccumulator(RuleExecutionStats stats) { this.stats = stats; }
     public void add(BusinessRuleCandidate candidate) {
-        if (unique.putIfAbsent(keys.key(candidate), candidate) == null) stats.matched(); else stats.deduplicated();
+        if (unique.putIfAbsent(keys.key(candidate), candidate) == null) stats.matched(candidate.ruleId()); else stats.deduplicated();
     }
     public List<BusinessRuleCandidate> candidates() { return List.copyOf(unique.values()); }
 }

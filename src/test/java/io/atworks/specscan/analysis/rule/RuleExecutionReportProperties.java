@@ -14,7 +14,7 @@ class RuleExecutionReportProperties {
         RuleExecutionStats stats = new RuleExecutionStats(rules);
         stats.predicates(predicates);
         int executions = predicates * rules;
-        for (int i = 0; i < executions; i++) stats.executed();
+        for (int i = 0; i < executions; i++) stats.executed("test-rule");
         RuleExecutionReport report = stats.report();
 
         assertThat(report.registeredRules()).isEqualTo(rules);
