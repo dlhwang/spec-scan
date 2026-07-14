@@ -84,7 +84,16 @@ public final class DefaultFactCodeGraphBuilder {
 
     private FactNode methodNode(MethodDeclaration method, String owner, SourceRange range, boolean api) { FactNodeType type = api ? FactNodeType.API_METHOD : FactNodeType.METHOD; return new FactNode(ids.generate(type, owner, range, api ? "api-root" : "method"), type, range, method.getDeclarationAsString(false, false, true), TypeResolution.resolvedSignature(owner), new FactNodePayload.MethodPayload(owner.substring(0, Math.max(0, owner.lastIndexOf('.'))), method.getSignature().asString(), api)); }
     private void relate(FactNode a, FactNode b, FactEdgeType type, int ordinal, String role, FactGraphAccumulator acc) { acc.addRelation(a, b, new FactEdge(ids.edgeId(a.id(), b.id(), type.name(), ordinal, role), a.id(), b.id(), type, ordinal, role)); }
-    private String appBase(String controller) { for (String marker : List.of(".controller.", ".api.", ".web.")) { int i = controller.indexOf(marker); if (i > 0) return controller.substring(0, i); } int i = controller.lastIndexOf('.'); return i > 0 ? controller.substring(0, i) : ""; }
+    private String appBase(String controller) {
+        for (String marker : List.of(".controller.", ".api.", ".web.")) {
+            int i = controller.indexOf(marker);
+            if (i > 0) return controller.substring(0, i);
+        }
+        String[] segments = controller.split("\\.");
+        if (segments.length >= 2) return segments[0] + "." + segments[1];
+        int i = controller.lastIndexOf('.');
+        return i > 0 ? controller.substring(0, i) : "";
+    }
     private FactGraphTraversalStats stats(TraversalState state, FactGraphAccumulator acc) { return new FactGraphTraversalStats(state.maxDepth, state.visited.size(), acc.edgeCount()); }
     private FactGraphDiagnostic diagnostic(String api, String reason, boolean truncated, FactGraphTraversalBudget budget, FactGraphTraversalStats stats, SourceRange range, String details) { return new FactGraphDiagnostic(api, truncated ? DiagnosticSeverity.WARNING : DiagnosticSeverity.ERROR, reason, truncated, budget, stats, range, details); }
     private static final class TraversalState { private int maxDepth; private final Set<String> visited = new LinkedHashSet<>(); private final Map<String, FactNode> methodNodes = new LinkedHashMap<>(); }

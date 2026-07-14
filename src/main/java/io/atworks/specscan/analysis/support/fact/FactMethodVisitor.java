@@ -38,6 +38,15 @@ final class FactMethodVisitor {
             directOutcomes(statement.getThenStmt(), condition, FactEdgeType.THEN_OUTCOME, owner, workspace, acc);
             statement.getElseStmt().ifPresent(branch -> directOutcomes(branch, condition, FactEdgeType.ELSE_OUTCOME, owner, workspace, acc));
         }
+        for (ReturnStmt statement : method.findAll(ReturnStmt.class)) {
+            SourceRange range = FactExpressionVisitor.range(statement, workspace);
+            FactNode returned = new FactNode(ids.generate(FactNodeType.RETURN, owner, range, "method-return"),
+                FactNodeType.RETURN, range, statement.toString(), TypeResolution.notApplicable(),
+                new FactNodePayload.OutcomePayload("RETURN", statement.getClass().getSimpleName()));
+            relation(methodNode, returned, FactEdgeType.RETURNS, -1, "RETURN", acc);
+            statement.getExpression().ifPresent(expression -> expressions.visit(expression, returned, owner,
+                workspace, acc, call -> resolve(call, resolver)));
+        }
     }
     private void directOutcomes(Statement branch, FactNode condition, FactEdgeType edge, String owner, Path workspace, FactGraphAccumulator acc) {
         if (branch instanceof ThrowStmt thrown) outcome(thrown, condition, FactNodeType.THROW, edge, owner, workspace, acc);

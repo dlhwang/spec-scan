@@ -2,7 +2,10 @@ package io.atworks.specscan.analysis.fact;
 
 import io.atworks.specscan.analysis.domain.*;
 import io.atworks.specscan.analysis.domain.fact.*;
+import io.atworks.specscan.analysis.domain.rule.GraphRuleEngineResult;
 import io.atworks.specscan.analysis.support.fact.DefaultFactCodeGraphBuilder;
+import io.atworks.specscan.analysis.support.rule.*;
+import io.atworks.specscan.analysis.support.rule.pack.*;
 import io.atworks.specscan.ingestion.domain.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -65,6 +68,37 @@ class FactCodeGraphBuilderTest {
         assertThat(result.graphs()).hasSize(1);
         assertThat(result.graphs().get(0).nodes()).filteredOn(n -> n.type() == FactNodeType.API_METHOD || n.type() == FactNodeType.METHOD).hasSize(1);
         assertThat(result.graphs().get(0).edges()).extracting(FactEdge::type).contains(FactEdgeType.CALLS);
+    }
+
+    @Test void delegatedGuardKeepsCalledMethodReturnEvidence() throws Exception {
+        write("demo/controller/OrderController.java", """
+            package demo.controller;
+            import demo.service.OrderService;
+            public class OrderController { private OrderService service;
+                public void ship(long version) { service.ship(version); }
+            }
+            """);
+        write("demo/service/OrderService.java", """
+            package demo.service;
+            public class OrderService { private Order order;
+                public void ship(long version) { if (order.matchVersion(version)) throw new IllegalStateException(); }
+            }
+            class Order { private long version; boolean matchVersion(long supplied) { return version == supplied; } }
+            """);
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.OrderController", "ship"), source(2), FactGraphTraversalBudget.defaults()).graphs().get(0);
+        assertThat(graph.edges()).extracting(FactEdge::type).contains(FactEdgeType.RETURNS);
+        var scope = new io.atworks.specscan.analysis.domain.rule.MethodScope(graph.graphId(),
+            graph.nodes().stream().filter(node -> node.type() == FactNodeType.API_METHOD
+                || node.type() == FactNodeType.METHOD).map(FactNode::id).collect(java.util.stream.Collectors.toSet()));
+        var predicates = new DefaultValidationCandidateDetector(List.of()).detect(graph, scope);
+        assertThat(predicates).singleElement();
+        assertThat(new DelegatedGuardRule().match(graph, predicates.get(0)))
+            .withFailMessage("nodes=%s edges=%s", graph.nodes(), graph.edges()).isNotEmpty();
+        GraphRuleEngineResult result = new DefaultGraphRuleEngine(new DefaultValidationCandidateDetector(List.of()),
+            InitialRulePacks.all()).evaluate(graph, scope);
+        assertThat(result.candidates().businessRules()).extracting("category")
+            .contains(io.atworks.specscan.analysis.domain.candidate.BusinessRuleCategory.VERSION_CONSISTENCY);
     }
 
     @Test void nestedThrowBelongsOnlyToNestedCondition() throws Exception {

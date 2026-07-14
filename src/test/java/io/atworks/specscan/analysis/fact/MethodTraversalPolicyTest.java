@@ -13,6 +13,11 @@ class MethodTraversalPolicyTest {
             .isEqualTo(TraversalDecision.VISIT_BODY);
     }
 
+    @Test void visitsSiblingBoundedContextsUnderTheApplicationRoot() {
+        assertThat(policy.decide("com.myshop.order.command.StartShippingService", "startShipping", true,
+            "com.myshop")).isEqualTo(TraversalDecision.VISIT_BODY);
+    }
+
     @Test void stillRecordsRepositoryAndFrameworkCallsWithoutTraversingThem() {
         assertThat(policy.decide("com.estate.repository.PropertyRepository", "findById", true, "com.estate"))
             .isEqualTo(TraversalDecision.RECORD_CALL_ONLY);

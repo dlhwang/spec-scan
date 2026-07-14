@@ -37,6 +37,18 @@ final class StructuralRuleSupport {
         return descendants(conditionId).stream().filter(node -> node.type() == FactNodeType.METHOD_CALL).findFirst();
     }
 
+    Optional<FactNode> calledMethod(String callId) {
+        return graph.edges().stream().filter(edge -> edge.type() == FactEdgeType.CALLS
+                && edge.sourceNodeId().equals(callId)).map(edge -> nodes.get(edge.targetNodeId()))
+            .filter(Objects::nonNull).filter(node -> node.type() == FactNodeType.METHOD).findFirst();
+    }
+
+    List<FactNode> methodReturns(String methodId) {
+        return graph.edges().stream().filter(edge -> edge.type() == FactEdgeType.RETURNS
+                && edge.sourceNodeId().equals(methodId)).map(edge -> nodes.get(edge.targetNodeId()))
+            .filter(Objects::nonNull).toList();
+    }
+
     List<FactNode> descendants(String sourceId) {
         List<FactNode> result = new ArrayList<>();
         Deque<String> pending = new ArrayDeque<>();

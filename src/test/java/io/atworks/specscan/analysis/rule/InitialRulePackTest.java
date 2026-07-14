@@ -75,11 +75,13 @@ class InitialRulePackTest {
     @Test void initialPacksHaveStableUniqueRuleIds() {
         assertThat(new RulePackRegistry(InitialRulePacks.all()).rules()).extracting(GraphRule::id)
             .containsExactlyInAnyOrder(EnumAllowedValueGuardRule.ID, InputDomainMismatchGuardRule.ID,
-                NullRejectionGuardRule.ID, OptionalLookupFailureRule.ID, PasswordEncoderMatchFailureRule.ID,
+                NullRejectionGuardRule.ID, DelegatedGuardRule.ID, AuthorizationGuardCallRule.ID,
+                OptionalLookupFailureRule.ID, PasswordEncoderMatchFailureRule.ID,
                 SpringDataFindByIdOrElseThrowRule.ID);
         assertThat(InitialRuleCatalog.descriptors()).extracting(RuleDescriptor::ruleId)
             .containsExactlyInAnyOrder(EnumAllowedValueGuardRule.ID, InputDomainMismatchGuardRule.ID,
-                NullRejectionGuardRule.ID, OptionalLookupFailureRule.ID, PasswordEncoderMatchFailureRule.ID,
+                NullRejectionGuardRule.ID, DelegatedGuardRule.ID, AuthorizationGuardCallRule.ID,
+                OptionalLookupFailureRule.ID, PasswordEncoderMatchFailureRule.ID,
                 SpringDataFindByIdOrElseThrowRule.ID);
     }
 

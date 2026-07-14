@@ -11,7 +11,8 @@ public final class InitialRulePacks {
     }
     public static RulePack javaLanguage() {
         return new RulePack("java-language", true, List.of(
-            new EnumAllowedValueGuardRule(), new InputDomainMismatchGuardRule(), new NullRejectionGuardRule()),
+            new EnumAllowedValueGuardRule(), new InputDomainMismatchGuardRule(), new NullRejectionGuardRule(),
+            new DelegatedGuardRule(), new AuthorizationGuardCallRule()),
             RulePrecedence.none());
     }
     public static RulePack jdkIdioms() {
