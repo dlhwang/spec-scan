@@ -79,3 +79,16 @@ tasks.register('webSpecScanJar', Jar) {
 test {
     useJUnitPlatform()
 }
+
+tasks.register('ruleEvaluation', Test) {
+    group = 'verification'
+    description = 'Runs the rule-based static analysis quality gate and holdout evaluation.'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    systemProperty 'specscan.evaluation.report.path',
+        layout.buildDirectory.file('reports/rule-evaluation/evaluation-report.json').get().asFile.absolutePath
+    filter {
+        includeTestsMatching 'io.atworks.specscan.analysis.evaluation.*'
+    }
+}

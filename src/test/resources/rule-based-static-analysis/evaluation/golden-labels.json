@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "labels": [
+    {
+      "id": "optional-lookup-alpha",
+      "dataset": "synthetic-alpha",
+      "source": "positive/alpha/CatalogLookupService.java",
+      "expectedCandidate": true,
+      "supportedScope": true,
+      "acceptedRuleIds": ["JDK_OPTIONAL_LOOKUP_FAILURE"],
+      "acceptedCategories": ["EXISTENCE"],
+      "targetRequired": false
+    },
+    {
+      "id": "optional-lookup-renamed-holdout",
+      "dataset": "holdout-renamed-beta",
+      "source": "holdout/beta/RegistryLookupService.java",
+      "expectedCandidate": true,
+      "supportedScope": true,
+      "acceptedRuleIds": ["JDK_OPTIONAL_LOOKUP_FAILURE"],
+      "acceptedCategories": ["EXISTENCE"],
+      "targetRequired": false
+    },
+    {
+      "id": "unrelated-string-matches",
+      "dataset": "negative",
+      "source": "../synthetic/false-positive/UnrelatedMatchesService.java",
+      "expectedCandidate": false,
+      "supportedScope": true,
+      "acceptedRuleIds": [],
+      "acceptedCategories": [],
+      "targetRequired": false
+    },
+    {
+      "id": "unresolved-receiver-boundary",
+      "dataset": "boundary",
+      "source": "../synthetic/type-resolution-failure/UnresolvedReceiverService.java",
+      "expectedCandidate": true,
+      "supportedScope": false,
+      "acceptedRuleIds": [],
+      "acceptedCategories": [],
+      "targetRequired": false
+    }
+  ]
+}
