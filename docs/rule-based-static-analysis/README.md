@@ -68,6 +68,7 @@ Java source and type information
 | 5 | [05 출력 마이그레이션](05-normalization-and-output-migration.md) | 기존 출력 어댑터와 하드코딩 제거 | Unit 2, 3, 4 |
 | 6 | [06 검증과 평가](06-validation-and-evaluation.md) | fixture, holdout, 지표 | Unit 0부터 지속 |
 | 7 | [07 전달 순서](07-delivery-sequence.md) | 통합 순서와 완료 게이트 | 전체 |
+| 8 | [08 사용자 정의 YAML Rule Pack PoC](08-user-defined-yaml-rule-pack-poc.md) | 프로젝트별 Rule 로딩, 실행, 진단 | Unit 3, 4, 5 |
 
 ## 작업 규칙
 
@@ -85,4 +86,3 @@ Java source and type information
 - 모든 결과가 소스 위치와 그래프 Evidence를 포함한다.
 - 미해석과 미지원이 잘못된 비즈니스 의미로 출력되지 않는다.
 - 새 Graph Rule 추가 시 기존 Rule 구현과 중앙 분류 분기를 수정하지 않는다.
-
