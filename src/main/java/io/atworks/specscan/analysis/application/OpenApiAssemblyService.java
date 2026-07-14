@@ -192,8 +192,6 @@ public class OpenApiAssemblyService {
     }
 
     private static OutputMigrationMode resolveMigrationMode() {
-        String configured = System.getProperty("specscan.output.migration-mode", "COMPARE");
-        try { return OutputMigrationMode.valueOf(configured.trim().toUpperCase()); }
-        catch (RuntimeException ignored) { return OutputMigrationMode.COMPARE; }
+        return OutputMigrationMode.configured(System.getProperty("specscan.output.migration-mode"));
     }
 }
