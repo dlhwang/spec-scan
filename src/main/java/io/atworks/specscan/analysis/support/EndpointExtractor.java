@@ -396,26 +396,55 @@ public class EndpointExtractor {
         String rawType = method.getType().asString();
         String unwrappedType = classifyResponseType(method, rawType);
         SourceTrace trace = SourceTraceResolver.resolve(method.getType(), workspaceRoot, file);
-        Integer status = explicitResponseStatus(method);
-        return new ResponseBinding(unwrappedType, trace, status, status == null ? null : "@ResponseStatus");
+        ResponseMetadata metadata = explicitResponseMetadata(method);
+        return new ResponseBinding(unwrappedType, trace, metadata.status(), metadata.source(), metadata.headers());
     }
 
-    private Integer explicitResponseStatus(MethodDeclaration method) {
-        return method.getAnnotationByName("ResponseStatus").map(annotation -> {
-            String value = annotation.toString().toUpperCase(java.util.Locale.ROOT);
-            Map<String, Integer> statuses = Map.ofEntries(
+    private ResponseMetadata explicitResponseMetadata(MethodDeclaration method) {
+        Set<Integer> statuses = new LinkedHashSet<>();
+        List<String> sources = new ArrayList<>();
+        method.getAnnotationByName("ResponseStatus").ifPresent(annotation -> {
+            Integer status = parseStatus(annotation.toString());
+            if (status != null) { statuses.add(status); sources.add("@ResponseStatus"); }
+        });
+        Map<String, String> headers = new java.util.LinkedHashMap<>();
+        for (com.github.javaparser.ast.expr.MethodCallExpr call : method.findAll(com.github.javaparser.ast.expr.MethodCallExpr.class)) {
+            String scope = call.getScope().map(Object::toString).orElse("");
+            String name = call.getNameAsString();
+            if (("ok".equals(name) || "accepted".equals(name) || "noContent".equals(name))
+                    && scope.contains("ResponseEntity")) {
+                statuses.add("ok".equals(name) ? 200 : "accepted".equals(name) ? 202 : 204);
+                sources.add("ResponseEntity." + name);
+            } else if ("status".equals(name) && scope.contains("ResponseEntity") && !call.getArguments().isEmpty()) {
+                Integer status = parseStatus(call.getArgument(0).toString());
+                if (status != null) { statuses.add(status); sources.add("ResponseEntity.status"); }
+            } else if ("header".equals(name) && call.getArguments().size() >= 2) {
+                String headerName = cleanStringLiteral(call.getArgument(0).toString());
+                String headerValue = cleanStringLiteral(call.getArgument(1).toString());
+                if (!headerName.isBlank() && !headerValue.isBlank()) headers.put(headerName, headerValue);
+            }
+        }
+        if (statuses.size() > 1) return new ResponseMetadata(null, "CONFLICT:" + statuses, headers);
+        Integer status = statuses.stream().findFirst().orElse(null);
+        return new ResponseMetadata(status, status == null ? null : String.join("+", new LinkedHashSet<>(sources)), headers);
+    }
+
+    private Integer parseStatus(String rawValue) {
+            String value = rawValue.toUpperCase(java.util.Locale.ROOT);
+            Map<String, Integer> known = Map.ofEntries(
                 Map.entry("CONTINUE", 100), Map.entry("OK", 200), Map.entry("CREATED", 201),
                 Map.entry("ACCEPTED", 202), Map.entry("NO_CONTENT", 204), Map.entry("BAD_REQUEST", 400),
                 Map.entry("UNAUTHORIZED", 401), Map.entry("FORBIDDEN", 403), Map.entry("NOT_FOUND", 404),
                 Map.entry("CONFLICT", 409), Map.entry("UNPROCESSABLE_ENTITY", 422),
                 Map.entry("INTERNAL_SERVER_ERROR", 500));
-            for (Map.Entry<String, Integer> entry : statuses.entrySet()) {
+            for (Map.Entry<String, Integer> entry : known.entrySet()) {
                 if (value.matches("(?s).*\\b" + entry.getKey() + "\\b.*")) return entry.getValue();
             }
             java.util.regex.Matcher numeric = java.util.regex.Pattern.compile("\\b([1-5][0-9]{2})\\b").matcher(value);
             return numeric.find() ? Integer.valueOf(numeric.group(1)) : null;
-        }).orElse(null);
     }
+
+    private record ResponseMetadata(Integer status, String source, Map<String, String> headers) {}
 
     private boolean isFrameworkParameter(Parameter parameter) {
         if (parameter.isAnnotationPresent("RequestParam")

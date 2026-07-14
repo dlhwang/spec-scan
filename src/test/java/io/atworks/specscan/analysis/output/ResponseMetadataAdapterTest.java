@@ -30,6 +30,25 @@ class ResponseMetadataAdapterTest {
         assertThat(result.diagnostics()).extracting("code").containsExactly("RESPONSE_METADATA_UNRESOLVED");
     }
 
+    @Test void createsLiteralResponseHeaderAssertion() {
+        SourceTrace trace = new SourceTrace("Controller.java", 10, 10);
+        ResponseBinding binding = new ResponseBinding("Property", trace, 201, "ResponseEntity.status",
+            java.util.Map.of("Location", "/properties/1"));
+        EndpointRuleOutput result = adapter.augment(endpoint(binding, trace), EndpointRuleOutput.empty("/properties"));
+        assertThat(result.responseAssertions()).extracting("targetLocation")
+            .containsExactly("STATUS", "RESPONSE_HEADER");
+        assertThat(result.responseAssertions().get(1).targetPath()).isEqualTo("$.Location");
+    }
+
+    @Test void reportsConflictingStatusesWithoutChoosingOne() {
+        SourceTrace trace = new SourceTrace("Controller.java", 10, 10);
+        ResponseBinding binding = new ResponseBinding("Property", trace, null, "CONFLICT:[200, 204]",
+            java.util.Map.of());
+        EndpointRuleOutput result = adapter.augment(endpoint(binding, trace), EndpointRuleOutput.empty("/properties"));
+        assertThat(result.responseAssertions()).isEmpty();
+        assertThat(result.diagnostics()).extracting("code").containsExactly("RESPONSE_METADATA_CONFLICT");
+    }
+
     private ApiEndpoint endpoint(ResponseBinding response, SourceTrace trace) {
         return new ApiEndpoint("POST", "/properties", "Controller", "create", List.of(), response, trace);
     }
