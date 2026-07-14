@@ -66,7 +66,8 @@ public final class DefaultValidationCandidateDetector implements ReportedValidat
         for (String callId : scopedCalls.stream().sorted().toList()) {
             FactNode call = nodes.get(callId);
             if (call == null || !(call.payload() instanceof FactNodePayload.MethodCallPayload payload)
-                    || !"orElseThrow".equals(payload.methodName()) || !isJdkOptional(call.typeResolution())) continue;
+                    || !"orElseThrow".equals(payload.methodName())
+                    || (!isJdkOptional(call.typeResolution()) && !hasResolvedSpringDataReceiver(graph, nodes, call.id()))) continue;
             candidates.add(new PredicateCandidate(ids.forPredicate(graph.graphId(), call.id()), graph.graphId(),
                 call.id(), PredicateType.LOOKUP_CHAIN, ExtractionStatus.EXTRACTED,
                 List.of(evidenceMapper.fromFact(call, EvidenceRole.PREDICATE),
@@ -74,10 +75,24 @@ public final class DefaultValidationCandidateDetector implements ReportedValidat
         }
     }
 
+    private boolean hasResolvedSpringDataReceiver(FactCodeGraph graph, Map<String, FactNode> nodes, String callId) {
+        for (FactEdge edge : graph.edges()) {
+            if (!edge.sourceNodeId().equals(callId) || edge.type() != FactEdgeType.OPERAND_OF
+                    || !"RECEIVER".equals(edge.role())) continue;
+            FactNode receiver = nodes.get(edge.targetNodeId());
+            if (receiver == null || !(receiver.payload() instanceof FactNodePayload.MethodCallPayload payload)
+                    || !"findById".equals(payload.methodName())) continue;
+            String signature = receiver.typeResolution().resolvedSignature();
+            if (receiver.typeResolution().status() == TypeResolutionStatus.RESOLVED && signature != null
+                    && signature.contains("org.springframework.data.repository") && signature.contains(".findById(")) return true;
+        }
+        return false;
+    }
+
     private boolean isJdkOptional(TypeResolution resolution) {
         String signature = resolution.resolvedSignature();
         return resolution.status() == TypeResolutionStatus.RESOLVED && signature != null
-            && signature.startsWith("java.util.Optional.") && signature.contains("orElseThrow(");
+            && signature.contains("java.util.Optional") && signature.contains(".orElseThrow(");
     }
 
     private PolicyEvaluation evaluatePolicies(FactCodeGraph graph, FactNode condition, FactNode outcome,

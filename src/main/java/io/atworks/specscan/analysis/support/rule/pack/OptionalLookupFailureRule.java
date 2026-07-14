@@ -15,7 +15,7 @@ public final class OptionalLookupFailureRule implements GraphRule {
         FactNode call = support.node(predicate.conditionNodeId());
         if (predicate.predicateType() != PredicateType.LOOKUP_CHAIN || call == null
                 || !(call.payload() instanceof FactNodePayload.MethodCallPayload payload)
-                || !"orElseThrow".equals(payload.methodName()) || !isOptional(call.typeResolution())) return List.of();
+                || !"orElseThrow".equals(payload.methodName())) return List.of();
         NormalizedConstraint constraint = new NormalizedConstraint(ConstraintKind.CONTROL_FLOW_ONLY,
             null, null, List.of(), call.id());
         List<EvidenceRef> evidence = support.evidence(predicate, call, EvidenceRole.CALL);
@@ -32,9 +32,4 @@ public final class OptionalLookupFailureRule implements GraphRule {
             evidence));
     }
 
-    private boolean isOptional(TypeResolution resolution) {
-        String signature = resolution.resolvedSignature();
-        return resolution.status() == TypeResolutionStatus.RESOLVED && signature != null
-            && signature.startsWith("java.util.Optional.") && signature.contains("orElseThrow(");
-    }
 }
