@@ -424,6 +424,12 @@ public class EndpointExtractor {
                 if (!headerName.isBlank() && !headerValue.isBlank()) headers.put(headerName, headerValue);
             }
         }
+        for (com.github.javaparser.ast.expr.ObjectCreationExpr creation
+                : method.findAll(com.github.javaparser.ast.expr.ObjectCreationExpr.class)) {
+            if (!creation.getType().getNameAsString().equals("ResponseEntity") || creation.getArguments().isEmpty()) continue;
+            Integer status = parseStatus(creation.getArgument(creation.getArguments().size() - 1).toString());
+            if (status != null) { statuses.add(status); sources.add("new ResponseEntity"); }
+        }
         if (statuses.size() > 1) return new ResponseMetadata(null, "CONFLICT:" + statuses, headers);
         Integer status = statuses.stream().findFirst().orElse(null);
         return new ResponseMetadata(status, status == null ? null : String.join("+", new LinkedHashSet<>(sources)), headers);

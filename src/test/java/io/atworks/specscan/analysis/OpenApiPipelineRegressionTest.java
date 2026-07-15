@@ -334,15 +334,14 @@ class OpenApiPipelineRegressionTest {
         assertThat(shipping.at("/requestPreconditions").toString())
             .doesNotContain("OPTIMISTIC_LOCK_MATCH");
         assertThat(shipping.at("/responseAssertions")).isEmpty();
-        assertThat(shipping.at("/excludedBusinessRules").toString())
-            .contains("OPTIMISTIC_LOCK_MATCH");
+        assertThat(shipping.at("/excludedBusinessRules")).isEmpty();
         assertThat(cancel.at("/requestPreconditions").toString())
             .doesNotContain("HAS_CANCELLATION_PERMISSION")
             .doesNotContain("STATE_IN");
         assertThat(cancel.at("/responseAssertions")).isEmpty();
         assertThat(cancel.at("/excludedBusinessRules").toString())
-            .contains("HAS_CANCELLATION_PERMISSION")
-            .contains("STATE_IN");
+            .doesNotContain("HAS_CANCELLATION_PERMISSION")
+            .doesNotContain("STATE_IN");
         assertThat(executionJson.at("/warningCount").asInt()).isGreaterThanOrEqualTo(2);
         assertThat(executionJson.at("/warnings/0/code").asText()).isEqualTo("SERVICE_HINT_REJECTED");
         assertThat(executionJson.at("/warnings/0/location").asText()).isEqualTo("/orders/order");

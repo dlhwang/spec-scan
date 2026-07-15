@@ -114,10 +114,10 @@ public class OpenApiAssemblyService {
 
         String executionJson;
         try {
-            executionJson = migrationMode == OutputMigrationMode.NEW_ONLY
-                ? executionSpecExporter.export(scanResult, migration.outputs(), warnings, source)
-                : executionSpecExporter.export(scanResult, extractResult.directConditions(),
-                    normalizedResult.conditions(), warnings, source);
+            executionJson = migrationMode == OutputMigrationMode.LEGACY_ONLY
+                ? executionSpecExporter.export(scanResult, extractResult.directConditions(),
+                    normalizedResult.conditions(), warnings, source)
+                : executionSpecExporter.export(scanResult, migration.outputs(), warnings, source);
         } catch (Exception e) {
             throw new IngestionException(
                 IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,

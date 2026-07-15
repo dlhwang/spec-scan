@@ -18,7 +18,7 @@ class RequestBindingConditionAdapterTest {
         EndpointRuleOutput result = new RequestBindingConditionAdapter().augment(endpoint,
             EndpointRuleOutput.empty(endpoint.path()));
 
-        assertThat(result.requestPreconditions()).extracting("operator").containsExactly("REQUIRED", "IN");
+        assertThat(result.requestPreconditions()).extracting("operator").containsExactly("NOT_NULL");
         assertThat(result.requestPreconditions()).allSatisfy(condition -> assertThat(condition.evidence()).isNotEmpty());
     }
 }

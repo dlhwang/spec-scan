@@ -7,8 +7,7 @@ import io.atworks.specscan.ingestion.domain.SourceTrace;
 import java.util.*;
 
 public final class StructuralConditionAdapter {
-    private static final Set<String> SUPPORTED = Set.of(
-        "REQUIRED", "NOT_NULL", "NOT_BLANK", "SIZE", "MIN", "MAX", "PATTERN", "IN", "EMAIL");
+    private static final Set<String> SUPPORTED = Set.of("NOT_NULL", "NOT_EMPTY");
 
     public EndpointRuleOutput augment(ApiEndpoint endpoint, EndpointRuleOutput output,
                                       List<ApiCondition> normalizedConditions) {

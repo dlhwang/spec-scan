@@ -9,11 +9,16 @@ import com.github.javaparser.ast.body.CallableDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.RecordDeclaration;
 import com.github.javaparser.ast.body.TypeDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.ObjectCreationExpr;
+import com.github.javaparser.ast.expr.MethodReferenceExpr;
+import com.github.javaparser.ast.stmt.ExplicitConstructorInvocationStmt;
+import com.github.javaparser.resolution.declarations.ResolvedConstructorDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedMethodDeclaration;
 import com.github.javaparser.resolution.declarations.ResolvedReferenceTypeDeclaration;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
@@ -82,6 +87,66 @@ public class TypeResolver {
         } catch (RuntimeException e) {
             return Optional.empty();
         }
+    }
+
+    public Optional<MethodDeclaration> resolveStaticSourceMethodCall(MethodCallExpr call) {
+        if (call.getScope().isEmpty()) return Optional.empty();
+        String scope = call.getScope().get().toString();
+        String simple = scope.substring(scope.lastIndexOf('.') + 1);
+        if (simple.isBlank() || !Character.isUpperCase(simple.charAt(0))) return Optional.empty();
+        List<MethodDeclaration> matches = resolveClassDeclaration(scope).stream()
+            .flatMap(type -> type.getMethodsByName(call.getNameAsString()).stream())
+            .filter(method -> method.isStatic() && method.getParameters().size() == call.getArguments().size())
+            .toList();
+        return matches.size() == 1 ? Optional.of(matches.get(0)) : Optional.empty();
+    }
+
+    public String qualifiedOwner(MethodDeclaration method) {
+        String packageName = method.findCompilationUnit().flatMap(CompilationUnit::getPackageDeclaration)
+            .map(value -> value.getNameAsString()).orElse("");
+        List<String> types = new ArrayList<>();
+        com.github.javaparser.ast.Node current = method.getParentNode().orElse(null);
+        while (current != null) {
+            if (current instanceof TypeDeclaration<?> type) types.add(0, type.getNameAsString());
+            current = current.getParentNode().orElse(null);
+        }
+        return (packageName.isBlank() ? "" : packageName + ".") + String.join(".", types);
+    }
+
+    public String qualifiedOwner(TypeDeclaration<?> type) {
+        String packageName = type.findCompilationUnit().flatMap(CompilationUnit::getPackageDeclaration)
+            .map(value -> value.getNameAsString()).orElse("");
+        List<String> types = new ArrayList<>();
+        com.github.javaparser.ast.Node current = type;
+        while (current != null) {
+            if (current instanceof TypeDeclaration<?> declaration) types.add(0, declaration.getNameAsString());
+            current = current.getParentNode().orElse(null);
+        }
+        return (packageName.isBlank() ? "" : packageName + ".") + String.join(".", types);
+    }
+
+    public Optional<ResolvedMethodDeclaration> resolveMethodReference(MethodReferenceExpr reference) {
+        try { return Optional.of(reference.resolve()); }
+        catch (RuntimeException e) { return Optional.empty(); }
+    }
+
+    public Optional<ResolvedConstructorDeclaration> resolveObjectCreation(ObjectCreationExpr creation) {
+        try { return Optional.of(creation.resolve()); }
+        catch (RuntimeException e) { return Optional.empty(); }
+    }
+
+    public Optional<ResolvedConstructorDeclaration> resolveConstructorInvocation(
+        ExplicitConstructorInvocationStmt invocation) {
+        try { return Optional.of(invocation.resolve()); }
+        catch (RuntimeException e) { return Optional.empty(); }
+    }
+
+    public Optional<ConstructorDeclaration> resolveConstructorDeclaration(
+        ResolvedConstructorDeclaration resolvedConstructor) {
+        return resolveClassDeclaration(resolvedConstructor.declaringType())
+            .flatMap(owner -> owner.getConstructors().stream()
+                .filter(candidate -> candidate.getParameters().size() == resolvedConstructor.getNumberOfParams())
+                .findFirst());
     }
 
     private Optional<TypeDeclaration<?>> resolveTypeDeclaration(String typeName) {

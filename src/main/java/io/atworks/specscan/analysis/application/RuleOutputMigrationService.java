@@ -17,6 +17,7 @@ public final class RuleOutputMigrationService {
     private final ResponseMetadataAdapter responseMetadataAdapter = new ResponseMetadataAdapter();
     private final RequestBindingConditionAdapter requestBindingAdapter = new RequestBindingConditionAdapter();
     private final StructuralConditionAdapter structuralConditionAdapter = new StructuralConditionAdapter();
+    private final ResponseInvariantAdapter responseInvariantAdapter = new ResponseInvariantAdapter();
 
     public RuleOutputMigrationResult migrate(StaticScanResult scan, RepositorySource source,
                                              List<ApiCondition> legacyConditions) {
@@ -31,12 +32,15 @@ public final class RuleOutputMigrationService {
             if (endpoint == null) continue;
             Set<String> methodIds = new LinkedHashSet<>();
             for (FactNode node : graph.nodes()) if (node.type() == FactNodeType.API_METHOD
-                    || node.type() == FactNodeType.METHOD) methodIds.add(node.id());
+                    || node.type() == FactNodeType.METHOD || node.type() == FactNodeType.CONSTRUCTOR)
+                methodIds.add(node.id());
             GraphRuleEngineResult evaluated = engine.evaluate(graph, new MethodScope(graph.graphId(), methodIds));
             EndpointRuleOutput candidateOutput = adapter.adapt(endpoint, evaluated.candidates().businessRules());
             EndpointRuleOutput requestOutput = requestBindingAdapter.augment(endpoint, candidateOutput);
             requestOutput = structuralConditionAdapter.augment(endpoint, requestOutput, legacyConditions);
-            outputs.put(OperationKey.of(endpoint).externalKey(), responseMetadataAdapter.augment(endpoint, requestOutput));
+            EndpointRuleOutput responseOutput = responseMetadataAdapter.augment(endpoint, requestOutput, graph);
+            outputs.put(OperationKey.of(endpoint).externalKey(), responseInvariantAdapter.augment(endpoint,
+                responseOutput, graph, evaluated.candidates().businessRules()));
         }
         List<CandidateOutputComparisonReport> reports = scan.endpoints().stream()
             .map(endpoint -> comparator.compare(endpoint, legacyConditions,

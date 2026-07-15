@@ -12,10 +12,8 @@ public final class RequestBindingConditionAdapter {
         for (RequestBinding binding : endpoint.requestBindings()) {
             String location = binding.targetLocation().name();
             String path = binding.targetLocation() == BindingLocation.BODY ? "$" : "$." + binding.parameterName();
-            if (binding.isRequired()) conditions.add(condition(location, path, "REQUIRED", List.of("true"),
+            if (binding.isRequired()) conditions.add(condition(location, path, "NOT_NULL", List.of(),
                 "request binding required flag", "REQUEST_BINDING_REQUIRED", binding.sourceTrace()));
-            if (!binding.enumValues().isEmpty()) conditions.add(condition(location, path, "IN",
-                binding.enumValues(), "request binding enum values", "REQUEST_BINDING_ENUM", binding.sourceTrace()));
         }
         return new EndpointRuleOutput(output.endpointPath(), deduplicate(conditions), output.responseAssertions(),
             output.excludedBusinessRules(), output.diagnostics());

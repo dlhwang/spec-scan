@@ -46,6 +46,7 @@ public final class PasswordEncoderMatchFailureRule implements GraphRule {
     }
     private boolean rejectsMismatch(FactNode condition, FactNodePayload.ConditionPayload payload,
                                     StructuralRuleSupport support) {
+        if ("MethodCallExpr".equals(payload.astKind())) return support.failureOnElse(condition.id());
         if ("!".equals(payload.rootOperator())) return support.failureOnThen(condition.id());
         FactNode booleanLiteral = support.operands(condition.id()).stream()
             .filter(node -> node.payload() instanceof FactNodePayload.LiteralPayload literal

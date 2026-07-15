@@ -60,13 +60,30 @@ class CandidateSupportTest {
         assertThatThrownBy(() -> accumulator.add(candidate)).hasMessageContaining("DUPLICATE_CANDIDATE_ID");
     }
 
+    @Test
+    void accumulatorRejectsEvidenceThatExistsButIsNotReachableFromApiRoot() {
+        FactNode condition = condition("condition", "==");
+        FactNode disconnected = condition("disconnected", "!=");
+        FactCodeGraph graph = graph(condition, List.of(disconnected));
+        PredicateCandidate candidate = new PredicateCandidate("predicate:disconnected", graph.graphId(),
+            condition.id(), PredicateType.COMPARISON, ExtractionStatus.EXTRACTED,
+            List.of(new EvidenceMapper().fromFact(disconnected, EvidenceRole.PREDICATE)), List.of());
+        CandidateResolutionAccumulator accumulator = new CandidateResolutionAccumulator(graph);
+        accumulator.add(candidate);
+
+        assertThatThrownBy(accumulator::snapshot).hasMessageContaining("UNREACHABLE_EVIDENCE_REFERENCE");
+    }
+
     private FactCodeGraph graph(FactNode condition, List<FactNode> extras) { return graph(condition, extras, List.of()); }
     private FactCodeGraph graph(FactNode condition, List<FactNode> extras, List<FactEdge> edges) {
         FactNode root = new FactNode("root", FactNodeType.API_METHOD, range(), "void api()",
             TypeResolution.resolvedSignature("sample.Api.api()"), new FactNodePayload.MethodPayload("sample.Api", "api()", true));
         List<FactNode> nodes = new java.util.ArrayList<>(List.of(root, condition));
         nodes.addAll(extras);
-        return new FactCodeGraph("graph-1", root.id(), nodes, edges);
+        List<FactEdge> connected = new java.util.ArrayList<>();
+        connected.add(new FactEdge("root-condition", root.id(), condition.id(), FactEdgeType.CONTROLS, 0, "BODY"));
+        connected.addAll(edges);
+        return new FactCodeGraph("graph-1", root.id(), nodes, connected);
     }
     private FactNode condition(String id, String operator) {
         return new FactNode(id, FactNodeType.CONDITION, range(), "condition", TypeResolution.notApplicable(),

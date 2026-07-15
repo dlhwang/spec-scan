@@ -6,6 +6,9 @@ import io.atworks.specscan.analysis.domain.output.*;
 import java.util.*;
 
 public final class CandidateToOutputAdapter {
+    private static final Set<String> EXCLUDED_RULE_ALLOWLIST = Set.of(
+        "SPRING_DATA_FIND_BY_ID_OR_ELSE_THROW", "JDK_OPTIONAL_LOOKUP_FAILURE",
+        "SPRING_SECURITY_PASSWORD_MATCH_FAILURE", "JAVA_AUTHORIZATION_GUARD_CALL");
     public EndpointRuleOutput adapt(ApiEndpoint endpoint, List<BusinessRuleCandidate> candidates) {
         List<ExecutableCondition> preconditions = new ArrayList<>();
         List<ExcludedBusinessRule> excluded = new ArrayList<>();
@@ -22,14 +25,14 @@ public final class CandidateToOutputAdapter {
             }
             NormalizedConstraint constraint = candidate.constraint();
             if (constraint == null) {
-                excluded.add(excluded(candidate, null, "CONTROL_FLOW_ONLY"));
+                addExcluded(candidate, null, "CONTROL_FLOW_ONLY", excluded, diagnostics);
             } else if (constraint.kind() == ConstraintKind.RUNTIME_DEPENDENT) {
-                excluded.add(excluded(candidate, constraint, "RUNTIME_DEPENDENT"));
+                addExcluded(candidate, constraint, "RUNTIME_DEPENDENT", excluded, diagnostics);
             } else if (candidate.targetStatus() != TargetResolutionStatus.RESOLVED) {
-                excluded.add(excluded(candidate, constraint, "TARGET_UNRESOLVED"));
+                addExcluded(candidate, constraint, "TARGET_UNRESOLVED", excluded, diagnostics);
             } else if (constraint.kind() == ConstraintKind.CONTROL_FLOW_ONLY
                     || constraint.kind() == ConstraintKind.INPUT_TO_DOMAIN) {
-                excluded.add(excluded(candidate, constraint, "EXTERNAL_STATE_REQUIRED"));
+                addExcluded(candidate, constraint, "EXTERNAL_STATE_REQUIRED", excluded, diagnostics);
             } else {
                 addExecutable(endpoint, candidate, constraint, preconditions, excluded, diagnostics);
             }
@@ -44,13 +47,40 @@ public final class CandidateToOutputAdapter {
         ResolvedRequestTarget target = resolveRequestTarget(endpoint, constraint.targetPath());
         if (target == null) {
             excluded.add(excluded(candidate, constraint, "TARGET_NOT_REQUEST_BOUND"));
-        } else if (blank(constraint.operator()) || constraint.expectedValues().isEmpty()) {
+        } else if (!isExecutable(constraint)) {
             diagnostics.add(diagnostic("OUTPUT_SCHEMA_UNSUPPORTED",
                 "Executable request condition requires operator and expected values", candidate));
         } else {
             preconditions.add(new ExecutableCondition(target.location(), target.path(), constraint.operator(),
                 constraint.expectedValues(), constraint.expectedSource(), candidate.ruleId(), candidate.confidence(),
                 candidate.evidence()));
+        }
+    }
+
+    private void addExcluded(BusinessRuleCandidate candidate, NormalizedConstraint constraint, String reason,
+                             List<ExcludedBusinessRule> excluded,
+                             List<CandidateOutputDiagnostic> diagnostics) {
+        if (!EXCLUDED_RULE_ALLOWLIST.contains(candidate.ruleId())) {
+            diagnostics.add(diagnostic("EXCLUDED_RULE_NOT_ALLOWLISTED",
+                "Rule has no registered excluded-business-rule template", candidate));
+            return;
+        }
+        boolean predicate = candidate.evidence().stream().anyMatch(ref -> ref.role() == EvidenceRole.PREDICATE);
+        boolean outcome = candidate.evidence().stream().anyMatch(ref -> ref.role() == EvidenceRole.FAILURE_OUTCOME);
+        if (!predicate || !outcome) {
+            diagnostics.add(diagnostic("EXCLUDED_RULE_EVIDENCE_INCOMPLETE",
+                "Excluded rule requires predicate and failure outcome facts", candidate));
+            return;
+        }
+        excluded.add(excluded(candidate, constraint, reason));
+    }
+
+    private boolean isExecutable(NormalizedConstraint constraint) {
+        try {
+            CanonicalOperator operator = CanonicalOperator.parse(constraint.operator());
+            return !operator.requiresExpectedValue() || !constraint.expectedValues().isEmpty();
+        } catch (IllegalArgumentException ignored) {
+            return false;
         }
     }
 
@@ -73,12 +103,15 @@ public final class CandidateToOutputAdapter {
 
     private ExcludedBusinessRule excluded(BusinessRuleCandidate candidate, NormalizedConstraint constraint,
                                           String reason) {
+        boolean nonExecutable = constraint != null && (constraint.kind() == ConstraintKind.RUNTIME_DEPENDENT
+            || constraint.kind() == ConstraintKind.CONTROL_FLOW_ONLY
+            || constraint.kind() == ConstraintKind.INPUT_TO_DOMAIN);
         return new ExcludedBusinessRule(candidate.ruleId(), candidate.category(),
             constraint == null ? ConstraintKind.CONTROL_FLOW_ONLY : constraint.kind(), candidate.extractionStatus(),
             candidate.semanticStatus(), candidate.targetStatus(), reason,
             constraint == null ? null : constraint.targetPath(),
-            constraint == null ? null : constraint.operator(),
-            constraint == null ? List.of() : constraint.expectedValues(),
+            constraint == null || nonExecutable ? null : constraint.operator(),
+            constraint == null || nonExecutable ? List.of() : constraint.expectedValues(),
             constraint == null ? null : constraint.expectedSource(), candidate.confidence(), candidate.evidence());
     }
     private CandidateOutputDiagnostic diagnostic(String code, String message, BusinessRuleCandidate candidate) {

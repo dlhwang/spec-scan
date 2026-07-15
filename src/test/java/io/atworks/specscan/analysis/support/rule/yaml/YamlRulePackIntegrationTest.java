@@ -44,10 +44,8 @@ class YamlRulePackIntegrationTest {
         EndpointRuleOutput output = new CandidateToOutputAdapter().adapt(
             new ApiEndpoint("POST", "/projects", "ProjectController", "create", List.of(), null, null),
             result.candidates().businessRules());
-        assertThat(output.excludedBusinessRules()).singleElement().satisfies(rule -> {
-            assertThat(rule.ruleId()).isEqualTo("PROJECT_POLICY");
-            assertThat(rule.evidence()).extracting(EvidenceRef::nodeId).contains("call");
-        });
+        assertThat(output.excludedBusinessRules()).isEmpty();
+        assertThat(output.diagnostics()).extracting("code").contains("EXCLUDED_RULE_NOT_ALLOWLISTED");
     }
 
     @Test

@@ -20,6 +20,8 @@ public final class InitialRuleCatalog {
                 BusinessRuleCategory.INVARIANT, CONTROL_FLOW),
             descriptor(NullRejectionGuardRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,
                 BusinessRuleCategory.INVARIANT, CONTROL_FLOW),
+            descriptor(EmptyRejectionGuardRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,
+                BusinessRuleCategory.INVARIANT, CALL),
             descriptor(DelegatedGuardRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,
                 BusinessRuleCategory.STATE_PRECONDITION, CALL),
             descriptor(AuthorizationGuardCallRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,

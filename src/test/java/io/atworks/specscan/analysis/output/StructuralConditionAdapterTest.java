@@ -16,14 +16,14 @@ class StructuralConditionAdapterTest {
             List.of(new RequestBinding("request", BindingLocation.BODY, "OrderRequest", true,
                 null, null, null, List.of(), dto)), new ResponseBinding("void", controller), controller);
         ApiCondition nested = new ApiCondition(ConditionLocation.BODY, "$.shippingInfo.address.zipCode",
-            "REQUIRED", "true", "@NotBlank", 1.0, null, dto, null);
+            "NOT_NULL", null, "@NotNull", 1.0, null, dto, null);
 
         EndpointRuleOutput result = new StructuralConditionAdapter().augment(endpoint,
             EndpointRuleOutput.empty(endpoint.path()), List.of(nested));
 
         assertThat(result.requestPreconditions()).singleElement().satisfies(condition -> {
             assertThat(condition.targetPath()).isEqualTo("$.shippingInfo.address.zipCode");
-            assertThat(condition.operator()).isEqualTo("REQUIRED");
+            assertThat(condition.operator()).isEqualTo("NOT_NULL");
             assertThat(condition.evidence()).isNotEmpty();
         });
     }
