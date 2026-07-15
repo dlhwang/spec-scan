@@ -1,78 +1,36 @@
-# Dependencies
+# 의존성
 
-## Internal Dependencies
+## 내부 의존성
+
 ```mermaid
 flowchart LR
-    Parsers[parsers]
-    Frameworks[frameworks]
-    Spring[spring adapters]
-    Jaxrs[jaxrs adapters]
-    Analysis[codeanalysis]
-    Interceptors[interceptors]
-    Openapi[openapi]
-    Util[util]
-
-    Parsers --> Frameworks
-    Parsers --> Analysis
-    Parsers --> Interceptors
-    Parsers --> Openapi
-    Parsers --> Util
-    Frameworks --> Spring
-    Frameworks --> Jaxrs
+    Entry["Entry Points"] --> Ingestion["Ingestion"]
+    Entry --> Application["Analysis Application"]
+    Application --> Domain["Analysis Domain"]
+    Application --> Support["Analysis Support"]
+    Support --> Domain
+    Support --> Rule["Candidate, Fact, Rule"]
+    Rule --> Output["Output and Evaluation"]
 ```
 
-## Text Alternative
-- `parsers`가 거의 모든 내부 패키지에 의존하는 중심 계층이다.
-- `frameworks`는 Spring/JAX-RS 세부 구현으로 분기된다.
-- `openapi`, `interceptors`, `codeanalysis`, `util`은 `parsers`를 지원한다.
+텍스트 대안: 진입점은 ingestion과 application을 호출하고 application/support는 domain 계약에 의존한다. fact/rule 결과는 output/evaluation으로 전달된다.
 
-### `parsers` depends on `frameworks`
-- **Type**: Compile
-- **Reason**: 지원 프레임워크별 규칙을 사용해 엔드포인트를 해석하기 위해
+## 외부 의존성
 
-### `parsers` depends on `openapi`
-- **Type**: Compile
-- **Reason**: OpenAPI 객체 생성과 파일 저장을 위임하기 위해
+| 의존성 | 버전 | 용도 | 라이선스 계열 |
+|---|---:|---|---|
+| Eclipse JGit | 6.8.0 | Git clone/checkout | EPL 2.0 |
+| Jackson Databind/YAML | 2.15.2 | JSON/YAML | Apache 2.0 |
+| JavaParser Core/Symbol Solver | 3.25.7 | AST/타입 해석 | Apache 2.0/LGPL 선택형 |
+| SLF4J Simple | 1.7.36 | 로깅 | MIT |
+| JUnit Jupiter | 5.9.3 | 테스트 | EPL 2.0 |
+| AssertJ Core | 3.24.2 | assertion | Apache 2.0 |
+| jqwik | 1.7.4 | 속성 테스트 | EPL 2.0 |
 
-### `parsers` depends on `codeanalysis`
-- **Type**: Compile
-- **Reason**: 메서드 본문 기반 응답/타입 분석을 강화하기 위해
+라이선스는 일반 공개 라이선스 기준이며 배포 전 공식 NOTICE 검증이 필요하다.
 
-### `parsers` depends on `interceptors`
-- **Type**: Compile
-- **Reason**: 예외 처리기와 응답 상태 코드를 반영하기 위해
+## 런타임 경계
 
-### `frameworks` depends on `spring` and `jaxrs`
-- **Type**: Compile
-- **Reason**: 공통 추상화 뒤에 프레임워크별 구현을 배치하기 위해
-
-## External Dependencies
-### `fr.inria.gforge.spoon:spoon-core`
-- **Version**: 11.2.0
-- **Purpose**: Java 소스 AST 생성 및 탐색
-- **License**: JAR 내부 metadata 기준 별도 라이선스 파일 포함
-
-### `io.swagger.core.v3:swagger-models`
-- **Version**: 2.0.10
-- **Purpose**: OpenAPI 모델 생성
-- **License**: JAR 내부 metadata 기준 별도 라이선스 파일 포함
-
-### `org.springframework:spring-web`
-- **Version**: 6.2.6
-- **Purpose**: Spring REST 애노테이션 타입 지원
-- **License**: JAR 내부 metadata 기준 별도 라이선스 파일 포함
-
-### `jakarta.ws.rs:jakarta.ws.rs-api`
-- **Version**: 3.1.0
-- **Purpose**: Jakarta REST 애노테이션 지원
-- **License**: JAR 내부 metadata 기준 별도 라이선스 파일 포함
-
-### `javax.ws.rs:javax.ws.rs-api`
-- **Version**: 2.1.1
-- **Purpose**: Legacy Javax REST 애노테이션 지원
-- **License**: JAR 내부 metadata 기준 별도 라이선스 파일 포함
-
-### `com.fasterxml.jackson.core:jackson-databind`
-- **Version**: 2.19.0
-- **Purpose**: OpenAPI JSON 파일 직렬화
-- **License**: JAR 내부 metadata 기준 별도 라이선스 파일 포함
+- 분석 대상 저장소 코드를 빌드하거나 실행하지 않는다.
+- GitHub 외 URL과 SSH URL은 수집 정책에서 거부한다.
+- 임시 작업공간은 성공/실패와 무관하게 정리한다.

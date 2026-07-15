@@ -1,70 +1,43 @@
-# API Documentation
+# API 문서
 
-## REST APIs
-- 이 아티팩트 자체는 네트워크 REST API를 제공하지 않는다.
-- 관찰 가능한 외부 인터페이스는 CLI 입력 인자와 파일 출력이다.
+## REST API
 
-## CLI Interface
-### Main Entry
-- **Command**: `java -jar auto-oas.jar <projectPath> [restApiModulePath] [enableExceptionLogging] <outputPath>`
-- **Purpose**: Java REST API 소스를 분석하고 OpenAPI 명세 파일을 생성한다.
+### `GET /` 및 정적 리소스
 
-### Argument Modes
-- **2 arguments**: `<projectPath> <outputPath>`
-- **3 arguments**: `<projectPath> <restApiModulePath> <outputPath>`
-- **4 arguments**: `<projectPath> <restApiModulePath> <enableExceptionLogging> <outputPath>`
+- classpath의 `/static/index.html`, CSS, JavaScript, JSON, PNG를 제공한다.
+- 미존재 리소스는 404, GET 외 method는 405다.
 
-## Internal APIs
-### `at.aau.serg.parsers.ParserFactory`
-- **Methods**:
-  - `registerRestFramework(RestFramework)`
-  - `createParser(String, String, String)`
-  - `createParserWithDetection(String, String, String, boolean)`
-  - `createParserWithDetection(String, String, boolean)`
-- **Parameters**: 프로젝트 경로, REST 모듈 경로, 출력 경로, 예외 로깅 플래그
-- **Return Types**: `RestApiParser`
+### `POST /api/scan`
 
-### `at.aau.serg.parsers.FrameworkDetector`
-- **Methods**:
-  - `detectFramework(String)`
-  - `getModel()`
-- **Parameters**: 분석 대상 프로젝트 루트
-- **Return Types**: `RestFramework`, `CtModel`
+- 목적: GitHub 저장소를 clone하여 분석 산출물을 JSON으로 반환.
+- 필수 필드: `repositoryUrl`, `projectName`, `baseUrl`.
+- 선택 필드: `revisionType`(`branch`, `tag`, `commit`), `revision`.
+- 응답: `api-execution-model.json` 최상위 필드와 `validationEvidenceGraph`.
+- 오류: 입력 오류 400, 분석 실패 500.
+- `projectName`과 `baseUrl`은 현재 필수 검증만 하고 결과에는 사용하지 않는다.
 
-### `at.aau.serg.parsers.RestApiParser`
-- **Methods**:
-  - `run()`
-  - `getRelevantClassesFromPackages(Collection<CtPackage>)`
-- **Parameters**: 내부적으로 프로젝트 이름, 모듈 경로, 선택된 프레임워크, Spoon 모델
-- **Return Types**: 실행 부수효과 중심, `RelevantClasses`
+## CLI 계약
 
-### `at.aau.serg.openapi.OpenApiGenerator`
-- **Methods**:
-  - `getDummyInfo(String)`
-  - `getDummyInfo(String, String)`
-  - `createOpenApi(Info, Paths, Components)`
-  - `writeOpenApiToFile(OpenAPI, String)`
-- **Parameters**: OpenAPI 메타데이터, 경로 모델, 스키마 모델, 출력 파일 경로
-- **Return Types**: `Info`, `OpenAPI`, 파일 출력
+- `GitSpecScanMain`: `--projectName=<name> --repositoryUrl=<url> --baseUrl=<url> [--revisionType=branch|tag|commit] [--revision=<value>]`, 실행 JSON을 stdout에 출력. 현재 `projectName`과 `baseUrl`은 필수 검증되지만 `scan(...)` 호출에는 전달되지 않는다.
+- `SpecScanDemoRunner`: `[repositoryUrl] [outputPath]`, URL이 없으면 내장 Spring 샘플 분석.
+- `SpecScanWebServer`: `[--port=8088]`, 기본 포트 8088.
 
-## Data Models
-### OpenAPI
-- **Fields**: `info`, `paths`, `components`
-- **Relationships**: `Paths`와 `Components`를 포함
-- **Validation**: Jackson 직렬화 시 `null` 필드는 제외
+## 핵심 내부 API
 
-### RelevantClasses
-- **Fields**: 역참조된 모델 타입과 컨트롤러 후보군
-- **Relationships**: `RestApiParser`의 컨트롤러/모델 추출에 사용
-- **Validation**: 패키지와 모듈 경계에 따라 필터링
+- `GitExecutionSpecScanService.scan(...)`: 실행 명세 JSON 반환.
+- `scanWithArtifacts(...)`: assembly 산출물에서 Web 응답 구성.
+- `RepositoryIngestionService.ingest(...)`: `RepositorySource` 반환.
+- `SpringStaticScanService.scan(...)`: endpoint와 warning 반환.
+- `ValidationExtractionService.extract(...)`: condition, candidate, warning 반환.
+- `NormalizationService.normalize(...)`: candidate 정규화.
+- `RuleOutputMigrationService.migrate(...)`: mode별 migration 결과 반환.
+- `OpenApiAssemblyService.assemble(...)`: OpenAPI/분석 파일 생성.
+- `RuleEvaluationService`, `RuleQualityGate`, `DeliveryReadinessService`: 품질과 전달 준비 상태 판정.
 
-### ControllerClassProcessingInformation
-- **Fields**: 컨트롤러 타입, 경로, 하위 리소스 정보
-- **Relationships**: `createPathsFromControllers`와 sub-resource 탐색에 사용
-- **Validation**: 프레임워크 규칙에 따라 파생
+## 파일 출력 계약
 
-## Output Contract
-- **Format**: Pretty-printed JSON
-- **Directory Behavior**: 상위 디렉터리가 없으면 자동 생성
-- **Overwrite Behavior**: 기존 파일이 있으면 삭제 후 새로 작성
-- **Error Behavior**: 파일 출력 예외는 `stderr`에 기록
+- `openapi.yaml`
+- `api-execution-model.json`
+- `validation-evidence-graph.json`
+- `api-spec-analysis.json`
+- migration mode별 비교 및 신규 규칙 출력 artifact

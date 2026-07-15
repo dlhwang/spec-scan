@@ -1,91 +1,64 @@
-# Code Structure
+# 코드 구조
 
-## Build System
-- **Type**: Maven
-- **Configuration**:
-  - 아티팩트 정보: `at.aau.serg:auto-oas:1.2.0`
-  - 패키징: `maven-assembly-plugin` 기반 `jar-with-dependencies`
-  - Main-Class: `at.aau.serg.parsers.Main`
-  - 컴파일 타깃: Java 21
+## 빌드 시스템
 
-## Key Classes and Module Hierarchy
+- Gradle Java/Application 프로젝트, 이름 `spec-scan`, 버전 `1.0-SNAPSHOT`.
+- Java 21 toolchain, Maven Central.
+- 기본 application main: `SpecScanDemoRunner`.
+
+## 모듈 계층
+
 ```mermaid
 flowchart TD
-    PkgParsers[at.aau.serg.parsers]
-    PkgFrameworks[at.aau.serg.frameworks]
-    PkgSpring[at.aau.serg.frameworks.spring]
-    PkgJaxrs[at.aau.serg.frameworks.jaxrs]
-    PkgInterceptors[at.aau.serg.interceptors]
-    PkgOpenapi[at.aau.serg.openapi]
-    PkgAnalysis[at.aau.serg.codeanalysis]
-    PkgUtil[at.aau.serg.util]
-
-    PkgParsers --> PkgFrameworks
-    PkgFrameworks --> PkgSpring
-    PkgFrameworks --> PkgJaxrs
-    PkgParsers --> PkgInterceptors
-    PkgParsers --> PkgOpenapi
-    PkgParsers --> PkgAnalysis
-    PkgParsers --> PkgUtil
+    Root["io.atworks.specscan"] --> Ingestion["ingestion"]
+    Root --> Analysis["analysis"]
+    Ingestion --> IngestDomain["domain"]
+    Ingestion --> Ports["port and adapter"]
+    Analysis --> App["application"]
+    Analysis --> Domain["domain"]
+    Analysis --> Support["support"]
+    Domain --> Fact["fact"]
+    Domain --> Candidate["candidate"]
+    Domain --> Rule["rule"]
+    Domain --> Output["output, evaluation, delivery"]
 ```
 
-## Text Alternative
-- `parsers`가 중심 오케스트레이션 패키지다.
-- `frameworks` 아래에 Spring/JAX-RS 어댑터가 있다.
-- `openapi`, `interceptors`, `codeanalysis`, `util`이 보조 역할을 맡는다.
+텍스트 대안: 루트 진입점 아래 ingestion과 analysis가 분리되고, analysis는 application/domain/support로 나뉜다. domain은 fact, candidate, rule, output/evaluation/delivery 계약을 보유한다.
 
-### Existing Files Inventory
-- `auto-oas.jar` - 배포 단위이자 분석 대상 바이너리
-- `META-INF/MANIFEST.MF` - `Main-Class: at.aau.serg.parsers.Main`
-- `META-INF/maven/at.aau.serg/auto-oas/pom.xml` - Maven 빌드 설정과 의존성 목록
-- `at/aau/serg/parsers/Main.class` - CLI 엔트리포인트
-- `at/aau/serg/parsers/ParserFactory.class` - 프레임워크 등록 및 파서 생성
-- `at/aau/serg/parsers/FrameworkDetector.class` - 애노테이션 기반 프레임워크 탐지
-- `at/aau/serg/parsers/RestApiParser.class` - 핵심 OpenAPI 생성 로직
-- `at/aau/serg/openapi/OpenApiGenerator.class` - OpenAPI 직렬화와 파일 쓰기
-- `at/aau/serg/frameworks/spring/*.class` - Spring MVC 지원 어댑터
-- `at/aau/serg/frameworks/jaxrs/*.class` - Jakarta/Javax JAX-RS 지원 어댑터
-- `at/aau/serg/interceptors/*.class` - 응답 코드 보정 인터셉터
-- `at/aau/serg/codeanalysis/MethodBodyAnalyser.class` - 메서드 본문 분석 보조기
+## 주요 파일 인벤토리
 
-## Design Patterns
-### Strategy Pattern
-- **Location**: `RestFramework` 인터페이스와 Spring/JAX-RS 구현체
-- **Purpose**: 프레임워크별 애노테이션 규칙을 분리하기 위해
-- **Implementation**: `ParserFactory`가 구현체를 등록하고 `RestApiParser`가 선택된 전략을 사용
+- `build.gradle`, `settings.gradle`: 빌드, dependency, 실행 및 품질 태스크.
+- `GitSpecScanMain.java`: Git CLI.
+- `SpecScanDemoRunner.java`: E2E 데모.
+- `SpecScanWebServer.java`: 정적 UI와 scan API.
+- `GitExecutionSpecScanService.java`: Git 분석 facade.
+- `ingestion/application/RepositoryIngestionService.java`: 수집 정책과 orchestration.
+- `ingestion/adapter/GitRepositoryFetcherAdapter.java`: JGit clone/checkout.
+- `analysis/application/SpringStaticScanService.java`: endpoint scan.
+- `analysis/application/ValidationExtractionService.java`: 검증 후보 추출.
+- `analysis/application/NormalizationService.java`: legacy 정규화.
+- `analysis/application/RuleOutputMigrationService.java`: 규칙 출력 migration.
+- `analysis/application/OpenApiAssemblyService.java`: artifact assembly.
+- `analysis/support/fact/*`: 사실 그래프 구축 및 무결성 검증.
+- `analysis/support/candidate/*`: 후보 생성, ID, resolution 및 invariant.
+- `analysis/support/rule/*`: 규칙 실행, registry, 격리, dedup 및 report.
+- `analysis/support/rule/pack/*`: 내장 규칙 카탈로그.
+- `analysis/support/rule/yaml/*`: YAML 규칙 정의와 loader/composer.
+- `analysis/support/output/*`: candidate-to-output adapter와 comparator.
+- `analysis/support/evaluation/*`: 품질 평가와 report writer.
+- `analysis/support/delivery/*`: delivery readiness gate.
+- `src/main/resources/static/*`: Web UI.
+- `src/test/java/io/atworks/specscan/**`: 44개 테스트 소스.
+- `src/test/resources/rule-based-static-analysis/**`: golden, holdout, synthetic fixture.
 
-### Factory Pattern
-- **Location**: `ParserFactory`
-- **Purpose**: 감지 결과에 따라 적절한 `RestApiParser`를 생성하기 위해
-- **Implementation**: 등록된 프레임워크 인스턴스를 기반으로 생성 메서드 제공
+전체 운영 Java 파일 189개의 세부 목록은 `rg --files src/main/java`로 재현할 수 있으며, 이 문서는 변경 후보를 역할 단위로 묶어 제시한다.
 
-### Adapter Pattern
-- **Location**: `frameworks/*/adapters`
-- **Purpose**: 서로 다른 애노테이션 모델을 공통 추상화로 변환하기 위해
-- **Implementation**: HTTP 메서드, 파라미터, 매핑 애노테이션별 전용 어댑터 제공
+## 설계 패턴
 
-## Critical Dependencies
-### Spoon Core
-- **Version**: 11.2.0
-- **Usage**: Java 소스 AST 모델 로딩 및 탐색
-- **Purpose**: 정적 코드 분석의 핵심 엔진
-
-### Swagger Models and Annotations
-- **Version**: 2.0.10
-- **Usage**: OpenAPI 객체 생성
-- **Purpose**: 표준 명세 모델 표현
-
-### Spring Web
-- **Version**: 6.2.6
-- **Usage**: Spring 애노테이션 타입 참조
-- **Purpose**: Spring MVC 프로젝트 지원
-
-### Jakarta and Javax WS RS APIs
-- **Version**: 3.1.0 / 2.1.1
-- **Usage**: JAX-RS 애노테이션 타입 참조
-- **Purpose**: Jakarta 및 legacy Javax REST 프로젝트 지원
-
-### Jackson Databind
-- **Version**: 2.19.0
-- **Usage**: OpenAPI JSON pretty-print 저장
-- **Purpose**: 최종 산출물 직렬화
+- Ports and Adapters: repository fetch/workspace 준비를 port로 분리.
+- Application Service: scan/extract/normalize/assemble use case 구성.
+- Immutable Domain Model: record와 불변 collection 중심 결과 계약.
+- Pipeline: ingestion → scan → extraction → fact/rule → normalization/migration → export.
+- Strategy/Registry: migration mode, rule pack, detector 및 traversal policy 교체.
+- Adapter: legacy/candidate/structural 데이터를 공통 endpoint output으로 변환.
+- Deterministic Identity: fact와 candidate ID를 소스 위치/의미 기반으로 생성.

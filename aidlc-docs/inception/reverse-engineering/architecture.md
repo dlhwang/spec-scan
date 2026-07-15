@@ -1,109 +1,81 @@
-# System Architecture
+# 시스템 아키텍처
 
-## System Overview
-이 시스템은 실행 시점에 웹 서버를 띄우는 서비스가 아니라, Java 소스 트리를 입력으로 받아 OpenAPI 명세 JSON을 생성하는 배치형 CLI 도구다. 배포 단위는 `auto-oas.jar` 하나이며, Docker 이미지에서는 `java -jar /app/auto-oas.jar` 엔트리포인트로 실행된다.
+## 시스템 개요
 
-## Architecture Diagram
+단일 Gradle Java 애플리케이션이며 영속 데이터베이스는 없다. CLI, Demo, Web UI가 진입점이고 Git 수집 및 분석 계층을 공유한다. 분석 대상 코드는 실행하지 않으며 JavaParser AST와 symbol solver로 정적 해석한다.
+
+## 아키텍처 다이어그램
+
 ```mermaid
 flowchart TD
-    Main[Main CLI]
-    Factory[ParserFactory]
-    Detector[FrameworkDetector]
-    Loader[SpoonModelLoader]
-    Parser[RestApiParser]
-    Spring[SpringRestFramework]
-    Jaxrs[Jakarta or Javax RestFramework]
-    Interceptors[Response Code Interceptors]
-    Generator[OpenApiGenerator]
-    Output[OpenAPI JSON File]
-
-    Main --> Factory
-    Factory --> Detector
-    Detector --> Loader
-    Factory --> Parser
-    Parser --> Spring
-    Parser --> Jaxrs
-    Parser --> Interceptors
-    Parser --> Generator
-    Generator --> Output
+    CLI["GitSpecScanMain"] --> GitService["GitExecutionSpecScanService"]
+    Demo["SpecScanDemoRunner"] --> Ingestion["RepositoryIngestionService"]
+    Web["SpecScanWebServer"] --> GitService
+    GitService --> Ingestion
+    Ingestion --> Git["JGit Adapter"]
+    Ingestion --> Workspace["Temporary Workspace Adapter"]
+    Demo --> Scan["SpringStaticScanService"]
+    GitService --> Scan
+    Scan --> Extract["ValidationExtractionService"]
+    Extract --> FactRule["Fact Graph and Rule Engine"]
+    FactRule --> Normalize["Normalization and Migration"]
+    Normalize --> Assembly["OpenApiAssemblyService"]
+    Assembly --> Output["YAML and JSON Artifacts"]
+    Evaluation["Evaluation and Delivery Gates"] --> FactRule
 ```
 
-## Text Alternative
-- `Main`이 CLI 입력을 받는다.
-- `ParserFactory`가 프레임워크 후보를 등록하고 적절한 파서를 만든다.
-- `FrameworkDetector`와 `SpoonModelLoader`가 소스 모델을 읽고 분석 전략을 결정한다.
-- `RestApiParser`가 컨트롤러, 모델, 응답 정보를 수집한다.
-- `OpenApiGenerator`가 결과를 JSON 파일로 저장한다.
+텍스트 대안: 모든 실행 방식은 저장소 수집 후 Spring 정적 스캔과 검증 추출을 수행한다. 이후 사실 그래프와 규칙 엔진, 정규화 및 migration 계층을 거쳐 YAML/JSON 산출물을 만든다.
 
-## Component Descriptions
-### Main CLI
-- **Purpose**: 실행 진입점
-- **Responsibilities**: 인자 개수 검증, 입력 경로 배치, 예외 로깅 플래그 전달
-- **Dependencies**: `ParserFactory`
-- **Type**: Application
+## 계층과 책임
 
-### ParserFactory
-- **Purpose**: 프레임워크별 파서 생성
-- **Responsibilities**: 지원 프레임워크 인스턴스 등록, 자동 감지 기반 파서 구성
-- **Dependencies**: `RestFramework`, `FrameworkDetector`, `RestApiParser`
-- **Type**: Application
+### 진입 및 전달 계층
 
-### FrameworkDetector
-- **Purpose**: 분석 대상 프레임워크 탐지
-- **Responsibilities**: Spoon 모델 로딩 후 타입/메서드 애노테이션 검색
-- **Dependencies**: `SpoonModelLoader`, `RestFramework`
-- **Type**: Application
+- `GitSpecScanMain`: Git URL과 선택적 revision을 받아 실행 JSON을 stdout으로 출력한다.
+- `SpecScanDemoRunner`: 실제 Git 또는 내장 샘플로 E2E 파이프라인과 파일 출력을 시연한다.
+- `SpecScanWebServer`: 정적 Web UI와 `POST /api/scan`을 제공한다.
+- `GitExecutionSpecScanService`: Git 기반 실행을 위한 공통 facade지만 Demo는 아직 직접 orchestration한다.
 
-### RestApiParser
-- **Purpose**: 핵심 정적 분석 엔진
-- **Responsibilities**: 관련 클래스 추출, 경로/파라미터/스키마 생성, 결과 파일 작성
-- **Dependencies**: Spoon, Swagger models, schema generator 계열 라이브러리, `OpenApiGenerator`
-- **Type**: Application
+### 수집 계층
 
-### Framework Adapters
-- **Purpose**: Spring/Jakarta/Javax REST 해석
-- **Responsibilities**: 컨트롤러 애노테이션, 파라미터 애노테이션, 예외 처리 규칙 통합
-- **Dependencies**: Spring Web 또는 JAX-RS API
-- **Type**: Shared
+- `RepositoryIngestionService`: GitHub URL 안전성 검사, identity 생성, clone, inventory 생성.
+- `GitRepositoryFetcherAdapter`: JGit clone 및 revision checkout.
+- `TempWorkspacePreparerAdapter`: 실행별 임시 디렉터리 준비와 정리.
 
-### Interceptors and Code Analysis
-- **Purpose**: 응답 코드와 내부 메서드 행위 추론 강화
-- **Responsibilities**: 예외 핸들러 응답 매핑, 메서드 본문 분석
-- **Dependencies**: Spoon AST
-- **Type**: Shared
+### 분석 계층
 
-## Data Flow
+- `SpringStaticScanService`: Controller endpoint와 바인딩/응답 메타데이터 추출.
+- `ValidationExtractionService`: annotation, validator, service hint와 evidence 후보 추출.
+- fact/candidate/rule 하위 계층: 결정적 ID, 소스 추적, 제한된 메서드 순회, 격리된 규칙 실행.
+- `NormalizationService`와 `RuleOutputMigrationService`: legacy 및 rule 기반 결과를 endpoint 출력 계약으로 정리.
+- `OpenApiAssemblyService`: 전체 산출물 생성의 조립점.
+
+## 주요 데이터 흐름
+
 ```mermaid
 sequenceDiagram
     participant U as User
-    participant M as Main
-    participant F as ParserFactory
-    participant D as FrameworkDetector
-    participant P as RestApiParser
-    participant G as OpenApiGenerator
-
-    U->>M: projectPath, modulePath, outputPath
-    M->>F: createParserWithDetection(...)
-    F->>D: detectFramework(projectPath)
-    D-->>F: Spring or JAX-RS
-    F-->>M: RestApiParser
-    M->>P: run()
-    P->>G: createOpenApi and writeOpenApiToFile
-    G-->>U: OpenAPI JSON file
+    participant I as EntryPoint
+    participant R as Ingestion
+    participant S as StaticScan
+    participant V as Validation
+    participant A as Assembly
+    U->>I: repositoryUrl and revision
+    I->>R: ingest request
+    R-->>I: repository source
+    I->>S: scan source
+    S-->>I: endpoints and warnings
+    I->>V: extract candidates
+    V-->>I: conditions and evidence
+    I->>A: assemble artifacts
+    A-->>U: OpenAPI and analysis result
 ```
 
-## Text Alternative for Data Flow
-1. 사용자가 프로젝트 경로와 출력 경로를 전달한다.
-2. 팩토리가 프레임워크를 자동 감지한다.
-3. 파서가 소스를 분석해 OpenAPI 객체를 만든다.
-4. 제너레이터가 JSON 파일로 저장한다.
+텍스트 대안: 입력 → clone/inventory → endpoint 스캔 → 검증 후보/근거 추출 → 규칙 판정/정규화 → 산출물 조립 → 임시 작업공간 정리 순서다.
 
-## Integration Points
-- **External APIs**: 없음. 네트워크 호출형 서비스가 아니라 로컬 코드 분석 도구다.
-- **Databases**: 없음
-- **Third-party Services**: 없음. 단, Docker 베이스 이미지는 Adoptium OpenJDK 21을 사용한다.
+## 통합 및 인프라
 
-## Infrastructure Components
-- **CDK Stacks**: 없음
-- **Deployment Model**: Alpine Linux 기반 Docker 이미지에 fat JAR를 복사해 실행
-- **Networking**: 필요 없음. 파일 시스템 기반 오프라인 분석이 기본 사용 시나리오다.
+- 외부 통합: HTTPS GitHub clone과 Maven Central 빌드 의존성.
+- 데이터베이스/메시지 브로커: 없음.
+- 네트워크: Web 모드는 기본 8088 포트를 사용하며 분석 요청마다 최대 4개 worker pool을 공유한다.
+- 배포: fat JAR 태스크(`gitSpecScanJar`, `webSpecScanJar`) 또는 Gradle JavaExec 태스크.
+- 주요 위험: Demo와 Web/CLI의 orchestration이 중복되어 향후 파이프라인 변경 시 drift 가능성이 있다.

@@ -1,54 +1,45 @@
-# Business Overview
+# 비즈니스 개요
 
-## Business Context Diagram
+## 비즈니스 목적
+
+`spec-scan`은 GitHub의 Spring Java 저장소를 복제하고 소스 코드를 실행하지 않은 채 정적 분석하여 OpenAPI 문서, API 실행 모델, 검증 근거 그래프 및 규칙 기반 비즈니스 조건을 생성하는 개발 도구다.
+
+## 비즈니스 컨텍스트
+
 ```mermaid
 flowchart LR
-    Src[Java REST API Source Project]
-    Cli[auto-oas CLI]
-    Detect[Framework Detection]
-    Analyze[Controller and Model Analysis]
-    Spec[OpenAPI JSON Output]
-
-    Src --> Cli
-    Cli --> Detect
-    Detect --> Analyze
-    Analyze --> Spec
+    Developer["개발자 또는 Web 사용자"] --> Entry["CLI, Demo, Web UI"]
+    Entry --> Repository["GitHub Spring 저장소"]
+    Repository --> Analyzer["Spec Scan 분석 파이프라인"]
+    Analyzer --> Artifacts["OpenAPI 및 분석 JSON"]
+    Artifacts --> Consumer["API 테스트와 명세 소비자"]
 ```
 
-## Text Alternative
-- 입력은 Java 기반 REST API 소스 프로젝트다.
-- `auto-oas`는 입력 프로젝트를 정적 분석한다.
-- 프레임워크를 감지한 뒤 컨트롤러와 모델을 분석한다.
-- 결과로 OpenAPI JSON 문서를 파일로 저장한다.
+텍스트 대안: 사용자가 Git 저장소와 revision을 제공하면 분석기가 Spring API와 검증 규칙을 추출하고, API 테스트 및 검토에 사용할 명세 산출물을 반환한다.
 
-## Business Description
-- **Business Description**: `auto-oas`는 Java REST API 소스코드를 분석해 OpenAPI 명세를 자동 생성하는 개발자용 정적 분석 도구다.
-- **Business Transactions**:
-  - 프로젝트 경로 수집: 분석 대상 소스 루트와 선택적 REST 모듈 경로를 입력받는다.
-  - REST 프레임워크 감지: Spring 또는 JAX-RS 계열 애노테이션을 스캔해 분석 전략을 결정한다.
-  - 엔드포인트 추출: 컨트롤러, HTTP 메서드, 파라미터, 요청 본문, 응답 코드 후보를 추출한다.
-  - 모델 스키마 생성: 요청/응답 타입을 기반으로 OpenAPI `components.schemas`를 만든다.
-  - 명세 파일 저장: 생성된 OpenAPI 객체를 정리된 JSON 파일로 기록한다.
-- **Business Dictionary**:
-  - **Framework Detection**: 소스 애노테이션을 기준으로 지원 프레임워크를 판별하는 과정
-  - **Controller**: REST 엔드포인트를 제공하는 클래스
-  - **Sub-resource**: JAX-RS 또는 유사 구조에서 하위 경로를 위임하는 리소스
-  - **Profile Split**: Spring `@Profile` 등에 따라 명세를 논리적으로 분리하는 동작
-  - **OpenAPI Output**: JSON 파일로 저장되는 최종 명세 산출물
+## 핵심 비즈니스 트랜잭션
 
-## Component Level Business Descriptions
-### Parsers
-- **Purpose**: 프로젝트 입력값을 해석하고 전체 분석 파이프라인을 오케스트레이션한다.
-- **Responsibilities**: CLI 인자 처리, 프레임워크 자동 감지, Spoon 모델 로딩, 실행 제어
+1. 저장소 수집: GitHub URL을 정규화하고 branch, tag 또는 commit을 임시 작업공간에 clone한다.
+2. API 탐색: Spring Controller와 HTTP 매핑, 요청/응답 바인딩을 식별한다.
+3. 검증 근거 추출: Bean Validation, 사용자 Validator, 서비스 조건과 예외 흐름을 수집한다.
+4. 사실 및 규칙 판정: 코드 사실 그래프를 만들고 내장 또는 YAML 규칙 팩으로 후보를 판정한다.
+5. 결과 정규화: 중복, 충돌, 미해결 후보를 보수적으로 처리하고 endpoint 단위 실행 조건으로 변환한다.
+6. 산출물 생성: `openapi.yaml`, 실행 모델, 분석 JSON, evidence graph와 migration 비교 자료를 생성한다.
+7. 품질 판정: golden/holdout 데이터셋으로 precision, recall 및 전달 준비 상태를 평가한다.
 
-### Framework Adapters
-- **Purpose**: Spring/JAX-RS별 애노테이션 차이를 통합한다.
-- **Responsibilities**: HTTP 메서드 판별, 파라미터 매핑, 요청 본문 추론, 예외 응답 처리
+## 비즈니스 용어
 
-### OpenAPI Generator
-- **Purpose**: 분석 결과를 OpenAPI 객체와 파일로 변환한다.
-- **Responsibilities**: `Info`, `Paths`, `Components` 조합, JSON 직렬화, 파일 생성
+- **Endpoint**: HTTP method와 path로 식별되는 Spring API 작업.
+- **Validation Candidate**: 코드에서 발견했지만 아직 정규화되지 않은 검증 조건.
+- **Fact Code Graph**: 조건식, 호출, 분기 결과와 소스 위치를 보존하는 코드 사실 그래프.
+- **Rule Pack**: 사실 그래프를 비즈니스 규칙 후보로 변환하는 우선순위 규칙 집합.
+- **Evidence Graph**: 최종 조건과 원본 코드 근거의 추적 관계.
+- **Execution Model**: API 호출 전제조건과 예상 결과를 구조화한 JSON 모델.
 
-### Code Analysis
-- **Purpose**: 컨트롤러 내부 메서드와 타입 참조를 분석한다.
-- **Responsibilities**: 응답 코드 힌트 추출, 관련 클래스 선별, 보조 유틸리티 제공
+## 컴포넌트별 비즈니스 책임
+
+- `ingestion`: 안전한 저장소 수집, 소스 루트 인벤토리, 임시 작업공간 정리.
+- `analysis.application`: 스캔, 추출, 정규화, migration 및 산출물 조립.
+- `analysis.domain`: endpoint, candidate, fact, rule, output, evaluation 계약.
+- `analysis.support`: AST 탐색, 그래프 구축, 규칙 실행, 출력 변환과 품질 게이트.
+- CLI/Demo/Web 진입점: 동일 분석 기능을 파일, 콘솔 또는 HTTP JSON으로 노출.
