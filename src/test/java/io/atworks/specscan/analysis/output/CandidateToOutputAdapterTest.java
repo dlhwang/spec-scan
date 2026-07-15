@@ -18,10 +18,10 @@ class CandidateToOutputAdapterTest {
             SemanticStatus.RESOLVED, TargetResolutionStatus.RESOLVED,
             new NormalizedConstraint(ConstraintKind.INPUT_LITERAL, "request.quantity", "GREATER_THAN",
                 List.of("0"), "literal-node"), List.of());
-        BusinessRuleCandidate runtime = candidate("runtime", BusinessRuleCategory.AUTHENTICATION,
+        BusinessRuleCandidate runtime = candidate("SPRING_SECURITY_PASSWORD_MATCH_FAILURE", BusinessRuleCategory.AUTHENTICATION,
             SemanticStatus.RESOLVED, TargetResolutionStatus.UNRESOLVED,
             new NormalizedConstraint(ConstraintKind.RUNTIME_DEPENDENT, null, null, List.of(), "matches-call"),
-            List.of(diagnostic("TARGET_UNRESOLVED")));
+            List.of(diagnostic("TARGET_UNRESOLVED")), true);
         BusinessRuleCandidate unresolved = candidate("unknown", BusinessRuleCategory.UNKNOWN,
             SemanticStatus.UNRESOLVED, TargetResolutionStatus.UNRESOLVED, null,
             List.of(diagnostic("NO_RULE_MATCHED")));
@@ -32,6 +32,7 @@ class CandidateToOutputAdapterTest {
             assertThat(condition.targetLocation()).isEqualTo("BODY");
             assertThat(condition.targetPath()).isEqualTo("$.quantity");
             assertThat(condition.expectedValues()).containsExactly("0");
+            assertThat(condition.operator()).isEqualTo("GT");
         });
         assertThat(output.responseAssertions()).isEmpty();
         assertThat(output.excludedBusinessRules()).singleElement().satisfies(rule -> {
@@ -49,15 +50,25 @@ class CandidateToOutputAdapterTest {
                 List.of(), "stock-origin"), List.of());
         EndpointRuleOutput output = adapter.adapt(endpoint(), List.of(candidate));
         assertThat(output.requestPreconditions()).isEmpty();
-        assertThat(output.excludedBusinessRules()).singleElement()
-            .extracting(ExcludedBusinessRule::reasonCode).isEqualTo("EXTERNAL_STATE_REQUIRED");
+        assertThat(output.excludedBusinessRules()).isEmpty();
+        assertThat(output.diagnostics()).extracting(CandidateOutputDiagnostic::code)
+            .contains("EXCLUDED_RULE_NOT_ALLOWLISTED");
     }
 
     private BusinessRuleCandidate candidate(String id, BusinessRuleCategory category, SemanticStatus semantic,
                                             TargetResolutionStatus target, NormalizedConstraint constraint,
                                             List<CandidateDiagnostic> diagnostics) {
-        return new BusinessRuleCandidateFactory().create("predicate:" + id, "RULE:" + id, category,
-            ExtractionStatus.EXTRACTED, semantic, target, constraint, 0.9, List.of(evidence(id)), diagnostics);
+        return candidate(id, category, semantic, target, constraint, diagnostics, false);
+    }
+    private BusinessRuleCandidate candidate(String id, BusinessRuleCategory category, SemanticStatus semantic,
+                                            TargetResolutionStatus target, NormalizedConstraint constraint,
+                                            List<CandidateDiagnostic> diagnostics, boolean completeEvidence) {
+        List<EvidenceRef> evidence = new ArrayList<>(); evidence.add(evidence(id));
+        if (completeEvidence) evidence.add(new EvidenceRef("outcome:" + id, "src/Test.java", 2, 1, 2, 10,
+            EvidenceRole.FAILURE_OUTCOME, "failure"));
+        String ruleId = id.contains("_") ? id : "RULE:" + id;
+        return new BusinessRuleCandidateFactory().create("predicate:" + id, ruleId, category,
+            ExtractionStatus.EXTRACTED, semantic, target, constraint, 0.9, evidence, diagnostics);
     }
     private CandidateDiagnostic diagnostic(String code) {
         return new CandidateDiagnostic(CandidateDiagnosticSeverity.WARNING, code, code, "node");

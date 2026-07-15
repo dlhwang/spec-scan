@@ -67,9 +67,61 @@ final class StructuralRuleSupport {
     }
 
     boolean readsParameter(FactNode node) {
-        return graph.edges().stream().anyMatch(edge -> edge.type() == FactEdgeType.READS
-            && edge.sourceNodeId().equals(node.id()) && nodes.get(edge.targetNodeId()) != null
-            && nodes.get(edge.targetNodeId()).type() == FactNodeType.PARAMETER);
+        return originPath(node).isPresent();
+    }
+
+    Optional<String> originPath(FactNode node) { return originPath(node, new HashSet<>()); }
+
+    private Optional<String> originPath(FactNode node, Set<String> visited) {
+        if (node == null || !visited.add(node.id())) return Optional.empty();
+        if (node.type() == FactNodeType.PARAMETER) {
+            Optional<FactEdge> propagated = graph.edges().stream()
+                .filter(edge -> edge.type() == FactEdgeType.ORIGINATES_FROM
+                    && edge.sourceNodeId().equals(node.id())
+                    && ("CALL_ARGUMENT".equals(edge.role()) || "COLLECTION_ELEMENT".equals(edge.role())))
+                .sorted(Comparator.comparing(FactEdge::role).thenComparing(FactEdge::targetNodeId)).findFirst();
+            if (propagated.isEmpty()) return Optional.of("$");
+            Optional<String> path = originPath(nodes.get(propagated.get().targetNodeId()), visited);
+            return "COLLECTION_ELEMENT".equals(propagated.get().role())
+                ? path.map(value -> value + "[*]") : path;
+        }
+        if (node.payload() instanceof FactNodePayload.MethodCallPayload call) {
+            Optional<FactNode> receiver = graph.edges().stream()
+                .filter(edge -> edge.sourceNodeId().equals(node.id())
+                    && edge.type() == FactEdgeType.OPERAND_OF && "RECEIVER".equals(edge.role()))
+                .map(edge -> nodes.get(edge.targetNodeId())).filter(Objects::nonNull).findFirst();
+            Optional<String> base = receiver.flatMap(value -> originPath(value, visited));
+            if ("get".equals(call.methodName()) && call.argumentCount() == 1)
+                return base.map(value -> value + "[*]");
+            String property = getterProperty(call.methodName());
+            return property == null ? base : base.map(value -> append(value, property));
+        }
+        Optional<FactNode> declaration = graph.edges().stream()
+            .filter(edge -> edge.type() == FactEdgeType.READS && edge.sourceNodeId().equals(node.id()))
+            .map(edge -> nodes.get(edge.targetNodeId())).filter(Objects::nonNull).findFirst();
+        if (declaration.isPresent()) return originPath(declaration.get(), visited);
+        if (node.type() == FactNodeType.VALUE_FIELD) {
+            Optional<FactNode> value = graph.edges().stream()
+                .filter(edge -> edge.type() == FactEdgeType.VALUE_FLOWS_TO
+                    && edge.targetNodeId().equals(node.id()))
+                .map(edge -> nodes.get(edge.sourceNodeId())).filter(Objects::nonNull).findFirst();
+            Optional<String> path = value.flatMap(origin -> originPath(origin, visited));
+            if (node.payload() instanceof FactNodePayload.FieldAccessPayload field
+                    && field.rootExpressionKind().startsWith("INSTANCE_FIELD:"))
+                return path.map(base -> append(base, field.fieldName()));
+            return path;
+        }
+        return Optional.empty();
+    }
+
+    private String getterProperty(String methodName) {
+        String stem = methodName.startsWith("get") && methodName.length() > 3 ? methodName.substring(3)
+            : methodName.startsWith("is") && methodName.length() > 2 ? methodName.substring(2) : null;
+        return stem == null ? null : Character.toLowerCase(stem.charAt(0)) + stem.substring(1);
+    }
+
+    private String append(String base, String property) {
+        return "$".equals(base) ? "$." + property : base + "." + property;
     }
 
     Optional<String> originKey(FactNode node) {

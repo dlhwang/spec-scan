@@ -55,7 +55,51 @@ public final class DefaultValidationCandidateDetector implements ReportedValidat
                 graph.graphId(), condition.id(), classifier.classify(graph, condition), status, evidence, diagnostics));
         }
         addImplicitOptionalFailures(graph, scope, nodes, candidates);
+        addPasswordTrailingFailures(graph, conditionIds, nodes, candidates);
         return new CandidateDetectionResult(candidates, reportDiagnostics);
+    }
+
+    private void addPasswordTrailingFailures(FactCodeGraph graph, Set<String> conditionIds,
+                                             Map<String, FactNode> nodes, List<PredicateCandidate> candidates) {
+        Set<String> existing = new HashSet<>();
+        candidates.forEach(candidate -> existing.add(candidate.conditionNodeId()));
+        for (String conditionId : conditionIds.stream().sorted().toList()) {
+            if (existing.contains(conditionId)) continue;
+            FactNode passwordCall = descendants(graph, nodes, conditionId).stream()
+                .filter(node -> node.payload() instanceof FactNodePayload.MethodCallPayload call
+                    && "matches".equals(call.methodName()) && isPasswordEncoder(node.typeResolution()))
+                .findFirst().orElse(null);
+            FactNode mismatch = graph.edges().stream().filter(edge -> edge.sourceNodeId().equals(conditionId)
+                    && edge.type() == FactEdgeType.ELSE_OUTCOME)
+                .map(edge -> nodes.get(edge.targetNodeId())).filter(Objects::nonNull).findFirst().orElse(null);
+            if (passwordCall == null || mismatch == null) continue;
+            FactNode condition = nodes.get(conditionId);
+            candidates.add(new PredicateCandidate(ids.forPredicate(graph.graphId(), conditionId), graph.graphId(),
+                conditionId, PredicateType.COMPOSITE, ExtractionStatus.EXTRACTED,
+                List.of(evidenceMapper.fromFact(condition, EvidenceRole.PREDICATE),
+                    evidenceMapper.fromFact(mismatch, EvidenceRole.FAILURE_OUTCOME)), List.of()));
+        }
+    }
+
+    private List<FactNode> descendants(FactCodeGraph graph, Map<String, FactNode> nodes, String source) {
+        List<FactNode> result = new ArrayList<>(); Deque<String> pending = new ArrayDeque<>();
+        Set<String> visited = new HashSet<>(); pending.add(source);
+        while (!pending.isEmpty()) {
+            String current = pending.removeFirst(); if (!visited.add(current)) continue;
+            graph.edges().stream().filter(edge -> edge.sourceNodeId().equals(current)
+                    && edge.type() == FactEdgeType.OPERAND_OF).forEach(edge -> {
+                FactNode node = nodes.get(edge.targetNodeId());
+                if (node != null) { result.add(node); pending.addLast(node.id()); }
+            });
+        }
+        return result;
+    }
+
+    private boolean isPasswordEncoder(TypeResolution resolution) {
+        String signature = resolution.resolvedSignature();
+        return resolution.status() == TypeResolutionStatus.RESOLVED && signature != null
+            && signature.contains("org.springframework.security.crypto.password")
+            && signature.endsWith(".matches(java.lang.CharSequence, java.lang.String)");
     }
 
     private void addImplicitOptionalFailures(FactCodeGraph graph, MethodScope scope, Map<String, FactNode> nodes,
@@ -113,7 +157,8 @@ public final class DefaultValidationCandidateDetector implements ReportedValidat
         if (!graph.graphId().equals(scope.graphId())) throw new IllegalArgumentException("INVALID_METHOD_SCOPE");
         Map<String, FactNodeType> types = new HashMap<>();
         graph.nodes().forEach(node -> types.put(node.id(), node.type()));
-        for (String id : scope.methodNodeIds()) if (types.get(id) != FactNodeType.API_METHOD && types.get(id) != FactNodeType.METHOD) {
+        for (String id : scope.methodNodeIds()) if (types.get(id) != FactNodeType.API_METHOD
+                && types.get(id) != FactNodeType.METHOD && types.get(id) != FactNodeType.CONSTRUCTOR) {
             throw new IllegalArgumentException("INVALID_METHOD_SCOPE");
         }
     }

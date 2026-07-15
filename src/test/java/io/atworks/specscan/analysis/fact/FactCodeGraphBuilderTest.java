@@ -70,6 +70,226 @@ class FactCodeGraphBuilderTest {
         assertThat(result.graphs().get(0).edges()).extracting(FactEdge::type).contains(FactEdgeType.CALLS);
     }
 
+    @Test void repeatedBuildProducesDeterministicGraph() throws Exception {
+        write("demo/controller/StableController.java", """
+            package demo.controller;
+            import demo.service.StableService;
+            public class StableController { private StableService service;
+                public void validate(String value) { service.validate(value); }
+            }
+            """);
+        write("demo/service/StableService.java", """
+            package demo.service;
+            public class StableService {
+                public void validate(String value) {
+                    if (value == null) throw new IllegalArgumentException();
+                }
+            }
+            """);
+
+        StaticScanResult scan = scan("demo.controller.StableController", "validate");
+        RepositorySource source = source(2);
+        FactGraphBuildResult first = new DefaultFactCodeGraphBuilder().build(
+            scan, source, FactGraphTraversalBudget.defaults());
+        FactGraphBuildResult second = new DefaultFactCodeGraphBuilder().build(
+            scan, source, FactGraphTraversalBudget.defaults());
+
+        assertThat(second.graphs()).isEqualTo(first.graphs());
+        assertThat(second.diagnostics()).isEqualTo(first.diagnostics());
+    }
+
+    @Test void objectCreationReachesSourceConstructorAndItsGuard() throws Exception {
+        write("demo/controller/RangeController.java", """
+            package demo.controller;
+            import demo.model.LongRange;
+            public class RangeController {
+                public void search(Long start, Long end) { new LongRange(start, end); }
+            }
+            """);
+        write("demo/model/LongRange.java", """
+            package demo.model;
+            public class LongRange {
+                public LongRange(Long start, Long end) {
+                    if (start > end) throw new IllegalArgumentException();
+                }
+            }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.RangeController", "search"), source(2),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.nodes()).extracting(FactNode::type)
+            .contains(FactNodeType.OBJECT_CREATION, FactNodeType.CONSTRUCTOR, FactNodeType.CONDITION,
+                FactNodeType.THROW);
+        assertThat(graph.edges()).extracting(FactEdge::type)
+            .contains(FactEdgeType.CREATES, FactEdgeType.CALLS, FactEdgeType.CONTROLS,
+                FactEdgeType.THEN_OUTCOME);
+    }
+
+    @Test void constructorReachesSuperConstructorGuard() throws Exception {
+        write("demo/controller/RangeController.java", """
+            package demo.controller;
+            import demo.model.LongRange;
+            public class RangeController {
+                public void search(Long start, Long end) { new LongRange(start, end); }
+            }
+            """);
+        write("demo/model/Range.java", """
+            package demo.model;
+            public class Range {
+                public Range(Long start, Long end) {
+                    if (start > end) throw new IllegalArgumentException();
+                }
+            }
+            """);
+        write("demo/model/LongRange.java", """
+            package demo.model;
+            public class LongRange extends Range {
+                public LongRange(Long start, Long end) { super(start, end); }
+            }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.RangeController", "search"), source(3),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.CONSTRUCTOR).hasSize(2);
+        assertThat(graph.edges()).filteredOn(edge -> edge.type() == FactEdgeType.CALLS
+                && edge.role().equals("SUPER_CONSTRUCTOR"))
+            .singleElement();
+        assertThat(graph.nodes()).extracting(FactNode::type)
+            .contains(FactNodeType.CONDITION, FactNodeType.THROW);
+    }
+
+    @Test void lambdaAndMethodReferenceReachSourceMethods() throws Exception {
+        write("demo/controller/ValueController.java", """
+            package demo.controller;
+            import demo.model.Value;
+            import java.util.List;
+            public class ValueController {
+                public void save(List<String> values) {
+                    values.stream().map(value -> Value.create(value)).map(Value::validate).toList();
+                }
+            }
+            """);
+        write("demo/model/Value.java", """
+            package demo.model;
+            public class Value {
+                public static Value create(String value) { return new Value(); }
+                public String validate() { return "ok"; }
+            }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.ValueController", "save"), source(2),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        FactNode lambda = graph.nodes().stream().filter(node -> node.type() == FactNodeType.LAMBDA)
+            .findFirst().orElseThrow();
+        assertThat(graph.nodes()).extracting(FactNode::type)
+            .contains(FactNodeType.LAMBDA, FactNodeType.METHOD_REFERENCE);
+        assertThat(graph.edges()).filteredOn(edge -> edge.sourceNodeId().equals(lambda.id())
+                && edge.type() == FactEdgeType.CALLS)
+            .isNotEmpty();
+        assertThat(graph.edges()).filteredOn(edge -> edge.type() == FactEdgeType.REFERENCES
+                && edge.role().equals("TARGET"))
+            .singleElement();
+    }
+
+    @Test void preservesUnaryNestedBooleanAndSwitchCaseStructure() throws Exception {
+        write("demo/controller/RuleController.java", """
+            package demo.controller;
+            public class RuleController {
+                enum Type { A, B }
+                public boolean validate(Type type, long deposit, long rent) {
+                    if (!(deposit > 0 && rent > 0)) throw new IllegalArgumentException();
+                    return switch (type) {
+                        case A -> deposit <= 0;
+                        case B -> rent <= 0 || deposit <= 0;
+                    };
+                }
+            }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.RuleController", "validate"), source(1),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.nodes()).withFailMessage("nodes=%s edges=%s", graph.nodes(), graph.edges())
+            .filteredOn(node -> node.payload() instanceof FactNodePayload.ConditionPayload)
+            .extracting(node -> ((FactNodePayload.ConditionPayload) node.payload()).rootOperator())
+            .contains("!", "&&", ">", "==", "<=", "||");
+        assertThat(graph.edges()).filteredOn(edge -> edge.role().equals("SWITCH_CASE"))
+            .hasSize(2);
+        assertThat(graph.edges()).filteredOn(edge -> edge.role().equals("SWITCH_RESULT"))
+            .hasSize(2);
+    }
+
+    @Test void connectsInvocationArgumentsToTargetParametersByOrdinal() throws Exception {
+        write("demo/controller/InputController.java", """
+            package demo.controller;
+            import demo.service.InputService;
+            public class InputController { private InputService service;
+                public void save(String requestValue) { service.save(requestValue); }
+            }
+            """);
+        write("demo/service/InputService.java", """
+            package demo.service;
+            public class InputService {
+                public void save(String domainValue) {
+                    if (domainValue == null) throw new IllegalArgumentException();
+                }
+            }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.InputController", "save"), source(2),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        FactNode targetParameter = graph.nodes().stream()
+            .filter(node -> node.payload() instanceof FactNodePayload.ParameterPayload parameter
+                && parameter.name().equals("domainValue"))
+            .findFirst().orElseThrow();
+        assertThat(graph.edges()).filteredOn(edge -> edge.sourceNodeId().equals(targetParameter.id())
+                && edge.type() == FactEdgeType.ORIGINATES_FROM
+                && edge.role().equals("CALL_ARGUMENT"))
+            .singleElement();
+    }
+
+    @Test void mapsThrownExceptionThroughHandlerToHttpStatus() throws Exception {
+        write("demo/controller/GuardController.java", """
+            package demo.controller;
+            public class GuardController {
+                public void validate(String value) {
+                    if (value == null) throw new IllegalArgumentException();
+                }
+            }
+            """);
+        write("demo/config/GlobalExceptionHandler.java", """
+            package demo.config;
+            public class GlobalExceptionHandler {
+                @ExceptionHandler(IllegalArgumentException.class)
+                public Object badRequest(IllegalArgumentException exception) {
+                    ErrorCode code = ErrorCode.BAD_REQUEST;
+                    return code;
+                }
+            }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.GuardController", "validate"), source(2),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.nodes()).extracting(FactNode::type)
+            .contains(FactNodeType.EXCEPTION, FactNodeType.EXCEPTION_HANDLER, FactNodeType.HTTP_STATUS);
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.HTTP_STATUS)
+            .singleElement().satisfies(node -> assertThat(
+                ((FactNodePayload.HttpStatusPayload) node.payload()).statusCode()).isEqualTo(400));
+        assertThat(graph.edges()).extracting(FactEdge::type)
+            .contains(FactEdgeType.THROWS, FactEdgeType.HANDLED_BY, FactEdgeType.MAPS_TO);
+    }
+
     @Test void delegatedGuardKeepsCalledMethodReturnEvidence() throws Exception {
         write("demo/controller/OrderController.java", """
             package demo.controller;
@@ -115,6 +335,51 @@ class FactCodeGraphBuilderTest {
         FactNode inner = conditions.stream().filter(n -> n.snippet().equals("inner")).findFirst().orElseThrow();
         assertThat(graph.edges()).filteredOn(e -> e.type() == FactEdgeType.THEN_OUTCOME)
             .extracting(FactEdge::sourceNodeId).containsExactly(inner.id()).doesNotContain(outer.id());
+    }
+
+    @Test void recordsBuilderAndConstructorValueFlowsWithoutInventingMissingFields() throws Exception {
+        write("demo/controller/PropertyController.java", """
+            package demo.controller;
+            import demo.model.Property;
+            import demo.dto.PropertyResponse;
+            public class PropertyController {
+                public PropertyResponse get(Property property) { return PropertyResponse.to(property); }
+            }
+            """);
+        write("demo/model/Property.java", """
+            package demo.model;
+            public class Property { public Long getId() { return 1L; } }
+            """);
+        write("demo/dto/PropertyResponse.java", """
+            package demo.dto;
+            import demo.model.Property;
+            public class PropertyResponse {
+                public static Builder builder() { return new Builder(); }
+                public static PropertyResponse to(Property property) {
+                    return builder().propertyId(property.getId()).build();
+                }
+                public static class Builder {
+                    public Builder propertyId(Long value) { return this; }
+                    public PropertyResponse build() { return new PropertyResponse(); }
+                }
+            }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.PropertyController", "get"), source(3),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+        FactNode sourceValue = graph.nodes().stream().filter(node -> node.type() == FactNodeType.METHOD_CALL
+            && node.snippet().equals("property.getId()" )).findFirst().orElseThrow();
+        FactNode responseField = graph.nodes().stream().filter(node -> node.type() == FactNodeType.VALUE_FIELD
+            && node.snippet().equals("propertyId")).findFirst().orElseThrow();
+
+        assertThat(graph.edges()).anySatisfy(edge -> {
+            assertThat(edge.sourceNodeId()).isEqualTo(sourceValue.id());
+            assertThat(edge.targetNodeId()).isEqualTo(responseField.id());
+            assertThat(edge.type()).isEqualTo(FactEdgeType.VALUE_FLOWS_TO);
+        });
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.VALUE_FIELD)
+            .extracting(FactNode::snippet).doesNotContain("missingField");
     }
 
     private void write(String relative, String content) throws Exception { Path file = workspace.resolve("src/main/java").resolve(relative); Files.createDirectories(file.getParent()); Files.writeString(file, content); }

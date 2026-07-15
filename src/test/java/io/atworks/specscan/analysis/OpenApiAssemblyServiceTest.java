@@ -49,6 +49,8 @@ class OpenApiAssemblyServiceTest {
 
     @Test
     void testOpenApiAssemblyAndYamlGeneration(@TempDir Path tempDir) throws IOException, IngestionException {
+        assemblyService = new OpenApiAssemblyService(
+            io.atworks.specscan.analysis.domain.output.OutputMigrationMode.LEGACY_ONLY);
         Path outputPath = tempDir.resolve("openapi.yaml");
         Path srcRoot = tempDir.resolve("src/main/java");
         Path dtoDir = srcRoot.resolve("io/atworks/dto");
@@ -137,7 +139,7 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionOutputPath).exists();
         Path graphOutputPath = tempDir.resolve("validation-evidence-graph.json");
         assertThat(graphOutputPath).exists();
-        assertThat(tempDir.resolve("api-condition-migration-report.json")).exists();
+        assertThat(tempDir.resolve("api-condition-migration-report.json")).doesNotExist();
 
         String yamlContent = Files.readString(outputPath);
         JsonNode structuredJson = objectMapper.readTree(Files.readString(structuredOutputPath));

@@ -57,6 +57,7 @@ class SpringStaticScanServiceTest {
             
             import org.springframework.web.bind.annotation.*;
             import org.springframework.http.ResponseEntity;
+            import org.springframework.http.HttpStatus;
             import io.atworks.dto.UserDto;
             
             @RestController
@@ -75,7 +76,7 @@ class SpringStaticScanServiceTest {
                 
                 @PostMapping
                 public ResponseEntity<Void> createUser(@RequestBody UserDto userDto) {
-                    return null;
+                    return new ResponseEntity<>(null, HttpStatus.CREATED);
                 }
                 
                 @PutMapping("/update")
@@ -200,6 +201,8 @@ class SpringStaticScanServiceTest {
                 .orElseThrow();
         assertThat(postEndpoint.path()).isEqualTo("/api/v1/users");
         assertThat(postEndpoint.responseBinding().type()).isEqualTo("Void");
+        assertThat(postEndpoint.responseBinding().explicitStatus()).isEqualTo(201);
+        assertThat(postEndpoint.responseBinding().statusSource()).isEqualTo("new ResponseEntity");
         
         List<RequestBinding> postBindings = postEndpoint.requestBindings();
         assertThat(postBindings).hasSize(1);

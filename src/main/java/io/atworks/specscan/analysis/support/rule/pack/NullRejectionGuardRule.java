@@ -19,9 +19,11 @@ public final class NullRejectionGuardRule implements GraphRule {
         boolean rejectsNull = ("==".equals(payload.rootOperator()) && support.failureOnThen(condition.id()))
             || ("!=".equals(payload.rootOperator()) && support.failureOnElse(condition.id()));
         if (!rejectsNull || nullNode == null || value == null) return List.of();
-        boolean input = support.readsParameter(value);
-        NormalizedConstraint constraint = new NormalizedConstraint(ConstraintKind.CONTROL_FLOW_ONLY,
-            input ? value.snippet() : null, "NOT_NULL", List.of(), nullNode.id());
+        var originPath = support.originPath(value);
+        boolean input = originPath.isPresent();
+        NormalizedConstraint constraint = new NormalizedConstraint(input
+            ? ConstraintKind.INPUT_LITERAL : ConstraintKind.CONTROL_FLOW_ONLY,
+            originPath.orElse(null), "NOT_NULL", List.of(), nullNode.id());
         return List.of(support.resolved(predicate, ID, BusinessRuleCategory.INVARIANT,
             input ? TargetResolutionStatus.RESOLVED : TargetResolutionStatus.NOT_APPLICABLE,
             constraint, 1.0, support.evidence(predicate, value,
