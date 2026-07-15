@@ -81,13 +81,13 @@ public class SpecScanWebServer {
 
         try {
             JsonNode request = OBJECT_MAPPER.readTree(exchange.getRequestBody());
-            String repositoryUrl = requiredText(request, "repositoryUrl");
+            String repositorySource = requiredText(request, "repositorySource", "repositoryUrl");
             requiredText(request, "projectName");
             requiredText(request, "baseUrl");
             String revisionType = optionalText(request, "revisionType");
             String revision = optionalText(request, "revision");
 
-            String result = new GitExecutionSpecScanService().scanWithArtifacts(repositoryUrl, revisionType, revision);
+            String result = new GitExecutionSpecScanService().scanWithArtifacts(repositorySource, revisionType, revision);
             send(exchange, 200, "application/json; charset=utf-8", result);
         } catch (IllegalArgumentException e) {
             sendJson(exchange, 400, Map.of("error", e.getMessage()));
@@ -101,6 +101,17 @@ public class SpecScanWebServer {
 
     private static String requiredText(JsonNode node, String fieldName) {
         String value = optionalText(node, fieldName);
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Missing required field: " + fieldName);
+        }
+        return value;
+    }
+
+    private static String requiredText(JsonNode node, String fieldName, String legacyFieldName) {
+        String value = optionalText(node, fieldName);
+        if (value == null || value.isBlank()) {
+            value = optionalText(node, legacyFieldName);
+        }
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("Missing required field: " + fieldName);
         }

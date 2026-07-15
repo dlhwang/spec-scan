@@ -12,7 +12,7 @@ import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
 import io.atworks.specscan.analysis.domain.ValidationEvidenceGraph;
 import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
 import io.atworks.specscan.analysis.support.ValidationEvidenceGraphBuilder;
-import io.atworks.specscan.ingestion.adapter.GitRepositoryFetcherAdapter;
+import io.atworks.specscan.ingestion.adapter.RepositorySourceFetcherAdapter;
 import io.atworks.specscan.ingestion.adapter.TempWorkspacePreparerAdapter;
 import io.atworks.specscan.ingestion.application.RepositoryIngestionService;
 import io.atworks.specscan.ingestion.domain.RepositoryRequest;
@@ -34,7 +34,7 @@ public class GitExecutionSpecScanService {
         String revision
     ) throws Exception {
         RepositoryIngestionService ingestionService = new RepositoryIngestionService(
-            new GitRepositoryFetcherAdapter(),
+            new RepositorySourceFetcherAdapter(),
             new TempWorkspacePreparerAdapter()
         );
 
@@ -80,7 +80,7 @@ public class GitExecutionSpecScanService {
         String revision
     ) throws Exception {
         RepositoryIngestionService ingestionService = new RepositoryIngestionService(
-            new GitRepositoryFetcherAdapter(),
+            new RepositorySourceFetcherAdapter(),
             new TempWorkspacePreparerAdapter()
         );
 

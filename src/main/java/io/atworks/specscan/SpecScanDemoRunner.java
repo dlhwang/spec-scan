@@ -3,7 +3,7 @@ package io.atworks.specscan;
 import io.atworks.specscan.analysis.application.*;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
 import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
-import io.atworks.specscan.ingestion.adapter.GitRepositoryFetcherAdapter;
+import io.atworks.specscan.ingestion.adapter.RepositorySourceFetcherAdapter;
 import io.atworks.specscan.ingestion.adapter.TempWorkspacePreparerAdapter;
 import io.atworks.specscan.ingestion.application.RepositoryIngestionService;
 import io.atworks.specscan.ingestion.domain.*;
@@ -25,7 +25,7 @@ public class SpecScanDemoRunner {
         System.out.println("=================================================");
 
         RepositoryIngestionService ingestionService = new RepositoryIngestionService(
-            new GitRepositoryFetcherAdapter(),
+            new RepositorySourceFetcherAdapter(),
             new TempWorkspacePreparerAdapter()
         );
 
@@ -35,9 +35,9 @@ public class SpecScanDemoRunner {
         try {
             if (args.length > 0) {
                 // 1. 실제 Git URL로부터 Ingestion 수행
-                String gitUrl = args[0];
-                System.out.println("[Step 1] Ingesting from real Git URL: " + gitUrl);
-                RepositoryRequest request = new RepositoryRequest(gitUrl, null, null, null);
+                String sourceLocation = args[0];
+                System.out.println("[Step 1] Ingesting repository source: " + sourceLocation);
+                RepositoryRequest request = new RepositoryRequest(sourceLocation, null, null, null);
                 repositorySource = ingestionService.ingest(request);
                 
                 System.out.println("[Ingestion Summary]");

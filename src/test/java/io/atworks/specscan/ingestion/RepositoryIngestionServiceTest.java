@@ -1,6 +1,7 @@
 package io.atworks.specscan.ingestion;
 
 import io.atworks.specscan.ingestion.application.RepositoryIngestionService;
+import io.atworks.specscan.ingestion.adapter.LocalRepositoryFetcherAdapter;
 import io.atworks.specscan.ingestion.domain.*;
 import io.atworks.specscan.ingestion.port.RepositoryFetcherPort;
 import io.atworks.specscan.ingestion.port.WorkspacePreparerPort;
@@ -74,6 +75,31 @@ class RepositoryIngestionServiceTest {
     @Test
     void testInvalidRepositoryUrl() {
         RepositoryRequest request = new RepositoryRequest("invalid-url");
+        assertThatThrownBy(() -> service.ingest(request))
+            .isInstanceOf(IngestionException.class)
+            .hasFieldOrPropertyWithValue("errorCode", IngestionErrorCode.UNSUPPORTED_REPOSITORY_SOURCE);
+    }
+
+    @Test
+    void testLocalRepositoryDirectory(@TempDir Path localRepository, @TempDir Path workspace) throws IOException {
+        Path sourceRoot = localRepository.resolve("src/main/java");
+        Files.createDirectories(sourceRoot);
+        Files.writeString(sourceRoot.resolve("LocalController.java"), "class LocalController {}");
+        preparer.setWorkspacePath(workspace.toString());
+        RepositoryIngestionService localService = new RepositoryIngestionService(
+            new LocalRepositoryFetcherAdapter(), preparer);
+
+        RepositorySource source = localService.ingest(new RepositoryRequest(localRepository.toString()));
+
+        assertThat(source.repositoryIdentity().host()).isEqualTo("local");
+        assertThat(source.repositoryIdentity().normalizedCloneUrl()).isEqualTo(localRepository.toAbsolutePath().toString());
+        assertThat(source.javaInventorySummary().totalJavaFileCount()).isEqualTo(1);
+    }
+
+    @Test
+    void testLocalRepositoryRejectsRevision(@TempDir Path localRepository) {
+        RepositoryRequest request = new RepositoryRequest(localRepository.toString(), "main", null, null);
+
         assertThatThrownBy(() -> service.ingest(request))
             .isInstanceOf(IngestionException.class)
             .hasFieldOrPropertyWithValue("errorCode", IngestionErrorCode.UNSUPPORTED_REPOSITORY_SOURCE);

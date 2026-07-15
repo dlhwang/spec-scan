@@ -103,7 +103,28 @@ public class RepositoryIngestionService {
     private RepositoryIdentity validateAndParseRequest(RepositoryRequest request) {
         String url = request.repositoryUrl();
         if (url == null || url.isBlank()) {
-            throw new IngestionException(IngestionErrorCode.INVALID_REPOSITORY_URL, "Repository URL cannot be null or empty");
+            throw new IngestionException(IngestionErrorCode.INVALID_REPOSITORY_URL, "Repository source cannot be null or empty");
+        }
+
+        Path localPath;
+        try {
+            localPath = Path.of(url).toAbsolutePath().normalize();
+        } catch (Exception exception) {
+            localPath = null;
+        }
+        if (localPath != null && Files.isDirectory(localPath)) {
+            if (request.branch() != null || request.tag() != null || request.commit() != null) {
+                throw new IngestionException(IngestionErrorCode.UNSUPPORTED_REPOSITORY_SOURCE,
+                    "Revision selection is not supported for a local repository path");
+            }
+            Path fileName = localPath.getFileName();
+            return new RepositoryIdentity(
+                "local",
+                localPath.getParent() == null ? "" : localPath.getParent().toString(),
+                fileName == null ? localPath.toString() : fileName.toString(),
+                localPath.toString(),
+                null
+            );
         }
 
         // SSH or local path check
