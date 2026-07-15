@@ -49,7 +49,7 @@ public class TypeResolver {
         this.sourceRoots = sourceRoots;
         this.typeSolver = createTypeSolver(sourceRoots);
         StaticJavaParser.getConfiguration()
-            .setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17)
+            .setLanguageLevel(ParserConfiguration.LanguageLevel.BLEEDING_EDGE)
             .setSymbolResolver(new JavaSymbolSolver(typeSolver));
     }
 
@@ -239,7 +239,7 @@ public class TypeResolver {
                     return resolved;
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             System.err.println("Warning: Failed to parse class file " + file + ": " + e.getMessage());
         }
         return Optional.empty();
@@ -338,7 +338,7 @@ public class TypeResolver {
                 .filter(type -> type.getNameAsString().equals(simpleName))
                 .findFirst()
                 .map(type -> (TypeDeclaration<?>) type);
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             return Optional.empty();
         }
     }

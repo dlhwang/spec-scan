@@ -18,7 +18,7 @@ public class SpecScanDemoRunner {
 
     public static void main(String[] args) {
         com.github.javaparser.StaticJavaParser.getConfiguration()
-            .setLanguageLevel(com.github.javaparser.ParserConfiguration.LanguageLevel.JAVA_17);
+            .setLanguageLevel(com.github.javaparser.ParserConfiguration.LanguageLevel.BLEEDING_EDGE);
 
         System.out.println("=================================================");
         System.out.println("   Spec Scan E2E Pipeline Demo Runner Start      ");

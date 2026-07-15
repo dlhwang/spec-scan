@@ -33,7 +33,7 @@ public class ValidationExtractionService {
 
     static {
         com.github.javaparser.StaticJavaParser.getConfiguration()
-            .setLanguageLevel(com.github.javaparser.ParserConfiguration.LanguageLevel.JAVA_17);
+            .setLanguageLevel(com.github.javaparser.ParserConfiguration.LanguageLevel.BLEEDING_EDGE);
     }
 
     public ValidationExtractionResult extract(StaticScanResult staticScanResult, RepositorySource repositorySource) throws IngestionException {

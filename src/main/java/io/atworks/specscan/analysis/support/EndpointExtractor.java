@@ -60,7 +60,7 @@ public class EndpointExtractor {
 
     public EndpointExtractor(Path workspaceRoot) {
         this.workspaceRoot = workspaceRoot;
-        StaticJavaParser.getConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_17);
+        StaticJavaParser.getConfiguration().setLanguageLevel(ParserConfiguration.LanguageLevel.BLEEDING_EDGE);
     }
 
     public List<ApiEndpoint> extract(Path file) {

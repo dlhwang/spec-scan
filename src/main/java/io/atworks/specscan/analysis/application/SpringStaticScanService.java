@@ -19,7 +19,7 @@ public class SpringStaticScanService {
 
     static {
         com.github.javaparser.StaticJavaParser.getConfiguration()
-            .setLanguageLevel(com.github.javaparser.ParserConfiguration.LanguageLevel.JAVA_17);
+            .setLanguageLevel(com.github.javaparser.ParserConfiguration.LanguageLevel.BLEEDING_EDGE);
     }
 
     public StaticScanResult scan(RepositorySource repositorySource) throws IngestionException {
