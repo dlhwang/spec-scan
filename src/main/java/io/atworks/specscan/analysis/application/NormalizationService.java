@@ -43,12 +43,19 @@ public class NormalizationService {
 
         // 1. Chunk Generation
         List<CandidateChunk> chunks = chunkGenerator.generateChunks(candidates, endpoints);
+        System.out.printf("    [Normalize] Generated %d candidate chunks%n", chunks.size());
 
-        for (CandidateChunk chunk : chunks) {
+        for (int chunkIndex = 0; chunkIndex < chunks.size(); chunkIndex++) {
+            CandidateChunk chunk = chunks.get(chunkIndex);
+            long chunkStartedAt = System.nanoTime();
+            System.out.printf("    [Normalize][%d/%d] START operation=%s, source=%s, candidates=%d%n",
+                chunkIndex + 1, chunks.size(), chunk.operationKey(), chunk.sourceType(), chunk.candidates().size());
             // 2. Chunks Validation (S-06)
             if (!chunkValidator.isValid(chunk)) {
                 invalidChunks.add(chunk);
                 rejected.addAll(chunk.candidates());
+                System.out.printf("    [Normalize][%d/%d] INVALID rejected=%d (%d ms)%n",
+                    chunkIndex + 1, chunks.size(), chunk.candidates().size(), elapsedMillis(chunkStartedAt));
                 continue;
             }
 
@@ -61,9 +68,15 @@ public class NormalizationService {
             if ("SERVICE_HINT".equals(chunk.sourceType())) {
                 appendUniqueConditions(conditions, conditionKeys, ruleBasedConditionNormalizer.deriveGraphConditions(chunk, endpoint, graph));
             }
+            System.out.printf("    [Normalize][%d/%d] DONE conditions=%d, rejected=%d (%d ms)%n",
+                chunkIndex + 1, chunks.size(), conditions.size(), rejected.size(), elapsedMillis(chunkStartedAt));
         }
 
         return new NormalizedResult(conditions, rejected, invalidChunks, warnings);
+    }
+
+    private long elapsedMillis(long startedAt) {
+        return (System.nanoTime() - startedAt) / 1_000_000;
     }
 
     private List<ApiCondition> normalizeChunkRuleBased(
