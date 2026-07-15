@@ -93,29 +93,3 @@ tasks.register('ruleEvaluation', Test) {
         includeTestsMatching 'io.atworks.specscan.analysis.evaluation.*'
     }
 }
-
-tasks.register('deliveryVerification', Test) {
-    group = 'verification'
-    description = 'Runs the Unit 07 output migration delivery and rollback gates.'
-    dependsOn tasks.named('ruleEvaluation')
-    useJUnitPlatform()
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
-    filter {
-        includeTestsMatching 'io.atworks.specscan.analysis.delivery.*'
-    }
-}
-
-tasks.register('unit05MigrationVerification', Test) {
-    group = 'verification'
-    description = 'Runs focused Unit 05 cross-project migration regression tests.'
-    useJUnitPlatform()
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
-    filter {
-        includeTestsMatching 'io.atworks.specscan.analysis.migration.*'
-        includeTestsMatching 'io.atworks.specscan.analysis.output.*'
-        includeTestsMatching 'io.atworks.specscan.analysis.CandidateOperationScopeTest'
-        includeTestsMatching 'io.atworks.specscan.analysis.NormalizationRejectionClassifierTest'
-    }
-}

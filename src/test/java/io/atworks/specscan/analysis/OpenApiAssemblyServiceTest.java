@@ -3,6 +3,7 @@ package io.atworks.specscan.analysis;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.atworks.specscan.analysis.application.OpenApiAssemblyService;
+import io.atworks.specscan.analysis.application.RuleOutputService;
 import io.atworks.specscan.analysis.application.ValidationExtractionService;
 import io.atworks.specscan.analysis.domain.ApiCondition;
 import io.atworks.specscan.analysis.domain.ApiConditionDraft;
@@ -13,6 +14,7 @@ import io.atworks.specscan.analysis.domain.ResponseBinding;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
 import io.atworks.specscan.analysis.domain.ValidationCandidate;
 import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
+import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
 import io.atworks.specscan.analysis.support.EndpointExtractor;
 import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
 import io.atworks.specscan.ingestion.domain.IngestionException;
@@ -33,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -49,8 +52,6 @@ class OpenApiAssemblyServiceTest {
 
     @Test
     void testOpenApiAssemblyAndYamlGeneration(@TempDir Path tempDir) throws IOException, IngestionException {
-        assemblyService = new OpenApiAssemblyService(
-            io.atworks.specscan.analysis.domain.output.OutputMigrationMode.LEGACY_ONLY);
         Path outputPath = tempDir.resolve("openapi.yaml");
         Path srcRoot = tempDir.resolve("src/main/java");
         Path dtoDir = srcRoot.resolve("io/atworks/dto");
@@ -139,7 +140,6 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionOutputPath).exists();
         Path graphOutputPath = tempDir.resolve("validation-evidence-graph.json");
         assertThat(graphOutputPath).exists();
-        assertThat(tempDir.resolve("api-condition-migration-report.json")).doesNotExist();
 
         String yamlContent = Files.readString(outputPath);
         JsonNode structuredJson = objectMapper.readTree(Files.readString(structuredOutputPath));
@@ -270,12 +270,10 @@ class OpenApiAssemblyServiceTest {
         ValidationExtractionService extractionService = new ValidationExtractionService();
         ValidationExtractionResult extractResult = extractionService.extract(scanResult, repositorySource);
 
+        Map<String, EndpointRuleOutput> outputs = new RuleOutputService().generate(
+            scanResult, repositorySource, extractResult.directConditions(), List.of());
         JsonNode executionJson = objectMapper.readTree(new ExecutionSpecExporter().export(
-            scanResult,
-            extractResult.directConditions(),
-            List.of(),
-            repositorySource
-        ));
+            scanResult, outputs, scanResult.warnings(), repositorySource));
 
         assertThat(extractResult.directConditions()).extracting(ApiConditionDraft::targetPath)
             .contains("description", "requestId")
@@ -371,7 +369,8 @@ class OpenApiAssemblyServiceTest {
         RepositorySource repositorySource = buildRepositorySource(tempDir, scanResult);
         ExecutionSpecExporter exporter = new ExecutionSpecExporter();
 
-        JsonNode executionJson = objectMapper.readTree(exporter.export(scanResult, List.of(), List.of(), repositorySource));
+        JsonNode executionJson = objectMapper.readTree(exporter.export(
+            scanResult, Map.of(), scanResult.warnings(), repositorySource));
 
         assertThat(executionJson.at("/operations/0/response200/contentType").isNull()).isTrue();
         assertThat(executionJson.at("/operations/0/response200/schema").isNull()).isTrue();
@@ -444,7 +443,8 @@ class OpenApiAssemblyServiceTest {
         RepositorySource repositorySource = buildRepositorySource(tempDir, scanResult);
         ExecutionSpecExporter exporter = new ExecutionSpecExporter();
 
-        JsonNode executionJson = objectMapper.readTree(exporter.export(scanResult, List.of(), List.of(), repositorySource));
+        JsonNode executionJson = objectMapper.readTree(exporter.export(
+            scanResult, Map.of(), scanResult.warnings(), repositorySource));
 
         assertThat(executionJson.at("/operations/0/request/bodySchema/properties/orderProducts/items/properties/productId/type").asText()).isEqualTo("integer");
         assertThat(executionJson.at("/operations/0/request/bodySchema/properties/ordererMemberId/properties/id/type").asText()).isEqualTo("integer");
@@ -476,8 +476,7 @@ class OpenApiAssemblyServiceTest {
 
         JsonNode executionJson = objectMapper.readTree(exporter.export(
             scanResult,
-            List.of(),
-            List.of(),
+            Map.of(),
             List.of(
                 new io.atworks.specscan.ingestion.domain.IngestionWarning(
                     "SERVICE_HINT_REJECTED",
@@ -649,7 +648,10 @@ class OpenApiAssemblyServiceTest {
             )
         );
 
-        JsonNode executionJson = objectMapper.readTree(exporter.export(scanResult, List.of(), conditions, repositorySource));
+        Map<String, EndpointRuleOutput> outputs = new RuleOutputService().generate(
+            scanResult, repositorySource, List.of(), conditions);
+        JsonNode executionJson = objectMapper.readTree(exporter.export(
+            scanResult, outputs, scanResult.warnings(), repositorySource));
 
         assertThat(executionJson.at("/operations/0/requestPreconditions").toString()).doesNotContain("$.version");
         assertThat(executionJson.at("/operations/0/requestPreconditions").toString()).doesNotContain("OPTIMISTIC_LOCK_MATCH");
@@ -825,7 +827,10 @@ class OpenApiAssemblyServiceTest {
             )
         );
 
-        JsonNode executionJson = objectMapper.readTree(exporter.export(scanResult, List.of(), conditions, repositorySource));
+        Map<String, EndpointRuleOutput> outputs = new RuleOutputService().generate(
+            scanResult, repositorySource, List.of(), conditions);
+        JsonNode executionJson = objectMapper.readTree(exporter.export(
+            scanResult, outputs, scanResult.warnings(), repositorySource));
 
         assertThat(executionJson.at("/operations/0/request/bodySchema/properties/orderProducts/items/properties/productId/type").asText()).isEqualTo("integer");
         assertThat(executionJson.at("/operations/0/request/bodySchema/properties/shippingInfo/properties/receiver/properties/name/type").asText()).isEqualTo("string");

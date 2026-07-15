@@ -4,14 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.atworks.specscan.analysis.application.NormalizationService;
 import io.atworks.specscan.analysis.application.OpenApiAssemblyService;
-import io.atworks.specscan.analysis.application.RuleOutputMigrationService;
+import io.atworks.specscan.analysis.application.RuleOutputService;
 import io.atworks.specscan.analysis.application.SpringStaticScanService;
 import io.atworks.specscan.analysis.application.ValidationExtractionService;
 import io.atworks.specscan.analysis.domain.NormalizedResult;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
 import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
 import io.atworks.specscan.analysis.domain.ValidationEvidenceGraph;
-import io.atworks.specscan.analysis.domain.output.RuleOutputMigrationResult;
+import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
 import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
 import io.atworks.specscan.analysis.support.ValidationEvidenceGraphBuilder;
 import io.atworks.specscan.ingestion.adapter.RepositorySourceFetcherAdapter;
@@ -61,12 +61,9 @@ public class GitExecutionSpecScanService {
             warnings.addAll(extractionResult.warnings());
             warnings.addAll(normalizedResult.warnings());
 
-            ExecutionSpecExporter executionSpecExporter = new ExecutionSpecExporter();
-            RuleOutputMigrationResult migration = new RuleOutputMigrationService().migrate(
-                scanResult, repositorySource, normalizedResult.conditions());
-            return executionSpecExporter.export(
-                scanResult, migration.outputs(), warnings, repositorySource
-            );
+            Map<String, EndpointRuleOutput> ruleOutputs = new RuleOutputService().generate(
+                scanResult, repositorySource, extractionResult.directConditions(), normalizedResult.conditions());
+            return new ExecutionSpecExporter().export(scanResult, ruleOutputs, warnings, repositorySource);
         } finally {
             if (repositorySource != null) {
                 new TempWorkspacePreparerAdapter().clean(repositorySource.workspaceContext());

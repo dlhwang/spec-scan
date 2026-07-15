@@ -3,11 +3,8 @@ package io.atworks.specscan.analysis.support;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import io.atworks.specscan.analysis.domain.ApiCondition;
-import io.atworks.specscan.analysis.domain.ApiConditionDraft;
 import io.atworks.specscan.analysis.domain.ApiEndpoint;
 import io.atworks.specscan.analysis.domain.BindingLocation;
-import io.atworks.specscan.analysis.domain.ConditionLocation;
 import io.atworks.specscan.analysis.domain.RequestBinding;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
 import io.atworks.specscan.analysis.domain.output.CandidateOutputDiagnostic;
@@ -15,7 +12,6 @@ import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
 import io.atworks.specscan.analysis.domain.output.ExcludedBusinessRule;
 import io.atworks.specscan.analysis.domain.output.ExecutableCondition;
 import io.atworks.specscan.analysis.domain.output.OperationKey;
-import io.atworks.specscan.analysis.support.legacy.LegacyConditionExclusionPolicy;
 import io.atworks.specscan.ingestion.domain.IngestionWarning;
 import io.atworks.specscan.ingestion.domain.RepositorySource;
 import io.atworks.specscan.ingestion.domain.SourceRootCandidate;
@@ -23,7 +19,6 @@ import io.atworks.specscan.ingestion.domain.SourceRootCandidate;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,20 +26,9 @@ import java.util.Set;
 public class ExecutionSpecExporter {
 
     private final ObjectMapper objectMapper;
-    private final LegacyConditionExclusionPolicy legacyExclusionPolicy;
 
     public ExecutionSpecExporter() {
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-        this.legacyExclusionPolicy = new LegacyConditionExclusionPolicy();
-    }
-
-    public String export(
-        StaticScanResult scanResult,
-        List<ApiConditionDraft> drafts,
-        List<ApiCondition> conditions,
-        RepositorySource repositorySource
-    ) {
-        return export(scanResult, drafts, conditions, scanResult.warnings(), repositorySource);
     }
 
     public String export(
@@ -58,7 +42,7 @@ public class ExecutionSpecExporter {
         for (ApiEndpoint endpoint : scanResult.endpoints()) {
             EndpointRuleOutput output = ruleOutputs.getOrDefault(OperationKey.of(endpoint).externalKey(),
                 EndpointRuleOutput.empty(endpoint.path()));
-            RequestSpec base = buildRequest(endpoint, List.of(), List.of(), typeResolver);
+            RequestSpec base = buildRequest(endpoint, typeResolver);
             RequestSpec projected = new RequestSpec(base.request(), mapExecutable(output.requestPreconditions()),
                 mapExecutable(output.responseAssertions()), mapExcluded(output.excludedBusinessRules()), Set.of());
             Map<String, Object> operation = buildOperation(endpoint, projected, typeResolver);
@@ -69,34 +53,6 @@ public class ExecutionSpecExporter {
         payload.put("operations", operations);
         payload.put("warningCount", warnings.size());
         if (!warnings.isEmpty()) payload.put("warnings", buildWarnings(warnings));
-        try {
-            return objectMapper.writeValueAsString(payload);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to serialize execution spec export.", e);
-        }
-    }
-
-    public String export(
-        StaticScanResult scanResult,
-        List<ApiConditionDraft> drafts,
-        List<ApiCondition> conditions,
-        List<IngestionWarning> warnings,
-        RepositorySource repositorySource
-    ) {
-        TypeResolver typeResolver = new TypeResolver(resolveSourceRoots(repositorySource));
-        List<Map<String, Object>> operations = new ArrayList<>();
-        for (ApiEndpoint endpoint : scanResult.endpoints()) {
-            RequestSpec requestSpec = buildRequest(endpoint, drafts, conditions, typeResolver);
-            operations.add(buildOperation(endpoint, requestSpec, typeResolver));
-        }
-
-        Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("operations", operations);
-        payload.put("warningCount", warnings.size());
-        if (!warnings.isEmpty()) {
-            payload.put("warnings", buildWarnings(warnings));
-        }
-
         try {
             return objectMapper.writeValueAsString(payload);
         } catch (JsonProcessingException e) {
@@ -131,53 +87,12 @@ public class ExecutionSpecExporter {
         return operation;
     }
 
-    private RequestSpec buildRequest(
-        ApiEndpoint endpoint,
-        List<ApiConditionDraft> drafts,
-        List<ApiCondition> conditions,
-        TypeResolver typeResolver
-    ) {
+    private RequestSpec buildRequest(ApiEndpoint endpoint, TypeResolver typeResolver) {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("contentType", hasBody(endpoint) ? "application/json" : null);
         request.put("pathParams", buildParameterGroup(endpoint, BindingLocation.PATH));
         request.put("queryParams", buildParameterGroup(endpoint, BindingLocation.QUERY));
         request.put("headers", buildParameterGroup(endpoint, BindingLocation.HEADER));
-
-        List<Map<String, Object>> requestPreconditions = new ArrayList<>();
-        List<Map<String, Object>> responseAssertions = new ArrayList<>();
-        List<Map<String, Object>> excludedBusinessRules = new ArrayList<>();
-
-        Set<String> preconditionKeys = new LinkedHashSet<>();
-        Set<String> assertionKeys = new LinkedHashSet<>();
-        Set<String> excludedKeys = new LinkedHashSet<>();
-
-        for (ApiConditionDraft draft : drafts) {
-            if (isFilteredCondition(draft.targetPath(), null, draft.operator())) {
-                addEndpointCondition(excludedBusinessRules, excludedKeys, endpoint, draft.targetPath(), draft.operator(), draft.expected(),
-                    "BEAN_VALIDATION_ANNOTATION", null);
-            } else {
-                addEndpointCondition(requestPreconditions, preconditionKeys, endpoint, draft.targetPath(), draft.operator(), draft.expected(),
-                    "BEAN_VALIDATION_ANNOTATION", null);
-            }
-        }
-
-        for (ApiCondition condition : conditions) {
-            if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
-                continue;
-            }
-            if (isFilteredCondition(condition.targetPath(), condition.targetLocation(), condition.operator())) {
-                addEndpointCondition(excludedBusinessRules, excludedKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
-                    "SERVICE_LOGIC_HINT", condition.targetLocation());
-            } else {
-                if (condition.conditionType() == io.atworks.specscan.analysis.domain.ConditionType.ASSERTION) {
-                    addEndpointCondition(responseAssertions, assertionKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
-                        "SERVICE_LOGIC_HINT", condition.targetLocation());
-                } else {
-                    addEndpointCondition(requestPreconditions, preconditionKeys, endpoint, condition.targetPath(), condition.operator(), condition.expected(),
-                        "SERVICE_LOGIC_HINT", condition.targetLocation());
-                }
-            }
-        }
 
         RequestBinding bodyBinding = endpoint.requestBindings().stream()
             .filter(binding -> binding.targetLocation() == BindingLocation.BODY)
@@ -186,30 +101,13 @@ public class ExecutionSpecExporter {
         if (bodyBinding == null) {
             request.put("bodySchema", null);
             request.put("bodyExample", null);
-            return new RequestSpec(request, requestPreconditions, responseAssertions, excludedBusinessRules, Set.of());
+            return new RequestSpec(request, List.of(), List.of(), List.of(), Set.of());
         }
 
-        List<ApiConditionDraft> bodyDrafts = new ArrayList<>();
-        List<ApiCondition> bodyConditions = new ArrayList<>();
-        for (Map<String, Object> precondition : requestPreconditions) {
-            if (!"BODY".equals(precondition.get("targetLocation"))) {
-                continue;
-            }
-            String targetPath = schemaRelativeBodyPath(bodyBinding, String.valueOf(precondition.get("targetPath")));
-            String operator = String.valueOf(precondition.get("operator"));
-            String expected = precondition.get("expected") == null ? null : String.valueOf(precondition.get("expected"));
-            String source = String.valueOf(precondition.get("source"));
-            if ("BEAN_VALIDATION_ANNOTATION".equals(source)) {
-                bodyDrafts.add(new ApiConditionDraft(targetPath, operator, expected, null, bodyBinding.sourceTrace()));
-            } else {
-                bodyConditions.add(new ApiCondition(ConditionLocation.BODY, targetPath, operator, expected, null, 0.0, null, bodyBinding.sourceTrace(), endpoint.path()));
-            }
-        }
-
-        Map<String, Object> bodySchema = typeResolver.resolveExpandedSchema(bodyBinding.type(), bodyDrafts, bodyConditions);
+        Map<String, Object> bodySchema = typeResolver.resolveExpandedSchema(bodyBinding.type(), List.of(), List.of());
         request.put("bodySchema", bodySchema);
         request.put("bodyExample", buildExample(bodySchema));
-        return new RequestSpec(request, requestPreconditions, responseAssertions, excludedBusinessRules, Set.of());
+        return new RequestSpec(request, List.of(), List.of(), List.of(), Set.of());
     }
 
     private Map<String, Object> buildResponse(ApiEndpoint endpoint, TypeResolver typeResolver) {
@@ -281,177 +179,6 @@ public class ExecutionSpecExporter {
     }
 
 
-
-    private boolean isFilteredCondition(String targetPath, ConditionLocation location, String operator) {
-        return legacyExclusionPolicy.excludes(targetPath, location, operator);
-    }
-    private void addEndpointCondition(
-        List<Map<String, Object>> endpointConditions,
-        Set<String> conditionKeys,
-        ApiEndpoint endpoint,
-        String rawTargetPath,
-        String operator,
-        String expected,
-        String source,
-        ConditionLocation explicitLocation
-    ) {
-        ResolvedCondition resolved = resolveCondition(endpoint, rawTargetPath, explicitLocation);
-        if (resolved == null) {
-            return;
-        }
-
-        String dedupeKey = String.join("|",
-            resolved.targetLocation(),
-            resolved.targetPath(),
-            String.valueOf(operator),
-            String.valueOf(expected),
-            source
-        );
-        if (!conditionKeys.add(dedupeKey)) {
-            return;
-        }
-
-        endpointConditions.add(buildConditionMap(
-            resolved.targetLocation(),
-            resolved.targetPath(),
-            operator,
-            expected,
-            source
-        ));
-    }
-
-    private ResolvedCondition resolveCondition(ApiEndpoint endpoint, String rawTargetPath, ConditionLocation explicitLocation) {
-        if (explicitLocation != null && explicitLocation != ConditionLocation.UNKNOWN) {
-            return new ResolvedCondition(explicitLocation.name(), normalizeTargetPathForLocation(endpoint, rawTargetPath, explicitLocation));
-        }
-
-        String normalizedName = normalizeConditionName(rawTargetPath);
-        if (normalizedName.isBlank()) {
-            return null;
-        }
-
-        for (RequestBinding binding : endpoint.requestBindings()) {
-            if (binding.targetLocation() == BindingLocation.BODY) {
-                continue;
-            }
-            if (binding.parameterName().equals(rawTargetPath) || binding.parameterName().equals(normalizedName)) {
-                return new ResolvedCondition(binding.targetLocation().name(), "$." + binding.parameterName());
-            }
-        }
-
-        if (hasBody(endpoint)) {
-            return new ResolvedCondition("BODY", toBodyJsonPath(endpoint, rawTargetPath, normalizedName));
-        }
-        return null;
-    }
-
-    private String normalizeConditionName(String targetPath) {
-        if (targetPath == null || targetPath.isBlank()) {
-            return "";
-        }
-        String normalized = targetPath.startsWith("$.") ? targetPath.substring(2) : targetPath;
-        int dotIndex = normalized.lastIndexOf('.');
-        if (dotIndex != -1) {
-            normalized = normalized.substring(dotIndex + 1);
-        }
-        return normalized.trim();
-    }
-
-    private String toBodyJsonPath(ApiEndpoint endpoint, String rawTargetPath, String normalizedName) {
-        if (rawTargetPath == null || rawTargetPath.isBlank()) {
-            return "$." + normalizedName;
-        }
-        String bodyPath = stripBodyBindingPrefix(endpoint, rawTargetPath);
-        if (bodyPath.startsWith("$")) {
-            return bodyPath;
-        }
-        if (bodyPath.isBlank()) {
-            return "$";
-        }
-        return "$." + bodyPath;
-    }
-
-    private String normalizeTargetPathForLocation(ApiEndpoint endpoint, String rawTargetPath, ConditionLocation explicitLocation) {
-        if (rawTargetPath == null || rawTargetPath.isBlank()) {
-            return "$";
-        }
-        if (explicitLocation == ConditionLocation.BODY) {
-            String normalizedName = normalizeConditionName(rawTargetPath);
-            return toBodyJsonPath(endpoint, rawTargetPath, normalizedName);
-        }
-        if (rawTargetPath.startsWith("$.")) {
-            return rawTargetPath;
-        }
-        return "$." + normalizeConditionName(rawTargetPath);
-    }
-
-    private String schemaRelativeBodyPath(RequestBinding bodyBinding, String targetPath) {
-        if (targetPath == null || targetPath.isBlank()) {
-            return "$";
-        }
-        String normalized = stripBindingPrefix(targetPath, bodyBinding.parameterName());
-        if (normalized.startsWith("$")) {
-            return normalized;
-        }
-        if (normalized.isBlank()) {
-            return "$";
-        }
-        return "$." + normalized;
-    }
-
-    private String stripBodyBindingPrefix(ApiEndpoint endpoint, String rawTargetPath) {
-        String normalized = rawTargetPath == null ? "" : rawTargetPath.trim();
-        if (normalized.startsWith("$.")) {
-            normalized = normalized.substring(2);
-        }
-        for (RequestBinding binding : endpoint.requestBindings()) {
-            if (binding.targetLocation() != BindingLocation.BODY) {
-                continue;
-            }
-            normalized = stripBindingPrefix(normalized, binding.parameterName());
-        }
-        if (normalized.isBlank()) {
-            return "$";
-        }
-        if (normalized.startsWith("$.")) {
-            return normalized;
-        }
-        return normalized;
-    }
-
-    private String stripBindingPrefix(String targetPath, String bindingName) {
-        if (targetPath == null || targetPath.isBlank() || bindingName == null || bindingName.isBlank()) {
-            return targetPath == null ? "" : targetPath.trim();
-        }
-        String normalized = targetPath.trim();
-        if (normalized.startsWith("$.")) {
-            normalized = normalized.substring(2);
-        }
-        if (normalized.equals(bindingName)) {
-            return "";
-        }
-        String nestedPrefix = bindingName + ".";
-        if (normalized.startsWith(nestedPrefix)) {
-            return normalized.substring(nestedPrefix.length());
-        }
-        return normalized;
-    }
-
-    private Map<String, Object> buildConditionMap(
-        String targetLocation,
-        String targetPath,
-        String operator,
-        String expected,
-        String source
-    ) {
-        Map<String, Object> item = new LinkedHashMap<>();
-        item.put("targetLocation", targetLocation);
-        item.put("targetPath", targetPath);
-        item.put("operator", operator);
-        item.put("expected", expected);
-        item.put("source", source);
-        return item;
-    }
 
     private List<Map<String, Object>> mapExecutable(List<ExecutableCondition> conditions) {
         List<Map<String, Object>> result = new ArrayList<>();
@@ -609,5 +336,4 @@ public class ExecutionSpecExporter {
         Set<String> bodyFieldNames
     ) {}
 
-    private record ResolvedCondition(String targetLocation, String targetPath) {}
 }

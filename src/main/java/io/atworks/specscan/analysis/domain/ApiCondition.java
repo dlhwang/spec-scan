@@ -14,7 +14,7 @@ public record ApiCondition(
     SourceTrace sourceTrace,
     String endpointPath
 ) {
-    // Legacy constructor for backward compatibility, defaults to PRECONDITION
+    // Convenience constructor for request-side conditions.
     public ApiCondition(
         ConditionLocation targetLocation,
         String targetPath,

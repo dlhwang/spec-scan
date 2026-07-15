@@ -24,8 +24,8 @@ class RuleEvaluationServiceTest {
             true, false, Set.of(), Set.of(), false), List.of());
 
         List<EvaluationCase> cases = List.of(alpha, holdout, negative, boundary);
-        EvaluationReport report = evaluator.evaluate(cases, 2);
-        EvaluationReport reordered = evaluator.evaluate(List.of(boundary, negative, holdout, alpha), 2);
+        EvaluationReport report = evaluator.evaluate(cases);
+        EvaluationReport reordered = evaluator.evaluate(List.of(boundary, negative, holdout, alpha));
 
         assertThat(report.metrics()).satisfies(metrics -> {
             assertThat(metrics.candidatePrecision()).isEqualTo(1.0);
@@ -34,7 +34,6 @@ class RuleEvaluationServiceTest {
             assertThat(metrics.evidenceTraceRate()).isEqualTo(1.0);
             assertThat(metrics.falsePositiveCount()).isZero();
             assertThat(metrics.crossDatasetReusedRuleCount()).isEqualTo(1);
-            assertThat(metrics.legacyNewDisagreementCount()).isEqualTo(2);
         });
         assertThat(report.failures()).singleElement()
             .extracting(EvaluationFailure::classification).isEqualTo(FailureClassification.INTENTIONALLY_UNSUPPORTED);
@@ -49,7 +48,7 @@ class RuleEvaluationServiceTest {
     @Test void qualityGateReportsHardcodingAndRegressionInsteadOfHidingThem() {
         EvaluationReport report = evaluator.evaluate(List.of(
             positive("alpha", "dataset-a", candidate("one")),
-            positive("beta", "dataset-b", candidate("two"))), 0);
+            positive("beta", "dataset-b", candidate("two"))));
         QualityGateResult result = new RuleQualityGate().evaluate(report, QualityGateConfig.initial(), 1, 1);
         assertThat(result.passed()).isFalse();
         assertThat(result.violations()).extracting(QualityGateViolation::code)
