@@ -25,7 +25,7 @@ public final class InputDomainMismatchGuardRule implements GraphRule {
         NormalizedConstraint constraint = new NormalizedConstraint(ConstraintKind.INPUT_TO_DOMAIN,
             input.snippet(), "EQUALS", List.of(), domain.id());
         return List.of(support.resolved(predicate, ID, BusinessRuleCategory.INVARIANT,
-            TargetResolutionStatus.RESOLVED, constraint, 1.0,
+            RuleEffect.BUSINESS_RESTRICTION, TargetResolutionStatus.RESOLVED, constraint, 1.0,
             support.evidence(predicate, input, EvidenceRole.INPUT_ORIGIN, domain, EvidenceRole.DOMAIN_ORIGIN)));
     }
 }

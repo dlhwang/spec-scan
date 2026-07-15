@@ -13,6 +13,7 @@ public final class UnresolvedCandidateFactory {
         String fingerprint = predicate.evidence().stream().map(e -> e.nodeId() + ":" + e.role()).distinct().sorted()
             .collect(Collectors.joining("|"));
         return factory.create(predicate.candidateId(), null, BusinessRuleCategory.UNKNOWN,
+            RuleEffect.BUSINESS_RESTRICTION,
             predicate.extractionStatus(), SemanticStatus.UNRESOLVED, TargetResolutionStatus.UNRESOLVED,
             null, 0.0, predicate.evidence(), List.of(diagnostic), fingerprint);
     }

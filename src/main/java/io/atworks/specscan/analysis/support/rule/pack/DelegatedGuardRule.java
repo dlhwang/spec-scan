@@ -47,6 +47,7 @@ public final class DelegatedGuardRule implements GraphRule {
         for (FactNode constant : constants) evidence = merge(evidence,
             support.evidence(predicate, constant, EvidenceRole.DOMAIN_ORIGIN));
         return support.resolved(predicate, ID, BusinessRuleCategory.STATE_PRECONDITION,
+            RuleEffect.REQUEST_REQUIREMENT,
             target == null ? TargetResolutionStatus.UNRESOLVED : TargetResolutionStatus.RESOLVED,
             constraint, 1.0, evidence);
     }
@@ -62,6 +63,7 @@ public final class DelegatedGuardRule implements GraphRule {
             method, EvidenceRole.DOMAIN_ORIGIN);
         if (input != null) evidence = merge(evidence, support.evidence(predicate, input, EvidenceRole.INPUT_ORIGIN));
         return support.resolved(predicate, ID, BusinessRuleCategory.VERSION_CONSISTENCY,
+            RuleEffect.REQUEST_REQUIREMENT,
             target == null ? TargetResolutionStatus.UNRESOLVED : TargetResolutionStatus.RESOLVED,
             constraint, 1.0, evidence);
     }

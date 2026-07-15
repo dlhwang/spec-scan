@@ -28,7 +28,7 @@ public final class OptionalLookupFailureRule implements GraphRule {
                     arguments.get(0), EvidenceRole.INPUT_ORIGIN);
         }
         return List.of(support.resolved(predicate, ID, BusinessRuleCategory.EXISTENCE,
-            TargetResolutionStatus.NOT_APPLICABLE, constraint, 1.0,
+            RuleEffect.BUSINESS_RESTRICTION, TargetResolutionStatus.NOT_APPLICABLE, constraint, 1.0,
             evidence));
     }
 

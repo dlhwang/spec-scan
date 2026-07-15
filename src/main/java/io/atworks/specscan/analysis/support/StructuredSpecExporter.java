@@ -13,6 +13,9 @@ import io.atworks.specscan.analysis.domain.BindingLocation;
 import io.atworks.specscan.analysis.domain.ParameterRecord;
 import io.atworks.specscan.analysis.domain.RequestBinding;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
+import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
+import io.atworks.specscan.analysis.domain.output.ExecutableCondition;
+import io.atworks.specscan.analysis.domain.output.OperationKey;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,8 +31,9 @@ public class StructuredSpecExporter {
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
     }
 
-    public String export(StaticScanResult scanResult, List<ApiConditionDraft> drafts, List<ApiCondition> conditions) {
-        ApiSpecAnalysisExport exportModel = buildExport(scanResult, drafts, conditions);
+    public String export(StaticScanResult scanResult, List<ApiConditionDraft> drafts,
+                         Map<String, EndpointRuleOutput> ruleOutputs) {
+        ApiSpecAnalysisExport exportModel = buildExport(scanResult, drafts, ruleOutputs);
         try {
             return objectMapper.writeValueAsString(exportModel);
         } catch (JsonProcessingException e) {
@@ -40,7 +44,7 @@ public class StructuredSpecExporter {
     private ApiSpecAnalysisExport buildExport(
         StaticScanResult scanResult,
         List<ApiConditionDraft> drafts,
-        List<ApiCondition> conditions
+        Map<String, EndpointRuleOutput> ruleOutputs
     ) {
         List<ApiVersionRecord> apiVersions = new ArrayList<>();
         List<ParameterRecord> parameters = new ArrayList<>();
@@ -52,7 +56,9 @@ public class StructuredSpecExporter {
         long apiId = 1L;
 
 for (ApiEndpoint endpoint : scanResult.endpoints()) {
-    String jsonRequestBody = resolveJsonRequestBody(endpoint, drafts, conditions);
+    EndpointRuleOutput output = ruleOutputs.getOrDefault(OperationKey.of(endpoint).externalKey(),
+        EndpointRuleOutput.empty(endpoint.path()));
+    String jsonRequestBody = resolveJsonRequestBody(endpoint, drafts, output);
     String requestExample = jsonRequestBody;
     String responseExample = resolveResponseExample(endpoint);
 
@@ -102,18 +108,15 @@ for (ApiEndpoint endpoint : scanResult.endpoints()) {
             null
         ));
     }
-    for (ApiCondition condition : conditions) {
-        if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
-            continue;
-        }
+    for (ExecutableCondition condition : output.requestPreconditions()) {
         valueValidations.add(new ApiValueValidationRecord(
             validationId++,
             apiId,
             1,
             orderNo++,
-            toJsonPath(condition.targetPath()),
+            condition.targetPath(),
             condition.operator(),
-            condition.expected(),
+            expected(condition),
             true,
             null,
             null
@@ -136,7 +139,7 @@ for (ApiEndpoint endpoint : scanResult.endpoints()) {
     private String resolveJsonRequestBody(
         ApiEndpoint endpoint,
         List<ApiConditionDraft> drafts,
-        List<ApiCondition> conditions
+        EndpointRuleOutput output
     ) {
         Optional<RequestBinding> bodyBinding = endpoint.requestBindings().stream()
             .filter(binding -> binding.targetLocation() == BindingLocation.BODY)
@@ -149,10 +152,7 @@ Map<String, Object> template = new LinkedHashMap<>();
 for (ApiConditionDraft draft : drafts) {
     template.putIfAbsent(draft.targetPath(), resolvePlaceholderValue(draft.targetPath()));
 }
-for (ApiCondition condition : conditions) {
-    if (condition.endpointPath() != null && !endpoint.path().equals(condition.endpointPath())) {
-        continue;
-    }
+for (ExecutableCondition condition : output.requestPreconditions()) {
     template.putIfAbsent(condition.targetPath(), resolvePlaceholderValue(condition.targetPath()));
 }
 if (template.isEmpty()) {
@@ -199,6 +199,13 @@ try {
 
     private String toJsonPath(String targetPath) {
         return targetPath.startsWith("$.") ? targetPath : "$." + targetPath;
+    }
+
+    private String expected(ExecutableCondition condition) {
+        if (condition.expectedValues().isEmpty()) return null;
+        return condition.expectedValues().size() == 1
+            ? condition.expectedValues().get(0)
+            : String.join(",", condition.expectedValues());
     }
 
     private boolean isPrimitiveType(String typeName) {

@@ -20,7 +20,7 @@ public final class SpringDataFindByIdOrElseThrowRule implements GraphRule {
         NormalizedConstraint constraint = new NormalizedConstraint(ConstraintKind.CONTROL_FLOW_ONLY,
             null, null, List.of(), lookup.id());
         return List.of(support.resolved(predicate, ID, BusinessRuleCategory.EXISTENCE,
-            TargetResolutionStatus.NOT_APPLICABLE, constraint, 1.0,
+            RuleEffect.BUSINESS_RESTRICTION, TargetResolutionStatus.NOT_APPLICABLE, constraint, 1.0,
             support.evidence(predicate, terminal, EvidenceRole.CALL, lookup, EvidenceRole.CALL)));
     }
     private boolean isSpringDataLookup(TypeResolution resolution) {

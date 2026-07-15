@@ -27,6 +27,7 @@ public final class RuleConflictAnnotator {
     }
     private BusinessRuleCandidate copy(BusinessRuleCandidate c, List<CandidateDiagnostic> diagnostics) {
         return new BusinessRuleCandidate(c.candidateId(), c.predicateCandidateId(), c.ruleId(), c.category(),
-            c.extractionStatus(), c.semanticStatus(), c.targetStatus(), c.constraint(), c.confidence(), c.evidence(), diagnostics);
+            c.effect(), c.extractionStatus(), c.semanticStatus(), c.targetStatus(), c.constraint(), c.confidence(),
+            c.evidence(), diagnostics);
     }
 }

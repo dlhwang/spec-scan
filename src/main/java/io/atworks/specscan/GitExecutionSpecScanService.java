@@ -11,8 +11,11 @@ import io.atworks.specscan.analysis.domain.NormalizedResult;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
 import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
 import io.atworks.specscan.analysis.domain.ValidationEvidenceGraph;
+import io.atworks.specscan.analysis.domain.fact.FactGraphBuildResult;
+import io.atworks.specscan.analysis.domain.fact.FactGraphTraversalBudget;
 import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
 import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
+import io.atworks.specscan.analysis.support.fact.DefaultFactCodeGraphBuilder;
 import io.atworks.specscan.analysis.support.ValidationEvidenceGraphBuilder;
 import io.atworks.specscan.ingestion.adapter.RepositorySourceFetcherAdapter;
 import io.atworks.specscan.ingestion.adapter.TempWorkspacePreparerAdapter;
@@ -49,6 +52,8 @@ public class GitExecutionSpecScanService {
             // Spring 엔드포인트와 기본 소스 정보를 정적 분석함
             SpringStaticScanService scanService = new SpringStaticScanService();
             StaticScanResult scanResult = scanService.scan(repositorySource);
+            FactGraphBuildResult factGraphs = new DefaultFactCodeGraphBuilder().build(
+                scanResult, repositorySource, FactGraphTraversalBudget.defaults());
 
             // 소스에서 검증 조건 후보를 추출하고 조건 간 근거 그래프를 생성함
             ValidationExtractionService extractionService = new ValidationExtractionService();
@@ -70,7 +75,7 @@ public class GitExecutionSpecScanService {
 
             // 조건을 엔드포인트별 규칙으로 조립한 뒤 실행 명세 JSON으로 출력함
             Map<String, EndpointRuleOutput> ruleOutputs = new RuleOutputService().generate(
-                scanResult, repositorySource, extractionResult.directConditions(), normalizedResult.conditions());
+                scanResult, factGraphs, extractionResult.directConditions(), normalizedResult.conditions());
             return new ExecutionSpecExporter().export(scanResult, ruleOutputs, warnings, repositorySource);
         } finally {
             // 성공 여부와 관계없이 임시 작업공간을 정리함

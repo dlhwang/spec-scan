@@ -156,19 +156,19 @@ final class StructuralRuleSupport {
     }
 
     BusinessRuleCandidate resolved(PredicateCandidate predicate, String ruleId, BusinessRuleCategory category,
-                                   TargetResolutionStatus targetStatus, NormalizedConstraint constraint,
-                                   double confidence, List<EvidenceRef> evidence) {
-        return resolved(predicate, ruleId, category, targetStatus, constraint, confidence, evidence,
+                                   RuleEffect effect, TargetResolutionStatus targetStatus,
+                                   NormalizedConstraint constraint, double confidence, List<EvidenceRef> evidence) {
+        return resolved(predicate, ruleId, category, effect, targetStatus, constraint, confidence, evidence,
             predicate.diagnostics());
     }
 
     BusinessRuleCandidate resolved(PredicateCandidate predicate, String ruleId, BusinessRuleCategory category,
-                                   TargetResolutionStatus targetStatus, NormalizedConstraint constraint,
-                                   double confidence, List<EvidenceRef> evidence,
+                                   RuleEffect effect, TargetResolutionStatus targetStatus,
+                                   NormalizedConstraint constraint, double confidence, List<EvidenceRef> evidence,
                                    List<CandidateDiagnostic> diagnostics) {
         String fingerprint = evidence.stream().map(ref -> ref.nodeId() + ":" + ref.role()).sorted()
             .reduce((left, right) -> left + "|" + right).orElse(predicate.conditionNodeId());
-        return candidates.create(predicate.candidateId(), ruleId, category, predicate.extractionStatus(),
+        return candidates.create(predicate.candidateId(), ruleId, category, effect, predicate.extractionStatus(),
             SemanticStatus.RESOLVED, targetStatus, constraint, confidence, evidence,
             diagnostics, fingerprint);
     }

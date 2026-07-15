@@ -8,12 +8,15 @@ import io.atworks.specscan.analysis.domain.StaticScanResult;
 import io.atworks.specscan.analysis.domain.ValidationCandidate;
 import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
 import io.atworks.specscan.analysis.domain.ValidationEvidenceGraph;
+import io.atworks.specscan.analysis.domain.fact.FactGraphBuildResult;
+import io.atworks.specscan.analysis.domain.fact.FactGraphTraversalBudget;
 import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
 import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
 import io.atworks.specscan.analysis.support.OpenApiGenerator;
 import io.atworks.specscan.analysis.support.StructuredSpecExporter;
 import io.atworks.specscan.analysis.support.ValidationEvidenceGraphBuilder;
 import io.atworks.specscan.analysis.support.NormalizationRejectionClassifier;
+import io.atworks.specscan.analysis.support.fact.DefaultFactCodeGraphBuilder;
 import io.atworks.specscan.ingestion.domain.IngestionErrorCode;
 import io.atworks.specscan.ingestion.domain.IngestionException;
 import io.atworks.specscan.ingestion.domain.IngestionWarning;
@@ -53,6 +56,8 @@ public class OpenApiAssemblyService {
     ) throws IngestionException {
         List<IngestionWarning> warnings = new ArrayList<>(scanResult.warnings());
         warnings.addAll(extractResult.warnings());
+        FactGraphBuildResult factGraphs = new DefaultFactCodeGraphBuilder().build(
+            scanResult, source, FactGraphTraversalBudget.defaults());
         ValidationEvidenceGraph graph = new ValidationEvidenceGraphBuilder().build(scanResult, extractResult, source);
 
         NormalizedResult normalizedResult;
@@ -87,12 +92,15 @@ public class OpenApiAssemblyService {
 
 
 
+        Map<String, EndpointRuleOutput> ruleOutputs = ruleOutputService.generate(
+            scanResult, factGraphs, extractResult.directConditions(), normalizedResult.conditions());
+
         String structuredJson;
         try {
             structuredJson = structuredSpecExporter.export(
                 scanResult,
                 extractResult.directConditions(),
-                normalizedResult.conditions()
+                ruleOutputs
             );
         } catch (Exception e) {
             throw new IngestionException(
@@ -100,9 +108,6 @@ public class OpenApiAssemblyService {
                 "Failed to generate structured API analysis JSON document: " + e.getMessage()
             );
         }
-
-        Map<String, EndpointRuleOutput> ruleOutputs = ruleOutputService.generate(
-            scanResult, source, extractResult.directConditions(), normalizedResult.conditions());
 
         String executionJson;
         try {

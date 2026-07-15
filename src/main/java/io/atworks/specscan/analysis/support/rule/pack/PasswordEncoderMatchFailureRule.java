@@ -35,6 +35,7 @@ public final class PasswordEncoderMatchFailureRule implements GraphRule {
             "PASSWORD_INPUT_ORIGIN_UNRESOLVED", "Password input origin could not be linked to an API parameter",
             call.id()));
         return List.of(support.resolved(predicate, ID, BusinessRuleCategory.AUTHENTICATION,
+            RuleEffect.BUSINESS_RESTRICTION,
             targetResolved ? TargetResolutionStatus.RESOLVED : TargetResolutionStatus.UNRESOLVED,
             constraint, 1.0, evidence, diagnostics));
     }

@@ -25,6 +25,7 @@ public final class NullRejectionGuardRule implements GraphRule {
             ? ConstraintKind.INPUT_LITERAL : ConstraintKind.CONTROL_FLOW_ONLY,
             originPath.orElse(null), "NOT_NULL", List.of(), nullNode.id());
         return List.of(support.resolved(predicate, ID, BusinessRuleCategory.INVARIANT,
+            input ? RuleEffect.REQUEST_REQUIREMENT : RuleEffect.BUSINESS_RESTRICTION,
             input ? TargetResolutionStatus.RESOLVED : TargetResolutionStatus.NOT_APPLICABLE,
             constraint, 1.0, support.evidence(predicate, value,
                 input ? EvidenceRole.INPUT_ORIGIN : EvidenceRole.DOMAIN_ORIGIN)));

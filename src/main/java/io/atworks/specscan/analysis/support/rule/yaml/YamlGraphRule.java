@@ -33,6 +33,7 @@ public final class YamlGraphRule implements GraphRule {
         String fingerprint = evidence.stream().map(ref -> ref.nodeId() + ":" + ref.role()).sorted()
             .reduce((left, right) -> left + "|" + right).orElse(call.id());
         return List.of(candidateFactory.create(predicate.candidateId(), id(), definition.category(),
+            RuleEffect.BUSINESS_RESTRICTION,
             predicate.extractionStatus(), SemanticStatus.RESOLVED, TargetResolutionStatus.NOT_APPLICABLE,
             constraint, 1.0, evidence, predicate.diagnostics(), fingerprint));
     }
