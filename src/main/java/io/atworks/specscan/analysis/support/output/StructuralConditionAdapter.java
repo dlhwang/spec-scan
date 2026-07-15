@@ -27,8 +27,17 @@ public final class StructuralConditionAdapter {
     private boolean belongsTo(ApiEndpoint endpoint, ApiCondition condition) {
         if (condition.endpointPath() != null) return endpoint.path().equals(condition.endpointPath());
         String source = file(condition.sourceTrace());
-        return endpoint.requestBindings().stream().map(RequestBinding::sourceTrace).filter(Objects::nonNull)
-            .anyMatch(trace -> source.equals(file(trace)));
+        return endpoint.requestBindings().stream().anyMatch(binding -> {
+            SourceTrace trace = binding.sourceTrace();
+            if (trace != null && source.equals(file(trace))) return true;
+            if (binding.targetLocation() != BindingLocation.BODY) return false;
+            String type = binding.type();
+            int generic = type.indexOf('<');
+            if (generic >= 0) type = type.substring(0, generic);
+            int separator = Math.max(type.lastIndexOf('.'), type.lastIndexOf('$'));
+            String simpleName = separator < 0 ? type : type.substring(separator + 1);
+            return source.endsWith("/" + simpleName + ".java") || source.equals(simpleName + ".java");
+        });
     }
 
     private String resolveLocation(ApiEndpoint endpoint, ApiCondition condition) {

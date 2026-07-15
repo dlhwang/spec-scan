@@ -8,8 +8,7 @@ import io.atworks.specscan.analysis.domain.StaticScanResult;
 import io.atworks.specscan.analysis.domain.ValidationCandidate;
 import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
 import io.atworks.specscan.analysis.domain.ValidationEvidenceGraph;
-import io.atworks.specscan.analysis.domain.output.OutputMigrationMode;
-import io.atworks.specscan.analysis.domain.output.RuleOutputMigrationResult;
+import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
 import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
 import io.atworks.specscan.analysis.support.OpenApiGenerator;
 import io.atworks.specscan.analysis.support.StructuredSpecExporter;
@@ -25,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class OpenApiAssemblyService {
 
@@ -33,22 +33,16 @@ public class OpenApiAssemblyService {
     private final StructuredSpecExporter structuredSpecExporter;
     private final ExecutionSpecExporter executionSpecExporter;
     private final ObjectMapper objectMapper;
-    private final RuleOutputMigrationService ruleOutputMigrationService;
-    private final OutputMigrationMode migrationMode;
+    private final RuleOutputService ruleOutputService;
     private final NormalizationRejectionClassifier rejectionClassifier = new NormalizationRejectionClassifier();
 
     public OpenApiAssemblyService() {
-        this(resolveMigrationMode());
-    }
-
-    public OpenApiAssemblyService(OutputMigrationMode migrationMode) {
         this.normalizationService = new NormalizationService();
         this.openApiGenerator = new OpenApiGenerator();
         this.structuredSpecExporter = new StructuredSpecExporter();
         this.executionSpecExporter = new ExecutionSpecExporter();
         this.objectMapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
-        this.ruleOutputMigrationService = new RuleOutputMigrationService();
-        this.migrationMode = migrationMode;
+        this.ruleOutputService = new RuleOutputService();
     }
 
     public void assemble(
@@ -107,17 +101,12 @@ public class OpenApiAssemblyService {
             );
         }
 
-        RuleOutputMigrationResult migration = null;
-        if (migrationMode != OutputMigrationMode.LEGACY_ONLY) {
-            migration = ruleOutputMigrationService.migrate(scanResult, source, normalizedResult.conditions());
-        }
+        Map<String, EndpointRuleOutput> ruleOutputs = ruleOutputService.generate(
+            scanResult, source, extractResult.directConditions(), normalizedResult.conditions());
 
         String executionJson;
         try {
-            executionJson = migrationMode == OutputMigrationMode.NEW_ONLY
-                ? executionSpecExporter.export(scanResult, migration.outputs(), warnings, source)
-                : executionSpecExporter.export(scanResult, extractResult.directConditions(),
-                    normalizedResult.conditions(), warnings, source);
+            executionJson = executionSpecExporter.export(scanResult, ruleOutputs, warnings, source);
         } catch (Exception e) {
             throw new IngestionException(
                 IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
@@ -153,8 +142,6 @@ public class OpenApiAssemblyService {
             Files.writeString(resolveStructuredOutputPath(outputPath), structuredJson);
             Files.writeString(resolveExecutionOutputPath(outputPath), executionJson);
             Files.writeString(resolveGraphOutputPath(outputPath), graphJson);
-            if (migration != null) Files.writeString(resolveMigrationReportPath(outputPath),
-                objectMapper.writeValueAsString(migration.comparisonDocument()));
         } catch (IOException e) {
             throw new IngestionException(
                 IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
@@ -187,13 +174,4 @@ public class OpenApiAssemblyService {
         return parent.resolve("validation-evidence-graph.json");
     }
 
-    private Path resolveMigrationReportPath(Path outputPath) {
-        Path parent = outputPath.getParent();
-        return parent == null ? Path.of("api-condition-migration-report.json")
-            : parent.resolve("api-condition-migration-report.json");
-    }
-
-    private static OutputMigrationMode resolveMigrationMode() {
-        return OutputMigrationMode.configured(System.getProperty("specscan.output.migration-mode"));
-    }
 }

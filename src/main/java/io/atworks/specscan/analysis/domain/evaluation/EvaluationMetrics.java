@@ -5,5 +5,5 @@ public record EvaluationMetrics(double candidatePrecision, double semanticPrecis
                                 double evidenceTraceRate, double targetResolutionRate,
                                 double typeResolutionFallbackRate, double unresolvedRate,
                                 double unsupportedRate, int crossDatasetReusedRuleCount,
-                                int legacyNewDisagreementCount, int unsupportedResolvedCount,
+                                int unsupportedResolvedCount,
                                 int observedCandidateCount) {}

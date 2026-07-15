@@ -107,10 +107,10 @@ public class SpecScanWebServer {
         return value;
     }
 
-    private static String requiredText(JsonNode node, String fieldName, String legacyFieldName) {
+    private static String requiredText(JsonNode node, String fieldName, String fallbackFieldName) {
         String value = optionalText(node, fieldName);
         if (value == null || value.isBlank()) {
-            value = optionalText(node, legacyFieldName);
+            value = optionalText(node, fallbackFieldName);
         }
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("Missing required field: " + fieldName);

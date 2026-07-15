@@ -7,7 +7,7 @@ import java.security.MessageDigest;
 import java.util.*;
 
 public final class RuleEvaluationService {
-    public EvaluationReport evaluate(List<EvaluationCase> cases, int legacyNewDisagreementCount) {
+    public EvaluationReport evaluate(List<EvaluationCase> cases) {
         List<EvaluationCase> ordered = cases.stream().sorted(Comparator.comparing(c -> c.label().id())).toList();
         int observed = 0, candidateTrue = 0, falsePositives = 0, resolved = 0, semanticCorrect = 0;
         int supportedLabels = 0, recalledLabels = 0, traced = 0, targetRequired = 0, targetResolved = 0;
@@ -48,8 +48,8 @@ public final class RuleEvaluationService {
             ratio(candidateTrue, candidateTrue + falsePositives), ratio(semanticCorrect, resolved),
             ratio(recalledLabels, supportedLabels), falsePositives, ratio(traced, observed),
             ratio(targetResolved, targetRequired), ratio(partial, observed), ratio(unresolved, observed),
-            ratio(unsupported, observed), reused, legacyNewDisagreementCount, unsupportedResolved, observed);
-        return new EvaluationReport(metrics, failures, fingerprint(ordered, legacyNewDisagreementCount));
+            ratio(unsupported, observed), reused, unsupportedResolved, observed);
+        return new EvaluationReport(metrics, failures, fingerprint(ordered));
     }
 
     private boolean matches(GoldenRuleLabel label, BusinessRuleCandidate candidate) {
@@ -77,8 +77,8 @@ public final class RuleEvaluationService {
             label.id(), FailureClassification.INTENTIONALLY_UNSUPPORTED, "label is outside the supported scope"));
     }
     private double ratio(int numerator, int denominator) { return denominator == 0 ? 1.0 : (double) numerator / denominator; }
-    private String fingerprint(List<EvaluationCase> cases, int disagreements) {
-        StringBuilder canonical = new StringBuilder("legacy=").append(disagreements);
+    private String fingerprint(List<EvaluationCase> cases) {
+        StringBuilder canonical = new StringBuilder();
         for (EvaluationCase evaluation : cases) {
             canonical.append('|').append(evaluation.label().id());
             evaluation.observed().stream().sorted(Comparator.comparing(BusinessRuleCandidate::candidateId))
