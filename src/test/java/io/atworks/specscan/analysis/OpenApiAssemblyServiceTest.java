@@ -14,9 +14,12 @@ import io.atworks.specscan.analysis.domain.ResponseBinding;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
 import io.atworks.specscan.analysis.domain.ValidationCandidate;
 import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
+import io.atworks.specscan.analysis.domain.fact.FactGraphBuildResult;
+import io.atworks.specscan.analysis.domain.fact.FactGraphTraversalBudget;
 import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
 import io.atworks.specscan.analysis.support.EndpointExtractor;
 import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
+import io.atworks.specscan.analysis.support.fact.DefaultFactCodeGraphBuilder;
 import io.atworks.specscan.ingestion.domain.IngestionException;
 import io.atworks.specscan.ingestion.domain.IngestionMetadata;
 import io.atworks.specscan.ingestion.domain.JavaInventorySummary;
@@ -271,7 +274,7 @@ class OpenApiAssemblyServiceTest {
         ValidationExtractionResult extractResult = extractionService.extract(scanResult, repositorySource);
 
         Map<String, EndpointRuleOutput> outputs = new RuleOutputService().generate(
-            scanResult, repositorySource, extractResult.directConditions(), List.of());
+            scanResult, buildFactGraphs(scanResult, repositorySource), extractResult.directConditions());
         JsonNode executionJson = objectMapper.readTree(new ExecutionSpecExporter().export(
             scanResult, outputs, scanResult.warnings(), repositorySource));
 
@@ -649,7 +652,7 @@ class OpenApiAssemblyServiceTest {
         );
 
         Map<String, EndpointRuleOutput> outputs = new RuleOutputService().generate(
-            scanResult, repositorySource, List.of(), conditions);
+            scanResult, buildFactGraphs(scanResult, repositorySource), List.of());
         JsonNode executionJson = objectMapper.readTree(exporter.export(
             scanResult, outputs, scanResult.warnings(), repositorySource));
 
@@ -828,7 +831,7 @@ class OpenApiAssemblyServiceTest {
         );
 
         Map<String, EndpointRuleOutput> outputs = new RuleOutputService().generate(
-            scanResult, repositorySource, List.of(), conditions);
+            scanResult, buildFactGraphs(scanResult, repositorySource), List.of());
         JsonNode executionJson = objectMapper.readTree(exporter.export(
             scanResult, outputs, scanResult.warnings(), repositorySource));
 
@@ -879,5 +882,9 @@ class OpenApiAssemblyServiceTest {
             new SafetyPolicyHint(List.of(), List.of(), "1.0"),
             scanResult.metadata()
         );
+    }
+
+    private FactGraphBuildResult buildFactGraphs(StaticScanResult scanResult, RepositorySource source) {
+        return new DefaultFactCodeGraphBuilder().build(scanResult, source, FactGraphTraversalBudget.defaults());
     }
 }

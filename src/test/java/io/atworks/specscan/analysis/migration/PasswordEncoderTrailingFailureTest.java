@@ -1,6 +1,5 @@
 package io.atworks.specscan.analysis.migration;
 
-import io.atworks.specscan.analysis.application.RuleOutputMigrationService;
 import io.atworks.specscan.analysis.domain.*;
 import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
 import io.atworks.specscan.ingestion.domain.*;
@@ -37,8 +36,7 @@ class PasswordEncoderTrailingFailureTest {
             List.of(raw), new ResponseBinding("String", trace), trace);
         StaticScanResult scan = new StaticScanResult(List.of(endpoint), 2, List.of(), null);
 
-        EndpointRuleOutput output = new RuleOutputMigrationService().migrate(scan, source(), List.of())
-            .outputs().get("POST /login");
+        EndpointRuleOutput output = TestRuleOutputs.generate(scan, source()).get("POST /login");
 
         assertThat(output.excludedBusinessRules()).anySatisfy(rule -> {
             assertThat(rule.ruleId()).isEqualTo("SPRING_SECURITY_PASSWORD_MATCH_FAILURE");

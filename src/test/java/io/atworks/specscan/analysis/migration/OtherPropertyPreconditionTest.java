@@ -1,6 +1,5 @@
 package io.atworks.specscan.analysis.migration;
 
-import io.atworks.specscan.analysis.application.RuleOutputMigrationService;
 import io.atworks.specscan.analysis.domain.*;
 import io.atworks.specscan.analysis.domain.output.*;
 import io.atworks.specscan.ingestion.domain.*;
@@ -79,14 +78,14 @@ class OtherPropertyPreconditionTest {
             endpoint("DELETE", "delete", List.of(id), trace));
         StaticScanResult scan = new StaticScanResult(endpoints, 6, List.of(), null);
 
-        RuleOutputMigrationResult result = new RuleOutputMigrationService().migrate(scan, source(), List.of());
-        EndpointRuleOutput put = result.outputs().get("PUT /properties/{propertyId}");
+        var outputs = TestRuleOutputs.generate(scan, source());
+        EndpointRuleOutput put = outputs.get("PUT /properties/{propertyId}");
         assertThat(put.requestPreconditions()).extracting(ExecutableCondition::targetPath,
             ExecutableCondition::operator).contains(tuple("$.propertyId", "NOT_NULL"),
                 tuple("$", "NOT_NULL"), tuple("$.propertyType", "NOT_NULL"));
 
         for (String method : List.of("GET", "DELETE")) {
-            EndpointRuleOutput output = result.outputs().get(method + " /properties/{propertyId}");
+            EndpointRuleOutput output = outputs.get(method + " /properties/{propertyId}");
             assertThat(output.requestPreconditions()).extracting(ExecutableCondition::targetPath,
                 ExecutableCondition::operator).containsExactly(tuple("$.propertyId", "NOT_NULL"));
             assertThat(output.requestPreconditions()).extracting(ExecutableCondition::operator)

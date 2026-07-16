@@ -1,6 +1,5 @@
 package io.atworks.specscan.analysis.application;
 
-import io.atworks.specscan.analysis.domain.ApiCondition;
 import io.atworks.specscan.analysis.domain.ApiConditionDraft;
 import io.atworks.specscan.analysis.domain.ApiEndpoint;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
@@ -19,7 +18,6 @@ import io.atworks.specscan.analysis.domain.rule.MethodScope;
 import io.atworks.specscan.analysis.support.output.CandidateToOutputAdapter;
 import io.atworks.specscan.analysis.support.output.RequestBindingConditionAdapter;
 import io.atworks.specscan.analysis.support.output.ResponseMetadataAdapter;
-import io.atworks.specscan.analysis.support.output.StructuralConditionAdapter;
 import io.atworks.specscan.analysis.support.rule.DefaultGraphRuleEngine;
 import io.atworks.specscan.analysis.support.rule.DefaultValidationCandidateDetector;
 import io.atworks.specscan.analysis.support.rule.pack.InitialRulePacks;
@@ -35,11 +33,9 @@ public final class RuleOutputService {
     private final CandidateToOutputAdapter adapter = new CandidateToOutputAdapter();
     private final ResponseMetadataAdapter responseMetadataAdapter = new ResponseMetadataAdapter();
     private final RequestBindingConditionAdapter requestBindingAdapter = new RequestBindingConditionAdapter();
-    private final StructuralConditionAdapter structuralConditionAdapter = new StructuralConditionAdapter();
 
     public Map<String, EndpointRuleOutput> generate(StaticScanResult scan, FactGraphBuildResult build,
-                                                    List<ApiConditionDraft> annotationConditions,
-                                                    List<ApiCondition> structuralConditions) {
+                                                    List<ApiConditionDraft> annotationConditions) {
         Map<String, EndpointRuleOutput> outputs = new LinkedHashMap<>();
 
         GraphRuleEngine engine = new DefaultGraphRuleEngine(new DefaultValidationCandidateDetector(List.of()),
@@ -62,7 +58,6 @@ public final class RuleOutputService {
             String operationKey = OperationKey.of(endpoint).externalKey();
             EndpointRuleOutput output = outputs.getOrDefault(operationKey, EndpointRuleOutput.empty(endpoint.path()));
             output = requestBindingAdapter.augment(endpoint, output, annotationConditions);
-            output = structuralConditionAdapter.augment(endpoint, output, structuralConditions);
             output = withBuildDiagnostics(endpoint, output, build.diagnostics());
             outputs.put(operationKey, responseMetadataAdapter.augment(endpoint, output));
         }

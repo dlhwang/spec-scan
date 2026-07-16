@@ -1,6 +1,5 @@
 package io.atworks.specscan.analysis.migration;
 
-import io.atworks.specscan.analysis.application.RuleOutputMigrationService;
 import io.atworks.specscan.analysis.domain.*;
 import io.atworks.specscan.analysis.domain.output.*;
 import io.atworks.specscan.analysis.domain.fact.*;
@@ -91,8 +90,7 @@ class PropertyPostPreconditionTest {
         assertThat(graph.nodes()).withFailMessage("graph=%s", graph)
             .extracting(FactNode::type).contains(FactNodeType.CONSTRUCTOR, FactNodeType.CONDITION);
 
-        RuleOutputMigrationResult result = new RuleOutputMigrationService().migrate(scan, source(), List.of());
-        EndpointRuleOutput output = result.outputs().get("POST /properties");
+        EndpointRuleOutput output = TestRuleOutputs.generate(scan, source()).get("POST /properties");
 
         assertThat(output.requestPreconditions()).withFailMessage("output=%s", output)
             .extracting(ExecutableCondition::targetPath,

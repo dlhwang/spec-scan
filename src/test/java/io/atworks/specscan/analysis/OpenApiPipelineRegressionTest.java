@@ -2,11 +2,9 @@ package io.atworks.specscan.analysis;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.atworks.specscan.analysis.application.NormalizationService;
 import io.atworks.specscan.analysis.application.OpenApiAssemblyService;
 import io.atworks.specscan.analysis.application.SpringStaticScanService;
 import io.atworks.specscan.analysis.application.ValidationExtractionService;
-import io.atworks.specscan.analysis.domain.NormalizedResult;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
 import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
 import io.atworks.specscan.ingestion.domain.IngestionMetadata;
@@ -306,14 +304,6 @@ class OpenApiPipelineRegressionTest {
             .anySatisfy(snippet -> assertThat(snippet).contains("version != order.getRequestedVersion()"))
             .anySatisfy(snippet -> assertThat(snippet).contains("hasPermission(order, currentUser)"))
             .anySatisfy(snippet -> assertThat(snippet).contains("order.getStatus() != OrderState.PAYMENT_WAITING"));
-
-        NormalizedResult normalizedResult = new NormalizationService().normalize(
-            extractionResult.candidates(),
-            scanResult.endpoints(),
-            new io.atworks.specscan.analysis.support.ValidationEvidenceGraphBuilder().build(scanResult, extractionResult, repositorySource)
-        );
-        assertThat(normalizedResult.conditions()).extracting(condition -> condition.operator())
-            .contains("OPTIMISTIC_LOCK_MATCH", "HAS_CANCELLATION_PERMISSION", "STATE_IN");
 
         Path outputPath = tempDir.resolve("openapi.yaml");
         new OpenApiAssemblyService().assemble(scanResult, extractionResult, repositorySource, outputPath);
