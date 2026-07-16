@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.atworks.specscan.analysis.application.OpenApiAssemblyService;
 import io.atworks.specscan.analysis.application.RuleOutputService;
 import io.atworks.specscan.analysis.application.ValidationExtractionService;
-import io.atworks.specscan.analysis.domain.ApiCondition;
 import io.atworks.specscan.analysis.domain.ApiConditionDraft;
 import io.atworks.specscan.analysis.domain.ApiEndpoint;
 import io.atworks.specscan.analysis.domain.BindingLocation;
@@ -626,31 +625,6 @@ class OpenApiAssemblyServiceTest {
         RepositorySource repositorySource = buildRepositorySource(tempDir, scanResult);
         ExecutionSpecExporter exporter = new ExecutionSpecExporter();
 
-        List<ApiCondition> conditions = List.of(
-            new ApiCondition(
-                io.atworks.specscan.analysis.domain.ConditionLocation.QUERY,
-                "$.version",
-                "OPTIMISTIC_LOCK_MATCH",
-                "must match current resource version",
-                "matchVersion(req.getVersion())",
-                0.5,
-                "test",
-                trace,
-                "/admin/orders/{orderNo}/shipping"
-            ),
-            new ApiCondition(
-                io.atworks.specscan.analysis.domain.ConditionLocation.AUTH,
-                "$.currentUser",
-                "HAS_CANCELLATION_PERMISSION",
-                "orderer or ROLE_ADMIN",
-                "hasCancellationPermission(order, canceller)",
-                0.5,
-                "test",
-                trace,
-                "/my/orders/{orderNo}/cancel"
-            )
-        );
-
         Map<String, EndpointRuleOutput> outputs = new RuleOutputService().generate(
             scanResult, buildFactGraphs(scanResult, repositorySource), List.of());
         JsonNode executionJson = objectMapper.readTree(exporter.export(
@@ -761,75 +735,6 @@ class OpenApiAssemblyServiceTest {
         RepositorySource repositorySource = buildRepositorySource(tempDir, scanResult);
         ExecutionSpecExporter exporter = new ExecutionSpecExporter();
 
-        List<ApiCondition> conditions = List.of(
-            new ApiCondition(
-                io.atworks.specscan.analysis.domain.ConditionLocation.BODY,
-                "$.orderProducts",
-                "NOT_EMPTY",
-                "true",
-                "orderProducts must not be empty",
-                0.8,
-                "test",
-                trace,
-                "/orders/order"
-            ),
-            new ApiCondition(
-                io.atworks.specscan.analysis.domain.ConditionLocation.BODY,
-                "$.orderProducts[*].productId",
-                "REQUIRED",
-                "true",
-                "productId required",
-                0.8,
-                "test",
-                trace,
-                "/orders/order"
-            ),
-            new ApiCondition(
-                io.atworks.specscan.analysis.domain.ConditionLocation.BODY,
-                "$.shippingInfo.receiver.name",
-                "NOT_BLANK",
-                "true",
-                "receiver name required",
-                0.8,
-                "test",
-                trace,
-                "/orders/order"
-            ),
-            new ApiCondition(
-                io.atworks.specscan.analysis.domain.ConditionLocation.QUERY,
-                "$.version",
-                "OPTIMISTIC_LOCK_MATCH",
-                "must match current resource version",
-                "matchVersion(req.getVersion())",
-                0.5,
-                "test",
-                trace,
-                "/admin/orders/{orderNo}/shipping"
-            ),
-            new ApiCondition(
-                io.atworks.specscan.analysis.domain.ConditionLocation.AUTH,
-                "$.currentUser",
-                "HAS_CANCELLATION_PERMISSION",
-                "orderer or ROLE_ADMIN",
-                "hasCancellationPermission(order, canceller)",
-                0.5,
-                "test",
-                trace,
-                "/my/orders/{orderNo}/cancel"
-            ),
-            new ApiCondition(
-                io.atworks.specscan.analysis.domain.ConditionLocation.RESOURCE,
-                "$.order.state",
-                "STATE_IN",
-                "PAYMENT_WAITING,PREPARING",
-                "if (!isNotYetShipped()) throw new AlreadyShippedException();",
-                0.5,
-                "test",
-                trace,
-                "/my/orders/{orderNo}/cancel"
-            )
-        );
-
         Map<String, EndpointRuleOutput> outputs = new RuleOutputService().generate(
             scanResult, buildFactGraphs(scanResult, repositorySource), List.of());
         JsonNode executionJson = objectMapper.readTree(exporter.export(
@@ -842,9 +747,10 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionJson.at("/operations/1/request/bodySchema/properties/ordererMemberId/properties/id/type").asText()).isEqualTo("integer");
         assertThat(executionJson.at("/operations/1/request/bodySchema/properties/shippingInfo/properties/address/properties/zipCode/type").asText()).isEqualTo("string");
         assertThat(executionJson.at("/operations/1/requestPreconditions").toString())
-            .contains("$.orderProducts")
-            .contains("$.orderProducts[*].productId")
-            .contains("$.shippingInfo.receiver.name");
+            .contains("\"targetPath\":\"$\"")
+            .doesNotContain("$.orderProducts")
+            .doesNotContain("$.orderProducts[*].productId")
+            .doesNotContain("$.shippingInfo.receiver.name");
         assertThat(executionJson.at("/operations/2/requestPreconditions").toString())
             .doesNotContain("OPTIMISTIC_LOCK_MATCH");
         assertThat(executionJson.at("/operations/3/requestPreconditions").toString())
