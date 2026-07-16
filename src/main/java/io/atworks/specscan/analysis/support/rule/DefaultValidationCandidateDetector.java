@@ -56,6 +56,7 @@ public final class DefaultValidationCandidateDetector implements ReportedValidat
         }
         addImplicitOptionalFailures(graph, scope, nodes, candidates);
         addPasswordTrailingFailures(graph, conditionIds, nodes, candidates);
+        addValidationSinkFailures(graph, scope, nodes, candidates);
         return new CandidateDetectionResult(candidates, reportDiagnostics);
     }
 
@@ -153,6 +154,49 @@ public final class DefaultValidationCandidateDetector implements ReportedValidat
         }
         return new PolicyEvaluation(false, ExtractionStatus.EXTRACTED, List.of());
     }
+
+    private void addValidationSinkFailures(FactCodeGraph graph, MethodScope scope, Map<String, FactNode> nodes,
+                                           List<PredicateCandidate> candidates) {
+        Set<String> scopedCalls = new HashSet<>();
+        for (FactEdge edge : graph.edges()) {
+            if (edge.type() == FactEdgeType.CALLS && scope.methodNodeIds().contains(edge.sourceNodeId())) {
+                scopedCalls.add(edge.targetNodeId());
+            }
+        }
+        for (String callId : scopedCalls.stream().sorted().toList()) {
+            FactNode call = nodes.get(callId);
+            if (call == null || !(call.payload() instanceof FactNodePayload.MethodCallPayload payload)) continue;
+            String name = payload.methodName();
+            String signature = call.typeResolution().resolvedSignature();
+            boolean isSink = false;
+            if (call.typeResolution().status() == TypeResolutionStatus.RESOLVED && signature != null) {
+                if (signature.startsWith("java.util.Objects.requireNonNull")
+                        || signature.startsWith("com.google.common.base.Preconditions.checkNotNull")
+                        || signature.startsWith("org.springframework.util.Assert.notNull")) {
+                    isSink = true;
+                }
+            } else {
+                String text = call.snippet();
+                if (text != null && (text.contains("requireNonNull") || text.contains("checkNotNull") || text.contains("notNull"))) {
+                    isSink = true;
+                }
+            }
+            if (isSink) {
+                if (candidates.stream().anyMatch(c -> c.conditionNodeId().equals(call.id()))) continue;
+                candidates.add(new PredicateCandidate(
+                    ids.forPredicate(graph.graphId(), call.id()),
+                    graph.graphId(),
+                    call.id(),
+                    PredicateType.COMPOSITE,
+                    ExtractionStatus.EXTRACTED,
+                    List.of(evidenceMapper.fromFact(call, EvidenceRole.PREDICATE),
+                            evidenceMapper.fromFact(call, EvidenceRole.FAILURE_OUTCOME)),
+                    List.of()
+                ));
+            }
+        }
+    }
+
     private void validateScope(FactCodeGraph graph, MethodScope scope) {
         if (!graph.graphId().equals(scope.graphId())) throw new IllegalArgumentException("INVALID_METHOD_SCOPE");
         Map<String, FactNodeType> types = new HashMap<>();

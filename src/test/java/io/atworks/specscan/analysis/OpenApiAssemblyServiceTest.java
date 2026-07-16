@@ -96,6 +96,22 @@ class OpenApiAssemblyServiceTest {
             }
         """);
 
+        Path controllerDir = srcRoot.resolve("io/atworks/controller");
+        Files.createDirectories(controllerDir);
+        Files.writeString(controllerDir.resolve("VisitController.java"), """
+            package io.atworks.controller;
+
+            import io.atworks.dto.VisitRequest;
+            import io.atworks.dto.VisitResponse;
+            import java.util.List;
+
+            public class VisitController {
+                public List<VisitResponse> createVisit(long petId, VisitRequest visitForm) {
+                    return List.of();
+                }
+            }
+        """);
+
         SourceTrace dummyTrace = new SourceTrace("src/main/java/io/atworks/controller/VisitController.java", 10, 15);
         RequestBinding pathBinding = new RequestBinding("petId", BindingLocation.PATH, "Long", true, null, null, null, List.of(), dummyTrace);
         RequestBinding bodyBinding = new RequestBinding("visitForm", BindingLocation.BODY, "VisitRequest", true, null, null, null, List.of(), dummyTrace);
@@ -179,7 +195,7 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionJson.at("/operations/0/response200/schema/items/properties/specialty/enumValues/1").asText()).isEqualTo("DENTISTRY");
 
         JsonNode requestPreconditions = executionJson.at("/operations/0/requestPreconditions");
-        assertThat(requestPreconditions).hasSize(3);
+        assertThat(requestPreconditions).hasSize(4);
         assertThat(requestPreconditions.toString()).contains("$.description");
         assertThat(requestPreconditions.toString()).contains("$.requestId");
         assertThat(requestPreconditions.toString()).contains("$.owner.address.city");
@@ -190,8 +206,8 @@ class OpenApiAssemblyServiceTest {
 
         JsonNode responseAssertions = executionJson.at("/operations/0/responseAssertions");
         assertThat(responseAssertions).isEmpty();
-        assertThat(graphJson.at("/nodes").isArray()).isTrue();
-        assertThat(graphJson.at("/edges").isArray()).isTrue();
+        assertThat(graphJson.at("/graphs/0/nodes").isArray()).isTrue();
+        assertThat(graphJson.at("/graphs/0/edges").isArray()).isTrue();
     }
 
     @Test
@@ -594,6 +610,7 @@ class OpenApiAssemblyServiceTest {
     }
     @Test
     void executionExportScopesNormalizedConditionsToOwningEndpoint(@TempDir Path tempDir) throws Exception {
+        writeDddStart2SourceFiles(tempDir);
         SourceTrace trace = new SourceTrace("src/main/java/io/atworks/controller/VisitController.java", 10, 15);
         ApiEndpoint shipping = new ApiEndpoint(
             "POST",
@@ -645,6 +662,7 @@ class OpenApiAssemblyServiceTest {
 
     @Test
     void representativeDddStart2RegressionPreservesOrderShapesAndEndpointScopedConditions(@TempDir Path tempDir) throws Exception {
+        writeDddStart2SourceFiles(tempDir);
         Path srcRoot = tempDir.resolve("src/main/java");
         Path dtoDir = srcRoot.resolve("io/atworks/order");
         Files.createDirectories(dtoDir);
@@ -792,5 +810,129 @@ class OpenApiAssemblyServiceTest {
 
     private FactGraphBuildResult buildFactGraphs(StaticScanResult scanResult, RepositorySource source) {
         return new DefaultFactCodeGraphBuilder().build(scanResult, source, FactGraphTraversalBudget.defaults());
+    }
+
+    private void writeDddStart2SourceFiles(Path tempDir) throws IOException {
+        Path srcRoot = tempDir.resolve("src/main/java");
+        Path controllerDir = srcRoot.resolve("io/atworks/controller");
+        Files.createDirectories(controllerDir);
+        
+        Files.writeString(controllerDir.resolve("AdminOrderController.java"), """
+            package io.atworks.controller;
+
+            public class AdminOrderController {
+                private ShippingService shippingService;
+
+                public void startShipping(String orderNo, long version) {
+                    shippingService.startShipping(orderNo, version);
+                }
+            }
+        """);
+
+        Files.writeString(controllerDir.resolve("CancelOrderController.java"), """
+            package io.atworks.controller;
+
+            public class CancelOrderController {
+                private CancelService cancelService;
+
+                public void cancel(String orderNo) {
+                    cancelService.cancel(orderNo, new User());
+                }
+            }
+        """);
+
+        Files.writeString(controllerDir.resolve("ShippingService.java"), """
+            package io.atworks.controller;
+
+            public class ShippingService {
+                public void startShipping(String orderNo, long version) {
+                    Order order = new Order();
+                    if (version != order.getRequestedVersion()) {
+                        throw new VersionConflictException();
+                    }
+                }
+            }
+        """);
+
+        Files.writeString(controllerDir.resolve("CancelService.java"), """
+            package io.atworks.controller;
+
+            public class CancelService {
+                private CancelPolicy cancelPolicy;
+
+                public void cancel(String orderNo, User currentUser) {
+                    Order order = new Order();
+                    if (!cancelPolicy.hasPermission(order, currentUser)) {
+                        throw new NoCancellablePermission();
+                    }
+                    if (order.getStatus() != OrderState.PAYMENT_WAITING && order.getStatus() != OrderState.PREPARING) {
+                        throw new AlreadyShippedException();
+                    }
+                }
+            }
+        """);
+
+        Files.writeString(controllerDir.resolve("Order.java"), """
+            package io.atworks.controller;
+
+            public class Order {
+                private long requestedVersion;
+                private OrderState status = OrderState.PAYMENT_WAITING;
+
+                public long getRequestedVersion() {
+                    return requestedVersion;
+                }
+
+                public OrderState getStatus() {
+                    return status;
+                }
+            }
+        """);
+
+        Files.writeString(controllerDir.resolve("OrderState.java"), """
+            package io.atworks.controller;
+
+            public enum OrderState {
+                PAYMENT_WAITING, PREPARING, SHIPPED, CANCELED
+            }
+        """);
+
+        Files.writeString(controllerDir.resolve("CancelPolicy.java"), """
+            package io.atworks.controller;
+
+            public class CancelPolicy {
+                public boolean hasPermission(Order order, User currentUser) {
+                    return currentUser != null;
+                }
+            }
+        """);
+
+        Files.writeString(controllerDir.resolve("User.java"), """
+            package io.atworks.controller;
+
+            public class User {
+            }
+        """);
+
+        Files.writeString(controllerDir.resolve("VersionConflictException.java"), """
+            package io.atworks.controller;
+
+            public class VersionConflictException extends RuntimeException {
+            }
+        """);
+
+        Files.writeString(controllerDir.resolve("NoCancellablePermission.java"), """
+            package io.atworks.controller;
+
+            public class NoCancellablePermission extends RuntimeException {
+            }
+        """);
+
+        Files.writeString(controllerDir.resolve("AlreadyShippedException.java"), """
+            package io.atworks.controller;
+
+            public class AlreadyShippedException extends RuntimeException {
+            }
+        """);
     }
 }

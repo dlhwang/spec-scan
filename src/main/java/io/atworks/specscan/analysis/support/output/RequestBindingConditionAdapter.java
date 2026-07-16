@@ -14,12 +14,17 @@ public final class RequestBindingConditionAdapter {
     public EndpointRuleOutput augment(ApiEndpoint endpoint, EndpointRuleOutput output,
                                       List<ApiConditionDraft> annotationConditions) {
         List<ExecutableCondition> conditions = new ArrayList<>(output.requestPreconditions());
+        List<ExcludedBusinessRule> excluded = new ArrayList<>(output.excludedBusinessRules());
         List<CandidateOutputDiagnostic> diagnostics = new ArrayList<>(output.diagnostics());
         for (RequestBinding binding : endpoint.requestBindings()) {
             String location = binding.targetLocation().name();
             String path = binding.targetLocation() == BindingLocation.BODY ? "$" : "$." + binding.parameterName();
-            if (binding.isRequired()) conditions.add(condition(location, path, "NOT_NULL", List.of(),
-                "request binding required flag", "REQUEST_BINDING_REQUIRED", binding.sourceTrace()));
+            if (binding.isRequired()) {
+                if (!isPrimitive(binding.type()) && !isInfrastructureType(binding.type())) {
+                    conditions.add(condition(location, path, "NOT_NULL", List.of(),
+                        "request binding required flag", "REQUEST_BINDING_REQUIRED", binding.sourceTrace()));
+                }
+            }
         }
         for (ApiConditionDraft draft : annotationConditions) {
             if (!belongsTo(endpoint, draft)) continue;
@@ -38,7 +43,7 @@ public final class RequestBindingConditionAdapter {
                 draft.sourceTrace()));
         }
         return new EndpointRuleOutput(output.endpointPath(), deduplicate(conditions), output.responseAssertions(),
-            output.excludedBusinessRules(), diagnostics);
+            excluded, diagnostics);
     }
 
     private ExecutableCondition condition(String location, String path, String operator, List<String> expected,
@@ -97,7 +102,10 @@ public final class RequestBindingConditionAdapter {
     }
 
     private boolean supports(String operator) {
-        return "NOT_NULL".equals(operator) || "NOT_EMPTY".equals(operator);
+        return "NOT_NULL".equals(operator) || "NOT_EMPTY".equals(operator)
+            || "NOT_BLANK".equals(operator) || "SIZE".equals(operator)
+            || "PATTERN".equals(operator) || "EMAIL".equals(operator)
+            || "MIN_AGE".equals(operator);
     }
 
     private List<String> expected(ApiConditionDraft draft) {
@@ -111,5 +119,45 @@ public final class RequestBindingConditionAdapter {
     private String file(SourceTrace trace) {
         if (trace == null || trace.fileRelativePath() == null || trace.fileRelativePath().isBlank()) return "unknown";
         return trace.fileRelativePath().replace('\\', '/');
+    }
+
+    private boolean isPrimitive(String type) {
+        if (type == null) return false;
+        String t = type.toLowerCase().trim();
+        return "long".equals(t) || "int".equals(t) || "boolean".equals(t) || "double".equals(t)
+            || "float".equals(t) || "char".equals(t) || "byte".equals(t) || "short".equals(t);
+    }
+
+    private boolean isInfrastructureType(String type) {
+        if (type == null) return false;
+        String t = type.trim();
+        return t.contains("Pageable") || t.contains("Sort") || t.contains("org.springframework.data.domain");
+    }
+
+    private ExcludedBusinessRule excludedBindingRule(String targetPath, SourceTrace trace) {
+        SourceTrace source = trace == null ? new SourceTrace("unknown", 1, 1) : trace;
+        int startLine = Math.max(1, source.startLine());
+        int endLine = Math.max(startLine, source.endLine());
+        String file = source.fileRelativePath() == null || source.fileRelativePath().isBlank()
+            ? "unknown" : source.fileRelativePath();
+        EvidenceRef evidence = new EvidenceRef("REQUEST_BINDING_REQUIRED:" + startLine, file,
+            startLine, 1, endLine, 1,
+            EvidenceRole.INPUT_ORIGIN, "request binding required flag");
+            
+        return new ExcludedBusinessRule(
+            "REQUEST_BINDING_REQUIRED",
+            BusinessRuleCategory.INVARIANT,
+            ConstraintKind.INPUT_LITERAL,
+            ExtractionStatus.EXTRACTED,
+            SemanticStatus.RESOLVED,
+            TargetResolutionStatus.RESOLVED,
+            "PRIMITIVE_TYPE",
+            targetPath,
+            "NOT_NULL",
+            List.of(),
+            "request binding required flag",
+            1.0,
+            List.of(evidence)
+        );
     }
 }

@@ -7,7 +7,8 @@ import java.util.*;
 final class ExcludedBusinessRuleOutputAdapter {
     private static final Set<String> EXCLUDED_RULE_ALLOWLIST = Set.of(
         "SPRING_DATA_FIND_BY_ID_OR_ELSE_THROW", "JDK_OPTIONAL_LOOKUP_FAILURE",
-        "SPRING_SECURITY_PASSWORD_MATCH_FAILURE", "JAVA_AUTHORIZATION_GUARD_CALL");
+        "SPRING_SECURITY_PASSWORD_MATCH_FAILURE", "JAVA_AUTHORIZATION_GUARD_CALL",
+        "JAVA_DELEGATED_GUARD", "INPUT_DOMAIN_VALUE_MISMATCH_GUARD");
 
     void add(BusinessRuleCandidate candidate, NormalizedConstraint constraint,
              List<ExcludedBusinessRule> excluded, List<CandidateOutputDiagnostic> diagnostics) {
@@ -46,15 +47,12 @@ final class ExcludedBusinessRuleOutputAdapter {
 
     private ExcludedBusinessRule excluded(BusinessRuleCandidate candidate, NormalizedConstraint constraint,
                                           String reason) {
-        boolean nonExecutable = constraint != null && (constraint.kind() == ConstraintKind.RUNTIME_DEPENDENT
-            || constraint.kind() == ConstraintKind.CONTROL_FLOW_ONLY
-            || constraint.kind() == ConstraintKind.INPUT_TO_DOMAIN);
         return new ExcludedBusinessRule(candidate.ruleId(), candidate.category(),
             constraint == null ? ConstraintKind.CONTROL_FLOW_ONLY : constraint.kind(), candidate.extractionStatus(),
             candidate.semanticStatus(), candidate.targetStatus(), reason,
-            constraint == null ? null : constraint.targetPath(),
-            constraint == null || nonExecutable ? null : constraint.operator(),
-            constraint == null || nonExecutable ? List.of() : constraint.expectedValues(),
+            constraint == null || constraint.targetPath() == null ? null : (constraint.targetPath().startsWith("$") ? constraint.targetPath() : "$." + constraint.targetPath()),
+            constraint == null ? null : constraint.operator(),
+            constraint == null ? List.of() : constraint.expectedValues(),
             constraint == null ? null : constraint.expectedSource(), candidate.confidence(), candidate.evidence());
     }
 

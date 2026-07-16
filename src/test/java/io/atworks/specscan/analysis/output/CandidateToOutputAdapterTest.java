@@ -76,7 +76,7 @@ class CandidateToOutputAdapterTest {
             BusinessRuleCategory.EXISTENCE, RuleEffect.BUSINESS_RESTRICTION,
             SemanticStatus.RESOLVED, TargetResolutionStatus.UNRESOLVED,
             new NormalizedConstraint(ConstraintKind.CONTROL_FLOW_ONLY, null, null, List.of(), "optional-call"),
-            List.of(), false);
+            List.of(diagnostic("EXCLUDED_RULE_EVIDENCE_INCOMPLETE")), false);
 
         EndpointRuleOutput output = adapter.adapt(endpoint(), List.of(allowlistedButIncomplete));
 

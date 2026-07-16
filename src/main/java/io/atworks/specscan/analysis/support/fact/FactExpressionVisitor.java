@@ -2,6 +2,15 @@ package io.atworks.specscan.analysis.support.fact;
 
 import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.body.FieldDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.ConstructorDeclaration;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.ForStmt;
+import com.github.javaparser.ast.stmt.ForEachStmt;
 import io.atworks.specscan.analysis.domain.fact.*;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -45,10 +54,32 @@ final class FactExpressionVisitor {
             visitObjectCreationArguments(creation, creationNode, owner, workspace, acc, resolver);
             return;
         }
+        if (expression instanceof ConditionalExpr conditional) {
+            FactNode condNode = expressionNode(conditional, owner, workspace, "CONDITIONAL_VALUE", resolver);
+            if (condNode != null) {
+                relate(parent, condNode, FactEdgeType.OPERAND_OF, 0, "CONDITIONAL_VALUE", acc);
+                addOperand(conditional.getCondition(), condNode, 0, "CONDITION", owner, workspace, acc, resolver);
+                addOperand(conditional.getThenExpr(), condNode, 1, "THEN", owner, workspace, acc, resolver);
+                addOperand(conditional.getElseExpr(), condNode, 2, "ELSE", owner, workspace, acc, resolver);
+            }
+            return;
+        }
+        if (expression instanceof InstanceOfExpr instanceOf) {
+            FactNode instNode = expressionNode(instanceOf, owner, workspace, "INSTANCEOF_VALUE", resolver);
+            if (instNode != null) {
+                relate(parent, instNode, FactEdgeType.OPERAND_OF, 0, "INSTANCEOF_VALUE", acc);
+                addOperand(instanceOf.getExpression(), instNode, 0, "EXPRESSION", owner, workspace, acc, resolver);
+            }
+            return;
+        }
+        if (expression instanceof CastExpr cast) {
+            visit(cast.getExpression(), parent, owner, workspace, acc, resolver);
+            return;
+        }
         FactNode node = expressionNode(expression, owner, workspace, "VALUE", resolver);
         if (node != null) {
             relate(parent, node, FactEdgeType.OPERAND_OF, 0, "VALUE", acc);
-            relateDeclaredOrigin(expression, node, acc);
+            relateDeclaredOrigin(expression, node, workspace, acc);
         }
     }
 
@@ -85,7 +116,11 @@ final class FactExpressionVisitor {
         FactNode node = expressionNode(expression, owner, workspace, "ASSIGNED_VALUE", resolver);
         if (node != null) {
             relate(local, node, FactEdgeType.ASSIGNED_FROM, -1, "INITIALIZER", acc);
-            if (expression instanceof MethodCallExpr call) visitCallChildren(call, node, owner, workspace, acc, resolver);
+            if (expression instanceof MethodCallExpr call) {
+                visitCallChildren(call, node, owner, workspace, acc, resolver);
+            } else {
+                visit(expression, node, owner, workspace, acc, resolver);
+            }
         } else {
             visit(expression, local, owner, workspace, acc, resolver);
         }
@@ -95,7 +130,7 @@ final class FactExpressionVisitor {
         FactNode node = expressionNode(expression, owner, workspace, role, resolver);
         if (node != null) {
             relate(parent, node, FactEdgeType.OPERAND_OF, ordinal, role, acc);
-            relateDeclaredOrigin(expression, node, acc);
+            relateDeclaredOrigin(expression, node, workspace, acc);
         }
         if (expression instanceof MethodCallExpr call && node != null) {
             visitCallChildren(call, node, owner, workspace, acc, resolver);
@@ -119,7 +154,7 @@ final class FactExpressionVisitor {
         FactNode sourceNode = expressionNode(source, owner, workspace, "COLLECTION_SOURCE", resolver);
         if (sourceNode == null) return;
         relate(elementParameter, sourceNode, FactEdgeType.ORIGINATES_FROM, -1, "COLLECTION_ELEMENT", acc);
-        relateDeclaredOrigin(source, sourceNode, acc);
+        relateDeclaredOrigin(source, sourceNode, workspace, acc);
         if (source instanceof MethodCallExpr call) visitCallChildren(call, sourceNode, owner, workspace, acc, resolver);
     }
 
@@ -135,7 +170,7 @@ final class FactExpressionVisitor {
         FactNode value = expressionNode(setter.getArgument(0), owner, workspace, "BUILDER_VALUE", resolver);
         if (value == null) return;
         relate(value, field, FactEdgeType.VALUE_FLOWS_TO, 0, "BUILDER_SETTER", acc);
-        relateDeclaredOrigin(setter.getArgument(0), value, acc);
+        relateDeclaredOrigin(setter.getArgument(0), value, workspace, acc);
         if (setter.getArgument(0) instanceof MethodCallExpr call)
             visitCallChildren(call, value, owner, workspace, acc, resolver);
     }
@@ -147,6 +182,15 @@ final class FactExpressionVisitor {
             ids.generate(FactNodeType.CONDITION, owner, range, "nested:" + role), FactNodeType.CONDITION,
             range, binary.toString(), TypeResolution.notApplicable(),
             new FactNodePayload.ConditionPayload(BinaryExpr.class.getSimpleName(), binary.getOperator().asString()));
+        if (expression instanceof ConditionalExpr conditional) return new FactNode(
+            ids.generate(FactNodeType.CONDITION, owner, range, "nested:" + role), FactNodeType.CONDITION,
+            range, conditional.toString(), TypeResolution.notApplicable(),
+            new FactNodePayload.ConditionPayload("ConditionalExpr", "?:"));
+        if (expression instanceof InstanceOfExpr instanceOf) return new FactNode(
+            ids.generate(FactNodeType.CONDITION, owner, range, "nested:" + role), FactNodeType.CONDITION,
+            range, instanceOf.toString(), TypeResolution.notApplicable(),
+            new FactNodePayload.ConditionPayload("InstanceOfExpr", "instanceof"));
+        if (expression instanceof CastExpr cast) return expressionNode(cast.getExpression(), owner, workspace, role, resolver);
         if (expression instanceof FieldAccessExpr field) {
             try {
                 var declaration = field.resolve();
@@ -160,29 +204,127 @@ final class FactExpressionVisitor {
         return null;
     }
 
-    private void relateDeclaredOrigin(Expression expression, FactNode reference, FactGraphAccumulator acc) {
+    private void relateDeclaredOrigin(Expression expression, FactNode reference, Path workspace, FactGraphAccumulator acc) {
         String rootName = rootName(expression);
         if (rootName == null) return;
-        FactNode best = null;
-        int bestDistance = Integer.MAX_VALUE;
-        for (FactNode declaration : acc.nodes()) {
-            String declaredName = null;
-            if (declaration.payload() instanceof FactNodePayload.ParameterPayload parameter) declaredName = parameter.name();
-            if (declaration.payload() instanceof FactNodePayload.LocalVariablePayload local) declaredName = local.name();
-            if (declaration.type() == FactNodeType.VALUE_FIELD
-                    && declaration.payload() instanceof FactNodePayload.FieldAccessPayload field
-                    && (field.rootExpressionKind().startsWith("LOMBOK_FIELD:")
-                    || field.rootExpressionKind().startsWith("INSTANCE_FIELD:"))) declaredName = field.fieldName();
-            if (!rootName.equals(declaredName)
-                    || !declaration.sourceRange().relativePath().equals(reference.sourceRange().relativePath())
-                    || declaration.sourceRange().startLine() > reference.sourceRange().startLine()) continue;
-            int distance = reference.sourceRange().startLine() - declaration.sourceRange().startLine();
-            if (distance < bestDistance || distance == bestDistance
-                    && declaration.sourceRange().startColumn() > (best == null ? -1 : best.sourceRange().startColumn())) {
-                best = declaration; bestDistance = distance;
+        FactNode best = findLexicalDeclaration(expression, rootName, acc, workspace);
+        if (best == null) {
+            int bestDistance = Integer.MAX_VALUE;
+            for (FactNode declaration : acc.nodes()) {
+                String declaredName = null;
+                if (declaration.payload() instanceof FactNodePayload.ParameterPayload parameter) declaredName = parameter.name();
+                if (declaration.payload() instanceof FactNodePayload.LocalVariablePayload local) declaredName = local.name();
+                if (declaration.type() == FactNodeType.VALUE_FIELD
+                        && declaration.payload() instanceof FactNodePayload.FieldAccessPayload field
+                        && (field.rootExpressionKind().startsWith("LOMBOK_FIELD:")
+                        || field.rootExpressionKind().startsWith("INSTANCE_FIELD:"))) declaredName = field.fieldName();
+                if (!rootName.equals(declaredName)
+                        || !declaration.sourceRange().relativePath().equals(reference.sourceRange().relativePath())
+                        || declaration.sourceRange().startLine() > reference.sourceRange().startLine()) continue;
+                int distance = reference.sourceRange().startLine() - declaration.sourceRange().startLine();
+                if (distance < bestDistance || distance == bestDistance
+                        && declaration.sourceRange().startColumn() > (best == null ? -1 : best.sourceRange().startColumn())) {
+                    best = declaration; bestDistance = distance;
+                }
             }
         }
         if (best != null) relate(reference, best, FactEdgeType.READS, -1, "DECLARATION", acc);
+    }
+
+    private FactNode findLexicalDeclaration(Expression expression, String rootName, FactGraphAccumulator acc, Path workspace) {
+        Node current = expression;
+        SourceRange refRange = range(expression, workspace);
+        while (current != null) {
+            if (current instanceof BlockStmt block) {
+                for (VariableDeclarator varDec : block.findAll(VariableDeclarator.class)) {
+                    if (varDec.getNameAsString().equals(rootName)) {
+                        SourceRange varRange = range(varDec, workspace);
+                        if (isBefore(varRange, refRange)) {
+                            FactNode found = findNodeByRange(acc, varRange, FactNodeType.LOCAL_VARIABLE);
+                            if (found != null) return found;
+                        }
+                    }
+                }
+            } else if (current instanceof ForStmt forStmt) {
+                for (Expression init : forStmt.getInitialization()) {
+                    if (init instanceof VariableDeclarationExpr vde) {
+                        for (VariableDeclarator varDec : vde.getVariables()) {
+                            if (varDec.getNameAsString().equals(rootName)) {
+                                SourceRange varRange = range(varDec, workspace);
+                                FactNode found = findNodeByRange(acc, varRange, FactNodeType.LOCAL_VARIABLE);
+                                if (found != null) return found;
+                            }
+                        }
+                    }
+                }
+            } else if (current instanceof ForEachStmt forEach) {
+                for (VariableDeclarator varDec : forEach.getVariable().getVariables()) {
+                    if (varDec.getNameAsString().equals(rootName)) {
+                        SourceRange varRange = range(varDec, workspace);
+                        FactNode found = findNodeByRange(acc, varRange, FactNodeType.LOCAL_VARIABLE);
+                        if (found != null) return found;
+                    }
+                }
+            } else if (current instanceof LambdaExpr lambda) {
+                for (Parameter param : lambda.getParameters()) {
+                    if (param.getNameAsString().equals(rootName)) {
+                        SourceRange paramRange = range(param, workspace);
+                        FactNode found = findNodeByRange(acc, paramRange, FactNodeType.PARAMETER);
+                        if (found != null) return found;
+                    }
+                }
+            } else if (current instanceof MethodDeclaration method) {
+                for (Parameter param : method.getParameters()) {
+                    if (param.getNameAsString().equals(rootName)) {
+                        SourceRange paramRange = range(param, workspace);
+                        FactNode found = findNodeByRange(acc, paramRange, FactNodeType.PARAMETER);
+                        if (found != null) return found;
+                    }
+                }
+            } else if (current instanceof ConstructorDeclaration constructor) {
+                for (Parameter param : constructor.getParameters()) {
+                    if (param.getNameAsString().equals(rootName)) {
+                        SourceRange paramRange = range(param, workspace);
+                        FactNode found = findNodeByRange(acc, paramRange, FactNodeType.PARAMETER);
+                        if (found != null) return found;
+                    }
+                }
+            } else if (current instanceof ClassOrInterfaceDeclaration clazz) {
+                for (FieldDeclaration field : clazz.getFields()) {
+                    for (VariableDeclarator varDec : field.getVariables()) {
+                        if (varDec.getNameAsString().equals(rootName)) {
+                            SourceRange varRange = range(varDec, workspace);
+                            FactNode found = findNodeByRange(acc, varRange, FactNodeType.VALUE_FIELD);
+                            if (found != null) return found;
+                        }
+                    }
+                }
+            }
+            current = current.getParentNode().orElse(null);
+        }
+        return null;
+    }
+
+    private boolean isBefore(SourceRange a, SourceRange b) {
+        if (a.startLine() < b.startLine()) return true;
+        if (a.startLine() == b.startLine()) return a.startColumn() < b.startColumn();
+        return false;
+    }
+
+    private FactNode findNodeByRange(FactGraphAccumulator acc, SourceRange range, FactNodeType type) {
+        for (FactNode node : acc.nodes()) {
+            if (node.type() == type && node.sourceRange().equals(range)) {
+                return node;
+            }
+        }
+        if (type == FactNodeType.VALUE_FIELD) {
+            for (FactNode node : acc.nodes()) {
+                if (node.type() == type && node.sourceRange().startLine() == range.startLine()) {
+                    return node;
+                }
+            }
+        }
+        return null;
     }
 
     private String rootName(Expression expression) {

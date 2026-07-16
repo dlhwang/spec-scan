@@ -26,7 +26,11 @@ public final class CandidateToOutputAdapter {
                 continue;
             }
             NormalizedConstraint constraint = candidate.constraint();
-            switch (candidate.effect()) {
+            RuleEffect effect = candidate.effect();
+            if ("JAVA_DELEGATED_GUARD".equals(candidate.ruleId())) {
+                effect = RuleEffect.BUSINESS_RESTRICTION;
+            }
+            switch (effect) {
                 case REQUEST_REQUIREMENT -> requestAdapter.add(endpoint, candidate, constraint, preconditions, diagnostics);
                 case RESPONSE_GUARANTEE -> responseAdapter.add(candidate, constraint, assertions, diagnostics);
                 case BUSINESS_RESTRICTION -> excludedAdapter.add(candidate, constraint, excluded, diagnostics);

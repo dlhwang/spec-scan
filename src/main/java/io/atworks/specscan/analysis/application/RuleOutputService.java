@@ -18,6 +18,7 @@ import io.atworks.specscan.analysis.domain.rule.MethodScope;
 import io.atworks.specscan.analysis.support.output.CandidateToOutputAdapter;
 import io.atworks.specscan.analysis.support.output.RequestBindingConditionAdapter;
 import io.atworks.specscan.analysis.support.output.ResponseMetadataAdapter;
+import io.atworks.specscan.analysis.support.output.ResponseInvariantAdapter;
 import io.atworks.specscan.analysis.support.rule.DefaultGraphRuleEngine;
 import io.atworks.specscan.analysis.support.rule.DefaultValidationCandidateDetector;
 import io.atworks.specscan.analysis.support.rule.pack.InitialRulePacks;
@@ -28,15 +29,21 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Deque;
+import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.HashMap;
 
 public final class RuleOutputService {
     private final CandidateToOutputAdapter adapter = new CandidateToOutputAdapter();
     private final ResponseMetadataAdapter responseMetadataAdapter = new ResponseMetadataAdapter();
     private final RequestBindingConditionAdapter requestBindingAdapter = new RequestBindingConditionAdapter();
+    private final ResponseInvariantAdapter responseInvariantAdapter = new ResponseInvariantAdapter();
 
     public Map<String, EndpointRuleOutput> generate(StaticScanResult scan, FactGraphBuildResult build,
                                                     List<ApiConditionDraft> annotationConditions) {
         Map<String, EndpointRuleOutput> outputs = new LinkedHashMap<>();
+        List<io.atworks.specscan.analysis.domain.candidate.BusinessRuleCandidate> allCandidates = new ArrayList<>();
 
         GraphRuleEngine engine = new DefaultGraphRuleEngine(new DefaultValidationCandidateDetector(List.of()),
             InitialRulePacks.all());
@@ -44,12 +51,41 @@ public final class RuleOutputService {
             ApiEndpoint endpoint = endpointFor(scan.endpoints(), graph);
             if (endpoint == null) continue;
             Set<String> methodIds = new LinkedHashSet<>();
-            for (FactNode node : graph.nodes()) {
-                if (node.type() == FactNodeType.API_METHOD || node.type() == FactNodeType.METHOD) {
-                    methodIds.add(node.id());
+            methodIds.add(graph.apiMethodNodeId());
+            
+            Deque<String> pending = new ArrayDeque<>();
+            pending.add(graph.apiMethodNodeId());
+            Set<String> visited = new HashSet<>();
+            Map<String, FactNode> nodeMap = new HashMap<>();
+            graph.nodes().forEach(n -> nodeMap.put(n.id(), n));
+            
+            while (!pending.isEmpty()) {
+                String current = pending.removeFirst();
+                if (!visited.add(current)) continue;
+                for (io.atworks.specscan.analysis.domain.fact.FactEdge edge : graph.edges()) {
+                    String neighborId = null;
+                    if (edge.sourceNodeId().equals(current)) {
+                        neighborId = edge.targetNodeId();
+                    } else if (edge.targetNodeId().equals(current)) {
+                        neighborId = edge.sourceNodeId();
+                    }
+                    if (neighborId != null) {
+                        FactNode neighborNode = nodeMap.get(neighborId);
+                        if (neighborNode != null) {
+                            if (neighborNode.type() == FactNodeType.API_METHOD) {
+                                continue;
+                            }
+                            if (neighborNode.type() == FactNodeType.METHOD || neighborNode.type() == FactNodeType.CONSTRUCTOR) {
+                                methodIds.add(neighborId);
+                            }
+                            pending.addLast(neighborId);
+                        }
+                    }
                 }
             }
+            
             GraphRuleEngineResult evaluated = engine.evaluate(graph, new MethodScope(graph.graphId(), methodIds));
+            allCandidates.addAll(evaluated.candidates().businessRules());
             outputs.put(OperationKey.of(endpoint).externalKey(),
                 adapter.adapt(endpoint, evaluated.candidates().businessRules()));
         }
@@ -59,6 +95,18 @@ public final class RuleOutputService {
             EndpointRuleOutput output = outputs.getOrDefault(operationKey, EndpointRuleOutput.empty(endpoint.path()));
             output = requestBindingAdapter.augment(endpoint, output, annotationConditions);
             output = withBuildDiagnostics(endpoint, output, build.diagnostics());
+            
+            final String currentKey = operationKey;
+            FactCodeGraph graph = build.graphs().stream()
+                .filter(g -> {
+                    ApiEndpoint ep = endpointFor(scan.endpoints(), g);
+                    return ep != null && OperationKey.of(ep).externalKey().equals(currentKey);
+                })
+                .findFirst().orElse(null);
+            if (graph != null) {
+                output = responseInvariantAdapter.augment(endpoint, output, graph, allCandidates);
+            }
+
             outputs.put(operationKey, responseMetadataAdapter.augment(endpoint, output));
         }
         return outputs;

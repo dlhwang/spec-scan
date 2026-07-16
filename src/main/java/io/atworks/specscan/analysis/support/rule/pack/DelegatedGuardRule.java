@@ -24,6 +24,10 @@ public final class DelegatedGuardRule implements GraphRule {
         List<FactNode> returnFacts = returns.stream().flatMap(node -> support.descendants(node.id()).stream()).toList();
         List<FactNode> enumConstants = returnFacts.stream()
             .filter(node -> node.type() == FactNodeType.ENUM_CONSTANT).toList();
+        if (enumConstants.isEmpty()) {
+            enumConstants = support.descendants(condition.id()).stream()
+                .filter(node -> node.type() == FactNodeType.ENUM_CONSTANT).toList();
+        }
         if (!enumConstants.isEmpty()) return List.of(stateRule(predicate, support, call, method, returns, enumConstants));
         if (isFieldParameterEquality(returnFacts, returns)) return List.of(versionRule(predicate, support, call, method, returns));
         return List.of();
