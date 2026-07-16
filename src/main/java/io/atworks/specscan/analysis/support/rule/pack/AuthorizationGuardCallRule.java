@@ -25,7 +25,7 @@ public final class AuthorizationGuardCallRule implements GraphRule {
         NormalizedConstraint constraint = new NormalizedConstraint(ConstraintKind.RUNTIME_DEPENDENT,
             "currentUser", "HAS_CANCELLATION_PERMISSION", List.of(), call.id());
         return List.of(support.resolved(predicate, ID, BusinessRuleCategory.AUTHORIZATION,
-            TargetResolutionStatus.RESOLVED, constraint, 1.0,
+            RuleEffect.BUSINESS_RESTRICTION, TargetResolutionStatus.RESOLVED, constraint, 1.0,
             support.evidence(predicate, call, EvidenceRole.CALL)));
     }
 }

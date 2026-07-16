@@ -2,18 +2,15 @@ package io.atworks.specscan.analysis.application;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import io.atworks.specscan.analysis.domain.CandidateChunk;
-import io.atworks.specscan.analysis.domain.NormalizedResult;
 import io.atworks.specscan.analysis.domain.StaticScanResult;
-import io.atworks.specscan.analysis.domain.ValidationCandidate;
 import io.atworks.specscan.analysis.domain.ValidationExtractionResult;
-import io.atworks.specscan.analysis.domain.ValidationEvidenceGraph;
+import io.atworks.specscan.analysis.domain.fact.FactGraphBuildResult;
+import io.atworks.specscan.analysis.domain.fact.FactGraphTraversalBudget;
 import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
 import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
 import io.atworks.specscan.analysis.support.OpenApiGenerator;
 import io.atworks.specscan.analysis.support.StructuredSpecExporter;
-import io.atworks.specscan.analysis.support.ValidationEvidenceGraphBuilder;
-import io.atworks.specscan.analysis.support.NormalizationRejectionClassifier;
+import io.atworks.specscan.analysis.support.fact.DefaultFactCodeGraphBuilder;
 import io.atworks.specscan.ingestion.domain.IngestionErrorCode;
 import io.atworks.specscan.ingestion.domain.IngestionException;
 import io.atworks.specscan.ingestion.domain.IngestionWarning;
@@ -28,16 +25,13 @@ import java.util.Map;
 
 public class OpenApiAssemblyService {
 
-    private final NormalizationService normalizationService;
     private final OpenApiGenerator openApiGenerator;
     private final StructuredSpecExporter structuredSpecExporter;
     private final ExecutionSpecExporter executionSpecExporter;
     private final ObjectMapper objectMapper;
     private final RuleOutputService ruleOutputService;
-    private final NormalizationRejectionClassifier rejectionClassifier = new NormalizationRejectionClassifier();
 
     public OpenApiAssemblyService() {
-        this.normalizationService = new NormalizationService();
         this.openApiGenerator = new OpenApiGenerator();
         this.structuredSpecExporter = new StructuredSpecExporter();
         this.executionSpecExporter = new ExecutionSpecExporter();
@@ -53,46 +47,18 @@ public class OpenApiAssemblyService {
     ) throws IngestionException {
         List<IngestionWarning> warnings = new ArrayList<>(scanResult.warnings());
         warnings.addAll(extractResult.warnings());
-        ValidationEvidenceGraph graph = new ValidationEvidenceGraphBuilder().build(scanResult, extractResult, source);
+        FactGraphBuildResult factGraphs = new DefaultFactCodeGraphBuilder().build(
+            scanResult, source, FactGraphTraversalBudget.defaults());
 
-        NormalizedResult normalizedResult;
-        try {
-            normalizedResult = normalizationService.normalize(extractResult.candidates(), scanResult.endpoints(), graph);
-            warnings.addAll(normalizedResult.warnings());
-            for (ValidationCandidate reject : normalizedResult.rejected()) {
-                if ("SERVICE_HINT".equals(reject.sourceType())) {
-                    continue;
-                }
-                warnings.add(new IngestionWarning(
-                    rejectionClassifier.classify(reject),
-                    "Candidate rejected during rule-based normalization.",
-                    reject.targetPath(),
-                    "MEDIUM"
-                ));
-            }
-            for (CandidateChunk invalid : normalizedResult.invalidChunks()) {
-                warnings.add(new IngestionWarning(
-                    "INVALID_CHUNK_DETECTED",
-                    "Candidate chunk rejected due to missing ID or missing source evidence.",
-                    invalid.endpointPath(),
-                    "HIGH"
-                ));
-            }
-        } catch (Exception e) {
-            throw new IngestionException(
-                IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
-                "Failed to run rule-based normalization: " + e.getMessage()
-            );
-        }
-
-
+        Map<String, EndpointRuleOutput> ruleOutputs = ruleOutputService.generate(
+            scanResult, factGraphs, extractResult.directConditions());
 
         String structuredJson;
         try {
             structuredJson = structuredSpecExporter.export(
                 scanResult,
                 extractResult.directConditions(),
-                normalizedResult.conditions()
+                ruleOutputs
             );
         } catch (Exception e) {
             throw new IngestionException(
@@ -100,9 +66,6 @@ public class OpenApiAssemblyService {
                 "Failed to generate structured API analysis JSON document: " + e.getMessage()
             );
         }
-
-        Map<String, EndpointRuleOutput> ruleOutputs = ruleOutputService.generate(
-            scanResult, source, extractResult.directConditions(), normalizedResult.conditions());
 
         String executionJson;
         try {
@@ -126,11 +89,11 @@ public class OpenApiAssemblyService {
 
         String graphJson;
         try {
-            graphJson = objectMapper.writeValueAsString(graph);
+            graphJson = objectMapper.writeValueAsString(factGraphs);
         } catch (Exception e) {
             throw new IngestionException(
                 IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,
-                "Failed to serialize validation evidence graph to JSON: " + e.getMessage()
+                "Failed to serialize fact code graph artifact to JSON: " + e.getMessage()
             );
         }
 

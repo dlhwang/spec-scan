@@ -3,6 +3,8 @@ package io.atworks.specscan.analysis.support;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.atworks.specscan.analysis.domain.ApiCondition;
+import io.atworks.specscan.analysis.domain.ConditionLocation;
 import io.atworks.specscan.analysis.domain.ApiEndpoint;
 import io.atworks.specscan.analysis.domain.BindingLocation;
 import io.atworks.specscan.analysis.domain.RequestBinding;
@@ -42,7 +44,7 @@ public class ExecutionSpecExporter {
         for (ApiEndpoint endpoint : scanResult.endpoints()) {
             EndpointRuleOutput output = ruleOutputs.getOrDefault(OperationKey.of(endpoint).externalKey(),
                 EndpointRuleOutput.empty(endpoint.path()));
-            RequestSpec base = buildRequest(endpoint, typeResolver);
+            RequestSpec base = buildRequest(endpoint, typeResolver, output);
             RequestSpec projected = new RequestSpec(base.request(), mapExecutable(output.requestPreconditions()),
                 mapExecutable(output.responseAssertions()), mapExcluded(output.excludedBusinessRules()), Set.of());
             Map<String, Object> operation = buildOperation(endpoint, projected, typeResolver);
@@ -87,7 +89,7 @@ public class ExecutionSpecExporter {
         return operation;
     }
 
-    private RequestSpec buildRequest(ApiEndpoint endpoint, TypeResolver typeResolver) {
+    private RequestSpec buildRequest(ApiEndpoint endpoint, TypeResolver typeResolver, EndpointRuleOutput output) {
         Map<String, Object> request = new LinkedHashMap<>();
         request.put("contentType", hasBody(endpoint) ? "application/json" : null);
         request.put("pathParams", buildParameterGroup(endpoint, BindingLocation.PATH));
@@ -101,13 +103,36 @@ public class ExecutionSpecExporter {
         if (bodyBinding == null) {
             request.put("bodySchema", null);
             request.put("bodyExample", null);
-            return new RequestSpec(request, List.of(), List.of(), List.of(), Set.of());
+            return new RequestSpec(request, mapExecutable(output.requestPreconditions()),
+                mapExecutable(output.responseAssertions()), mapExcluded(output.excludedBusinessRules()), Set.of());
         }
 
-        Map<String, Object> bodySchema = typeResolver.resolveExpandedSchema(bodyBinding.type(), List.of(), List.of());
+        List<ApiCondition> conditions = new ArrayList<>();
+        for (ExecutableCondition condition : output.requestPreconditions()) {
+            ConditionLocation loc;
+            try {
+                loc = ConditionLocation.valueOf(condition.targetLocation());
+            } catch (IllegalArgumentException e) {
+                loc = ConditionLocation.UNKNOWN;
+            }
+            conditions.add(new ApiCondition(
+                loc,
+                condition.targetPath(),
+                condition.operator(),
+                condition.expectedValues() == null || condition.expectedValues().isEmpty() ? "" : String.join(",", condition.expectedValues().stream().map(Object::toString).toList()),
+                condition.evidence().isEmpty() ? "" : condition.evidence().get(0).snippet(),
+                condition.confidence(),
+                null,
+                null,
+                endpoint.path()
+            ));
+        }
+
+        Map<String, Object> bodySchema = typeResolver.resolveExpandedSchema(bodyBinding.type(), List.of(), conditions);
         request.put("bodySchema", bodySchema);
         request.put("bodyExample", buildExample(bodySchema));
-        return new RequestSpec(request, List.of(), List.of(), List.of(), Set.of());
+        return new RequestSpec(request, mapExecutable(output.requestPreconditions()),
+            mapExecutable(output.responseAssertions()), mapExcluded(output.excludedBusinessRules()), Set.of());
     }
 
     private Map<String, Object> buildResponse(ApiEndpoint endpoint, TypeResolver typeResolver) {

@@ -19,9 +19,17 @@ public final class BusinessRuleCandidateFactory {
             BusinessRuleCategory category, ExtractionStatus extractionStatus, SemanticStatus semanticStatus,
             TargetResolutionStatus targetStatus, NormalizedConstraint constraint, double confidence,
             List<EvidenceRef> evidence, List<CandidateDiagnostic> diagnostics) {
+        return create(predicateCandidateId, ruleId, category, RuleEffect.BUSINESS_RESTRICTION,
+            extractionStatus, semanticStatus, targetStatus, constraint, confidence, evidence, diagnostics);
+    }
+
+    public BusinessRuleCandidate create(String predicateCandidateId, String ruleId,
+            BusinessRuleCategory category, RuleEffect effect, ExtractionStatus extractionStatus,
+            SemanticStatus semanticStatus, TargetResolutionStatus targetStatus, NormalizedConstraint constraint,
+            double confidence, List<EvidenceRef> evidence, List<CandidateDiagnostic> diagnostics) {
         BusinessRuleCandidate candidate = new BusinessRuleCandidate(
             ids.forBusinessRule(predicateCandidateId, ruleId, semanticStatus), predicateCandidateId, ruleId,
-            category, extractionStatus, semanticStatus, targetStatus, constraint, confidence, evidence, diagnostics);
+            category, effect, extractionStatus, semanticStatus, targetStatus, constraint, confidence, evidence, diagnostics);
         validator.validate(candidate);
         return candidate;
     }
@@ -30,9 +38,19 @@ public final class BusinessRuleCandidateFactory {
             BusinessRuleCategory category, ExtractionStatus extractionStatus, SemanticStatus semanticStatus,
             TargetResolutionStatus targetStatus, NormalizedConstraint constraint, double confidence,
             List<EvidenceRef> evidence, List<CandidateDiagnostic> diagnostics, String evidenceFingerprint) {
+        return create(predicateCandidateId, ruleId, category, RuleEffect.BUSINESS_RESTRICTION,
+            extractionStatus, semanticStatus, targetStatus, constraint, confidence, evidence, diagnostics,
+            evidenceFingerprint);
+    }
+
+    public BusinessRuleCandidate create(String predicateCandidateId, String ruleId,
+            BusinessRuleCategory category, RuleEffect effect, ExtractionStatus extractionStatus,
+            SemanticStatus semanticStatus, TargetResolutionStatus targetStatus, NormalizedConstraint constraint,
+            double confidence, List<EvidenceRef> evidence, List<CandidateDiagnostic> diagnostics,
+            String evidenceFingerprint) {
         BusinessRuleCandidate candidate = new BusinessRuleCandidate(
             ids.forBusinessRule(predicateCandidateId, ruleId, semanticStatus, evidenceFingerprint),
-            predicateCandidateId, ruleId, category, extractionStatus, semanticStatus, targetStatus,
+            predicateCandidateId, ruleId, category, effect, extractionStatus, semanticStatus, targetStatus,
             constraint, confidence, evidence, diagnostics);
         validator.validate(candidate);
         return candidate;

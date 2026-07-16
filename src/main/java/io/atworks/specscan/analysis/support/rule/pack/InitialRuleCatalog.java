@@ -15,27 +15,28 @@ public final class InitialRuleCatalog {
     public static List<RuleDescriptor> descriptors() {
         return List.of(
             descriptor(EnumAllowedValueGuardRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,
-                BusinessRuleCategory.STATE_PRECONDITION, CONTROL_FLOW),
+                BusinessRuleCategory.STATE_PRECONDITION, RuleEffect.BUSINESS_RESTRICTION, CONTROL_FLOW),
             descriptor(InputDomainMismatchGuardRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,
-                BusinessRuleCategory.INVARIANT, CONTROL_FLOW),
+                BusinessRuleCategory.INVARIANT, RuleEffect.BUSINESS_RESTRICTION, CONTROL_FLOW),
             descriptor(NullRejectionGuardRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,
-                BusinessRuleCategory.INVARIANT, CONTROL_FLOW),
+                BusinessRuleCategory.INVARIANT, RuleEffect.REQUEST_REQUIREMENT, CONTROL_FLOW),
             descriptor(EmptyRejectionGuardRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,
-                BusinessRuleCategory.INVARIANT, CALL),
+                BusinessRuleCategory.INVARIANT, RuleEffect.REQUEST_REQUIREMENT, CALL),
             descriptor(DelegatedGuardRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,
-                BusinessRuleCategory.STATE_PRECONDITION, CALL),
+                BusinessRuleCategory.STATE_PRECONDITION, RuleEffect.REQUEST_REQUIREMENT, CALL),
             descriptor(AuthorizationGuardCallRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,
-                BusinessRuleCategory.AUTHORIZATION, CALL),
+                BusinessRuleCategory.AUTHORIZATION, RuleEffect.BUSINESS_RESTRICTION, CALL),
             descriptor(OptionalLookupFailureRule.ID, "jdk-idiom", RuleLayer.JDK_IDIOM,
-                BusinessRuleCategory.EXISTENCE, CALL),
+                BusinessRuleCategory.EXISTENCE, RuleEffect.BUSINESS_RESTRICTION, CALL),
             descriptor(PasswordEncoderMatchFailureRule.ID, "spring", RuleLayer.SPRING,
-                BusinessRuleCategory.AUTHENTICATION, CALL),
+                BusinessRuleCategory.AUTHENTICATION, RuleEffect.BUSINESS_RESTRICTION, CALL),
             descriptor(SpringDataFindByIdOrElseThrowRule.ID, "spring-data-jpa", RuleLayer.SPRING_DATA_JPA,
-                BusinessRuleCategory.EXISTENCE, CALL));
+                BusinessRuleCategory.EXISTENCE, RuleEffect.BUSINESS_RESTRICTION, CALL));
     }
 
     private static RuleDescriptor descriptor(String id, String pack, RuleLayer layer,
-                                             BusinessRuleCategory category, Set<EvidenceRole> evidence) {
-        return new RuleDescriptor(id, pack, layer, category, true, evidence);
+                                             BusinessRuleCategory category, RuleEffect effect,
+                                             Set<EvidenceRole> evidence) {
+        return new RuleDescriptor(id, pack, layer, category, effect, true, evidence);
     }
 }

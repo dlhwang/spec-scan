@@ -45,7 +45,8 @@ public final class EnumAllowedValueGuardRule implements GraphRule {
             evidence[i * 2] = constants.get(i); evidence[i * 2 + 1] = EvidenceRole.DOMAIN_ORIGIN;
         }
         return List.of(support.resolved(predicate, ID, BusinessRuleCategory.STATE_PRECONDITION,
-            TargetResolutionStatus.NOT_APPLICABLE, constraint, 1.0, support.evidence(predicate, evidence)));
+            RuleEffect.BUSINESS_RESTRICTION, TargetResolutionStatus.NOT_APPLICABLE, constraint, 1.0,
+            support.evidence(predicate, evidence)));
     }
 
     private List<FactNode> comparisons(FactNode condition, StructuralRuleSupport support) {

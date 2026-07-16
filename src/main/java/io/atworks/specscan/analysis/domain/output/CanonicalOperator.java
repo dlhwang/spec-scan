@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.Set;
 
 public enum CanonicalOperator {
-    EQ, NEQ, GT, GTE, LT, LTE, CONTAINS, NOT_CONTAINS, EMPTY, NOT_EMPTY, NULL, NOT_NULL;
+    EQ, NEQ, GT, GTE, LT, LTE, CONTAINS, NOT_CONTAINS, EMPTY, NOT_EMPTY, NULL, NOT_NULL, SIZE, NOT_BLANK, PATTERN, EMAIL, MIN_AGE;
 
     private static final Map<String, CanonicalOperator> ALIASES = Map.ofEntries(
         Map.entry("EQUALS", EQ), Map.entry("NOT_EQUALS", NEQ),
@@ -12,7 +12,7 @@ public enum CanonicalOperator {
         Map.entry("LESS_THAN", LT), Map.entry("LESS_THAN_OR_EQUAL", LTE),
         Map.entry("IS_NULL", NULL), Map.entry("IS_NOT_NULL", NOT_NULL)
     );
-    private static final Set<CanonicalOperator> UNARY = Set.of(EMPTY, NOT_EMPTY, NULL, NOT_NULL);
+    private static final Set<CanonicalOperator> UNARY = Set.of(EMPTY, NOT_EMPTY, NULL, NOT_NULL, NOT_BLANK, EMAIL);
 
     public static CanonicalOperator parse(String value) {
         if (value == null || value.isBlank()) throw new IllegalArgumentException("operator is required");

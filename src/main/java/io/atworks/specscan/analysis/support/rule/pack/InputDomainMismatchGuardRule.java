@@ -22,10 +22,14 @@ public final class InputDomainMismatchGuardRule implements GraphRule {
         if (leftInput == rightInput || left.type() == FactNodeType.NULL_LITERAL || right.type() == FactNodeType.NULL_LITERAL
                 || left.type() == FactNodeType.LITERAL || right.type() == FactNodeType.LITERAL) return List.of();
         FactNode input = leftInput ? left : right; FactNode domain = leftInput ? right : left;
+        String op = "EQUALS";
+        if (input.snippet().toLowerCase().contains("version") || domain.snippet().toLowerCase().contains("version")) {
+            op = "OPTIMISTIC_LOCK_MATCH";
+        }
         NormalizedConstraint constraint = new NormalizedConstraint(ConstraintKind.INPUT_TO_DOMAIN,
-            input.snippet(), "EQUALS", List.of(), domain.id());
+            input.snippet(), op, List.of(), domain.id());
         return List.of(support.resolved(predicate, ID, BusinessRuleCategory.INVARIANT,
-            TargetResolutionStatus.RESOLVED, constraint, 1.0,
+            RuleEffect.BUSINESS_RESTRICTION, TargetResolutionStatus.RESOLVED, constraint, 1.0,
             support.evidence(predicate, input, EvidenceRole.INPUT_ORIGIN, domain, EvidenceRole.DOMAIN_ORIGIN)));
     }
 }

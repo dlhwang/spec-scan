@@ -1,6 +1,6 @@
 package io.atworks.specscan.analysis.migration;
 
-import io.atworks.specscan.analysis.application.*;
+import io.atworks.specscan.analysis.application.SpringStaticScanService;
 import io.atworks.specscan.analysis.domain.*;
 import io.atworks.specscan.analysis.domain.output.*;
 import io.atworks.specscan.analysis.domain.candidate.*;
@@ -46,13 +46,12 @@ class RealEstateGoldenRegressionTest {
             .filteredOn(candidate -> candidate.ruleId() != null && (candidate.ruleId().contains("NULL_REJECTION")
                 || candidate.ruleId().contains("EMPTY_REJECTION")))
             .anySatisfy(candidate -> assertThat(candidate.targetStatus().name()).isEqualTo("RESOLVED"));
-        RuleOutputMigrationService migration = new RuleOutputMigrationService();
-        RuleOutputMigrationResult first = migration.migrate(scan, source, List.of());
-        RuleOutputMigrationResult second = migration.migrate(scan, source, List.of());
-        assertThat(first.outputs()).isEqualTo(second.outputs());
-        assertThat(first.outputs()).hasSize(6);
+        Map<String, EndpointRuleOutput> first = TestRuleOutputs.generate(scan, source);
+        Map<String, EndpointRuleOutput> second = TestRuleOutputs.generate(scan, source);
+        assertThat(first).isEqualTo(second);
+        assertThat(first).hasSize(6);
 
-        first.outputs().values().forEach(output -> {
+        first.values().forEach(output -> {
             List<ExecutableCondition> executable = new ArrayList<>(output.requestPreconditions());
             executable.addAll(output.responseAssertions());
             assertThat(executable).allSatisfy(condition -> {
@@ -72,22 +71,22 @@ class RealEstateGoldenRegressionTest {
             });
         });
 
-        EndpointRuleOutput post = first.outputs().get("POST /api/estate/properties");
-        assertThat(post.requestPreconditions()).withFailMessage("outputs=%s", first.outputs())
+        EndpointRuleOutput post = first.get("POST /api/estate/properties");
+        assertThat(post.requestPreconditions()).withFailMessage("outputs=%s", first)
             .extracting(ExecutableCondition::targetPath,
             ExecutableCondition::operator).contains(org.assertj.core.groups.Tuple.tuple("$", "NOT_NULL"),
                 org.assertj.core.groups.Tuple.tuple("$.propertyType", "NOT_NULL"),
                 org.assertj.core.groups.Tuple.tuple("$.contractDetails", "NOT_EMPTY"));
-        EndpointRuleOutput remove = first.outputs().get("DELETE /api/estate/properties/{propertyId}");
+        EndpointRuleOutput remove = first.get("DELETE /api/estate/properties/{propertyId}");
         assertThat(remove.responseAssertions()).extracting(ExecutableCondition::targetPath,
             ExecutableCondition::operator, ExecutableCondition::expectedValues)
             .contains(org.assertj.core.groups.Tuple.tuple("$status", "EQ", List.of("204")),
                 org.assertj.core.groups.Tuple.tuple("$body", "EMPTY", List.of()));
-        assertThat(first.outputs().get("POST /api/auth/login").responseAssertions())
+        assertThat(first.get("POST /api/auth/login").responseAssertions())
             .noneSatisfy(assertion -> assertThat(assertion.targetPath()).isEqualTo("$.result"));
         for (String key : List.of("GET /api/estate/properties/{propertyId}",
                 "DELETE /api/estate/properties/{propertyId}"))
-            assertThat(first.outputs().get(key).requestPreconditions())
+            assertThat(first.get(key).requestPreconditions())
                 .extracting(ExecutableCondition::operator).doesNotContain("NOT_EMPTY");
     }
 

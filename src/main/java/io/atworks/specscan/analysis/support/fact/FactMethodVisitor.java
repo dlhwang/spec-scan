@@ -16,6 +16,7 @@ import com.github.javaparser.ast.stmt.SwitchStmt;
 import com.github.javaparser.ast.expr.SwitchExpr;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
+import com.github.javaparser.ast.stmt.YieldStmt;
 import io.atworks.specscan.analysis.domain.fact.*;
 import io.atworks.specscan.analysis.support.TypeResolver;
 import java.nio.file.Path;
@@ -58,6 +59,18 @@ final class FactMethodVisitor {
                     .ifPresent(scope -> expressions.relateCollectionOrigin(collectionSource(scope), parameterNode,
                         owner, workspace, acc, call -> resolve(call, resolver)));
             }
+            for (ReturnStmt statement : lambda.findAll(ReturnStmt.class)) {
+                if (findExecutableScope(statement) == lambda) {
+                    FactNode returned = getOrCreateReturnNode(statement, owner, workspace, acc, resolver);
+                    relation(lambdaNode, returned, FactEdgeType.RETURNS, -1, "RETURN", acc);
+                }
+            }
+            for (ThrowStmt statement : lambda.findAll(ThrowStmt.class)) {
+                if (findExecutableScope(statement) == lambda) {
+                    FactNode thrown = getOrCreateThrowNode(statement, owner, workspace, acc, resolver);
+                    relation(lambdaNode, thrown, FactEdgeType.THROWS, -1, "THROW", acc);
+                }
+            }
         }
         for (MethodCallExpr call : method.findAll(MethodCallExpr.class)) {
             expressions.relateBuilderField(call, owner, workspace, acc, nested -> resolve(nested, resolver));
@@ -67,26 +80,29 @@ final class FactMethodVisitor {
             FactNode condition = new FactNode(ids.generate(FactNodeType.CONDITION, owner, r, "if-condition"), FactNodeType.CONDITION, r, statement.getCondition().toString(), TypeResolution.notApplicable(), new FactNodePayload.ConditionPayload(statement.getCondition().getClass().getSimpleName(), operator(statement.getCondition())));
             relation(methodNode, condition, FactEdgeType.CONTROLS, -1, "IF", acc);
             expressions.visit(statement.getCondition(), condition, owner, workspace, acc, call -> resolve(call, resolver));
-            directOutcomes(statement.getThenStmt(), condition, FactEdgeType.THEN_OUTCOME, owner, workspace, acc);
-            statement.getElseStmt().ifPresent(branch -> directOutcomes(branch, condition, FactEdgeType.ELSE_OUTCOME, owner, workspace, acc));
+            directOutcomes(statement.getThenStmt(), condition, FactEdgeType.THEN_OUTCOME, owner, workspace, acc, resolver);
+            statement.getElseStmt().ifPresent(branch -> directOutcomes(branch, condition, FactEdgeType.ELSE_OUTCOME, owner, workspace, acc, resolver));
             if (statement.getElseStmt().isEmpty() && returnsDirectly(statement.getThenStmt()))
                 trailingStatement(statement).ifPresent(next -> directOutcomes(next, condition,
-                    FactEdgeType.ELSE_OUTCOME, owner, workspace, acc));
+                    FactEdgeType.ELSE_OUTCOME, owner, workspace, acc, resolver));
         }
         for (SwitchStmt statement : method.findAll(SwitchStmt.class)) {
-            switchEntries(statement.getSelector(), statement.getEntries(), methodNode, owner, workspace, acc, resolver);
+            switchEntries(statement.getSelector(), statement.getEntries(), methodNode, owner, workspace, acc, resolver, false);
         }
         for (SwitchExpr expression : method.findAll(SwitchExpr.class)) {
-            switchEntries(expression.getSelector(), expression.getEntries(), methodNode, owner, workspace, acc, resolver);
+            switchEntries(expression.getSelector(), expression.getEntries(), methodNode, owner, workspace, acc, resolver, true);
         }
         for (ReturnStmt statement : method.findAll(ReturnStmt.class)) {
-            SourceRange range = FactExpressionVisitor.range(statement, workspace);
-            FactNode returned = new FactNode(ids.generate(FactNodeType.RETURN, owner, range, "method-return"),
-                FactNodeType.RETURN, range, statement.toString(), TypeResolution.notApplicable(),
-                new FactNodePayload.OutcomePayload("RETURN", statement.getClass().getSimpleName()));
-            relation(methodNode, returned, FactEdgeType.RETURNS, -1, "RETURN", acc);
-            statement.getExpression().ifPresent(expression -> expressions.visit(expression, returned, owner,
-                workspace, acc, call -> resolve(call, resolver)));
+            if (findExecutableScope(statement) == method) {
+                FactNode returned = getOrCreateReturnNode(statement, owner, workspace, acc, resolver);
+                relation(methodNode, returned, FactEdgeType.RETURNS, -1, "RETURN", acc);
+            }
+        }
+        for (ThrowStmt statement : method.findAll(ThrowStmt.class)) {
+            if (findExecutableScope(statement) == method) {
+                FactNode thrown = getOrCreateThrowNode(statement, owner, workspace, acc, resolver);
+                relation(methodNode, thrown, FactEdgeType.THROWS, -1, "THROW", acc);
+            }
         }
     }
     private void registerInstanceFields(CallableDeclaration<?> method, String owner, Path workspace,
@@ -130,7 +146,7 @@ final class FactMethodVisitor {
         return current;
     }
     private void switchEntries(Expression selector, java.util.List<SwitchEntry> entries, FactNode methodNode,
-                               String owner, Path workspace, FactGraphAccumulator acc, TypeResolver resolver) {
+                               String owner, Path workspace, FactGraphAccumulator acc, TypeResolver resolver, boolean isExpression) {
         for (SwitchEntry entry : entries) {
             if (entry.getLabels().isEmpty()) continue;
             for (Expression label : entry.getLabels()) {
@@ -144,9 +160,23 @@ final class FactMethodVisitor {
                 expressions.visit(label, condition, owner, workspace, acc, call -> resolve(call, resolver));
                 for (Statement child : entry.getStatements()) {
                     if (child instanceof ThrowStmt thrown) {
-                        outcome(thrown, condition, FactNodeType.THROW, FactEdgeType.THEN_OUTCOME,
-                            owner, workspace, acc);
-                    } else if (child instanceof ExpressionStmt result) {
+                        outcome(thrown, condition, FactEdgeType.THEN_OUTCOME,
+                            owner, workspace, acc, resolver);
+                    } else if (child instanceof ReturnStmt returned) {
+                        outcome(returned, condition, FactEdgeType.THEN_OUTCOME,
+                            owner, workspace, acc, resolver);
+                    } else if (child instanceof YieldStmt yieldStmt && isExpression) {
+                        SourceRange resultRange = FactExpressionVisitor.range(yieldStmt, workspace);
+                        FactNode returned = new FactNode(ids.generate(FactNodeType.RETURN, owner, resultRange,
+                            "switch-result"), FactNodeType.RETURN, resultRange, yieldStmt.toString(),
+                            TypeResolution.notApplicable(), new FactNodePayload.OutcomePayload("RETURN",
+                            "SwitchExpressionResult"));
+                        relation(condition, returned, FactEdgeType.THEN_OUTCOME, -1, "SWITCH_RESULT", acc);
+                        Expression expr = yieldStmt.getExpression();
+                        if (expr != null) {
+                            expressions.visit(expr, returned, owner, workspace, acc, call -> resolve(call, resolver));
+                        }
+                    } else if (child instanceof ExpressionStmt result && isExpression) {
                         SourceRange resultRange = FactExpressionVisitor.range(result, workspace);
                         FactNode returned = new FactNode(ids.generate(FactNodeType.RETURN, owner, resultRange,
                             "switch-result"), FactNodeType.RETURN, resultRange, result.toString(),
@@ -160,16 +190,66 @@ final class FactMethodVisitor {
             }
         }
     }
-    private void directOutcomes(Statement branch, FactNode condition, FactEdgeType edge, String owner, Path workspace, FactGraphAccumulator acc) {
-        if (branch instanceof ThrowStmt thrown) outcome(thrown, condition, FactNodeType.THROW, edge, owner, workspace, acc);
-        else if (branch instanceof ReturnStmt returned) outcome(returned, condition, FactNodeType.RETURN, edge, owner, workspace, acc);
+    private void directOutcomes(Statement branch, FactNode condition, FactEdgeType edge, String owner, Path workspace, FactGraphAccumulator acc, TypeResolver resolver) {
+        if (branch instanceof ThrowStmt thrown) outcome(thrown, condition, edge, owner, workspace, acc, resolver);
+        else if (branch instanceof ReturnStmt returned) outcome(returned, condition, edge, owner, workspace, acc, resolver);
         else if (branch instanceof BlockStmt block) for (Statement statement : block.getStatements()) {
-            if (statement instanceof ThrowStmt thrown) outcome(thrown, condition, FactNodeType.THROW, edge, owner, workspace, acc);
-            else if (statement instanceof ReturnStmt returned) outcome(returned, condition, FactNodeType.RETURN, edge, owner, workspace, acc);
+            if (statement instanceof ThrowStmt thrown) outcome(thrown, condition, edge, owner, workspace, acc, resolver);
+            else if (statement instanceof ReturnStmt returned) outcome(returned, condition, edge, owner, workspace, acc, resolver);
         }
     }
     private TypeResolution resolve(MethodCallExpr call, TypeResolver resolver) { return resolver.resolveMethodCall(call).map(r -> TypeResolution.resolvedSignature(r.getQualifiedSignature())).orElseGet(() -> TypeResolution.unresolved("TYPE_RESOLUTION_FAILED")); }
-    private void outcome(com.github.javaparser.ast.Node node, FactNode condition, FactNodeType type, FactEdgeType edge, String owner, Path workspace, FactGraphAccumulator acc) { SourceRange r = FactExpressionVisitor.range(node, workspace); FactNode n = new FactNode(ids.generate(type, owner, r, edge.name()), type, r, node.toString(), TypeResolution.notApplicable(), new FactNodePayload.OutcomePayload(type.name(), node.getClass().getSimpleName())); relation(condition, n, edge, -1, type.name(), acc); }
+    
+    private FactNode getOrCreateReturnNode(ReturnStmt statement, String owner, Path workspace, FactGraphAccumulator acc, TypeResolver resolver) {
+        SourceRange range = FactExpressionVisitor.range(statement, workspace);
+        String id = ids.generate(FactNodeType.RETURN, owner, range, "outcome");
+        FactNode returned = acc.nodes().stream()
+            .filter(n -> n.id().equals(id))
+            .findFirst()
+            .orElseGet(() -> {
+                FactNode node = new FactNode(id, FactNodeType.RETURN, range, statement.toString(),
+                    TypeResolution.notApplicable(), new FactNodePayload.OutcomePayload("RETURN", statement.getClass().getSimpleName()));
+                acc.addNode(node);
+                return node;
+            });
+        statement.getExpression().ifPresent(expression -> expressions.visit(expression, returned, owner,
+            workspace, acc, call -> resolve(call, resolver)));
+        return returned;
+    }
+
+    private FactNode getOrCreateThrowNode(ThrowStmt statement, String owner, Path workspace, FactGraphAccumulator acc, TypeResolver resolver) {
+        SourceRange range = FactExpressionVisitor.range(statement, workspace);
+        String id = ids.generate(FactNodeType.THROW, owner, range, "outcome");
+        FactNode thrown = acc.nodes().stream()
+            .filter(n -> n.id().equals(id))
+            .findFirst()
+            .orElseGet(() -> {
+                FactNode node = new FactNode(id, FactNodeType.THROW, range, statement.toString(),
+                    TypeResolution.notApplicable(), new FactNodePayload.OutcomePayload("THROW", statement.getClass().getSimpleName()));
+                acc.addNode(node);
+                return node;
+            });
+        Expression expression = statement.getExpression();
+        if (expression != null) {
+            expressions.visit(expression, thrown, owner, workspace, acc, call -> resolve(call, resolver));
+        }
+        return thrown;
+    }
+
+    private void outcome(com.github.javaparser.ast.Node node, FactNode condition, FactEdgeType edge, String owner, Path workspace, FactGraphAccumulator acc, TypeResolver resolver) {
+        if (node instanceof ReturnStmt returned) {
+            FactNode n = getOrCreateReturnNode(returned, owner, workspace, acc, resolver);
+            relation(condition, n, edge, -1, "RETURN", acc);
+        } else if (node instanceof ThrowStmt thrown) {
+            FactNode n = getOrCreateThrowNode(thrown, owner, workspace, acc, resolver);
+            relation(condition, n, edge, -1, "THROW", acc);
+        }
+    }
+    private com.github.javaparser.ast.Node findExecutableScope(com.github.javaparser.ast.Node node) {
+        return node.findAncestor(com.github.javaparser.ast.Node.class, parent ->
+            parent instanceof CallableDeclaration || parent instanceof LambdaExpr
+        ).orElse(null);
+    }
     private void relation(FactNode a, FactNode b, FactEdgeType type, int ordinal, String role, FactGraphAccumulator acc) { acc.addRelation(a, b, new FactEdge(ids.edgeId(a.id(), b.id(), type.name(), ordinal, role), a.id(), b.id(), type, ordinal, role)); }
     private String operator(com.github.javaparser.ast.expr.Expression expression) { if (expression instanceof com.github.javaparser.ast.expr.BinaryExpr b) return b.getOperator().asString(); if (expression instanceof com.github.javaparser.ast.expr.UnaryExpr u) return u.getOperator().asString(); return expression.getClass().getSimpleName(); }
 }

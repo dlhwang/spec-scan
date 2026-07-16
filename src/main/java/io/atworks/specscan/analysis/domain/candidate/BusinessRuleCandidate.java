@@ -4,14 +4,24 @@ import java.util.List;
 import java.util.Objects;
 
 public record BusinessRuleCandidate(String candidateId, String predicateCandidateId, String ruleId,
-                                    BusinessRuleCategory category, ExtractionStatus extractionStatus,
+                                    BusinessRuleCategory category, RuleEffect effect, ExtractionStatus extractionStatus,
                                     SemanticStatus semanticStatus, TargetResolutionStatus targetStatus,
                                     NormalizedConstraint constraint, double confidence,
                                     List<EvidenceRef> evidence, List<CandidateDiagnostic> diagnostics) {
+    public BusinessRuleCandidate(String candidateId, String predicateCandidateId, String ruleId,
+                                 BusinessRuleCategory category, ExtractionStatus extractionStatus,
+                                 SemanticStatus semanticStatus, TargetResolutionStatus targetStatus,
+                                 NormalizedConstraint constraint, double confidence,
+                                 List<EvidenceRef> evidence, List<CandidateDiagnostic> diagnostics) {
+        this(candidateId, predicateCandidateId, ruleId, category, RuleEffect.BUSINESS_RESTRICTION,
+            extractionStatus, semanticStatus, targetStatus, constraint, confidence, evidence, diagnostics);
+    }
+
     public BusinessRuleCandidate {
         requireText(candidateId, "candidateId");
         requireText(predicateCandidateId, "predicateCandidateId");
         Objects.requireNonNull(category, "category");
+        Objects.requireNonNull(effect, "effect");
         Objects.requireNonNull(extractionStatus, "extractionStatus");
         Objects.requireNonNull(semanticStatus, "semanticStatus");
         Objects.requireNonNull(targetStatus, "targetStatus");

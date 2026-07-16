@@ -15,15 +15,15 @@ class CandidateToOutputAdapterTest {
 
     @Test void classifiesRequestLiteralRuntimeAndUnresolvedCandidatesWithoutGuessing() {
         BusinessRuleCandidate request = candidate("request", BusinessRuleCategory.RANGE,
-            SemanticStatus.RESOLVED, TargetResolutionStatus.RESOLVED,
+            RuleEffect.REQUEST_REQUIREMENT, SemanticStatus.RESOLVED, TargetResolutionStatus.RESOLVED,
             new NormalizedConstraint(ConstraintKind.INPUT_LITERAL, "request.quantity", "GREATER_THAN",
                 List.of("0"), "literal-node"), List.of());
         BusinessRuleCandidate runtime = candidate("SPRING_SECURITY_PASSWORD_MATCH_FAILURE", BusinessRuleCategory.AUTHENTICATION,
-            SemanticStatus.RESOLVED, TargetResolutionStatus.UNRESOLVED,
+            RuleEffect.BUSINESS_RESTRICTION, SemanticStatus.RESOLVED, TargetResolutionStatus.UNRESOLVED,
             new NormalizedConstraint(ConstraintKind.RUNTIME_DEPENDENT, null, null, List.of(), "matches-call"),
             List.of(diagnostic("TARGET_UNRESOLVED")), true);
         BusinessRuleCandidate unresolved = candidate("unknown", BusinessRuleCategory.UNKNOWN,
-            SemanticStatus.UNRESOLVED, TargetResolutionStatus.UNRESOLVED, null,
+            RuleEffect.BUSINESS_RESTRICTION, SemanticStatus.UNRESOLVED, TargetResolutionStatus.UNRESOLVED, null,
             List.of(diagnostic("NO_RULE_MATCHED")));
 
         EndpointRuleOutput output = adapter.adapt(endpoint(), List.of(runtime, unresolved, request));
@@ -45,7 +45,7 @@ class CandidateToOutputAdapterTest {
 
     @Test void inputToDomainIsNotPromotedToARequestOnlyCondition() {
         BusinessRuleCandidate candidate = candidate("inventory", BusinessRuleCategory.CAPACITY,
-            SemanticStatus.RESOLVED, TargetResolutionStatus.RESOLVED,
+            RuleEffect.BUSINESS_RESTRICTION, SemanticStatus.RESOLVED, TargetResolutionStatus.RESOLVED,
             new NormalizedConstraint(ConstraintKind.INPUT_TO_DOMAIN, "request.quantity", "LESS_THAN_OR_EQUAL",
                 List.of(), "stock-origin"), List.of());
         EndpointRuleOutput output = adapter.adapt(endpoint(), List.of(candidate));
@@ -55,19 +55,61 @@ class CandidateToOutputAdapterTest {
             .contains("EXCLUDED_RULE_NOT_ALLOWLISTED");
     }
 
+    @Test void responseEffectCreatesResponseAssertionOnly() {
+        BusinessRuleCandidate invariant = candidate("response", BusinessRuleCategory.INVARIANT,
+            RuleEffect.RESPONSE_GUARANTEE, SemanticStatus.RESOLVED, TargetResolutionStatus.RESOLVED,
+            new NormalizedConstraint(ConstraintKind.INPUT_LITERAL, "id", "NOT_NULL",
+                List.of(), "return-value"), List.of());
+
+        EndpointRuleOutput output = adapter.adapt(endpoint(), List.of(invariant));
+
+        assertThat(output.requestPreconditions()).isEmpty();
+        assertThat(output.responseAssertions()).singleElement().satisfies(assertion -> {
+            assertThat(assertion.targetLocation()).isEqualTo("BODY");
+            assertThat(assertion.targetPath()).isEqualTo("$.id");
+        });
+        assertThat(output.excludedBusinessRules()).isEmpty();
+    }
+
+    @Test void excludedBusinessRuleRequiresAllowlistAndPredicateFailureEvidence() {
+        BusinessRuleCandidate allowlistedButIncomplete = candidate("SPRING_DATA_FIND_BY_ID_OR_ELSE_THROW",
+            BusinessRuleCategory.EXISTENCE, RuleEffect.BUSINESS_RESTRICTION,
+            SemanticStatus.RESOLVED, TargetResolutionStatus.UNRESOLVED,
+            new NormalizedConstraint(ConstraintKind.CONTROL_FLOW_ONLY, null, null, List.of(), "optional-call"),
+            List.of(diagnostic("EXCLUDED_RULE_EVIDENCE_INCOMPLETE")), false);
+
+        EndpointRuleOutput output = adapter.adapt(endpoint(), List.of(allowlistedButIncomplete));
+
+        assertThat(output.excludedBusinessRules()).isEmpty();
+        assertThat(output.diagnostics()).extracting(CandidateOutputDiagnostic::code)
+            .containsExactly("EXCLUDED_RULE_EVIDENCE_INCOMPLETE");
+    }
+
     private BusinessRuleCandidate candidate(String id, BusinessRuleCategory category, SemanticStatus semantic,
                                             TargetResolutionStatus target, NormalizedConstraint constraint,
                                             List<CandidateDiagnostic> diagnostics) {
-        return candidate(id, category, semantic, target, constraint, diagnostics, false);
+        return candidate(id, category, RuleEffect.BUSINESS_RESTRICTION, semantic, target, constraint, diagnostics, false);
+    }
+    private BusinessRuleCandidate candidate(String id, BusinessRuleCategory category, RuleEffect effect,
+                                            SemanticStatus semantic, TargetResolutionStatus target,
+                                            NormalizedConstraint constraint, List<CandidateDiagnostic> diagnostics) {
+        return candidate(id, category, effect, semantic, target, constraint, diagnostics, false);
     }
     private BusinessRuleCandidate candidate(String id, BusinessRuleCategory category, SemanticStatus semantic,
                                             TargetResolutionStatus target, NormalizedConstraint constraint,
                                             List<CandidateDiagnostic> diagnostics, boolean completeEvidence) {
+        return candidate(id, category, RuleEffect.BUSINESS_RESTRICTION, semantic, target, constraint, diagnostics,
+            completeEvidence);
+    }
+    private BusinessRuleCandidate candidate(String id, BusinessRuleCategory category, RuleEffect effect,
+                                            SemanticStatus semantic, TargetResolutionStatus target,
+                                            NormalizedConstraint constraint, List<CandidateDiagnostic> diagnostics,
+                                            boolean completeEvidence) {
         List<EvidenceRef> evidence = new ArrayList<>(); evidence.add(evidence(id));
         if (completeEvidence) evidence.add(new EvidenceRef("outcome:" + id, "src/Test.java", 2, 1, 2, 10,
             EvidenceRole.FAILURE_OUTCOME, "failure"));
         String ruleId = id.contains("_") ? id : "RULE:" + id;
-        return new BusinessRuleCandidateFactory().create("predicate:" + id, ruleId, category,
+        return new BusinessRuleCandidateFactory().create("predicate:" + id, ruleId, category, effect,
             ExtractionStatus.EXTRACTED, semantic, target, constraint, 0.9, evidence, diagnostics);
     }
     private CandidateDiagnostic diagnostic(String code) {

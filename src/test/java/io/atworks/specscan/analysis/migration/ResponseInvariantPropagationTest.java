@@ -1,6 +1,5 @@
 package io.atworks.specscan.analysis.migration;
 
-import io.atworks.specscan.analysis.application.RuleOutputMigrationService;
 import io.atworks.specscan.analysis.domain.*;
 import io.atworks.specscan.analysis.domain.output.*;
 import io.atworks.specscan.analysis.domain.fact.*;
@@ -48,16 +47,15 @@ class ResponseInvariantPropagationTest {
         FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(scan, source(),
             FactGraphTraversalBudget.defaults()).graphs().get(0);
 
-        EndpointRuleOutput output = new RuleOutputMigrationService().migrate(scan, source(), List.of())
-            .outputs().get("GET /property");
+        EndpointRuleOutput output = TestRuleOutputs.generate(scan, source()).get("GET /property");
 
         assertThat(output.responseAssertions()).withFailMessage("output=%s nodes=%s edges=%s", output,
             graph.nodes(), graph.edges()).filteredOn(value -> value.targetLocation().equals("BODY"))
             .extracting(ExecutableCondition::targetPath, ExecutableCondition::operator)
             .containsExactly(org.assertj.core.groups.Tuple.tuple("$.propertyType", "NOT_NULL"));
         assertThat(output.responseAssertions()).allSatisfy(value -> assertThat(value.evidence()).isNotEmpty());
-        assertThat(new RuleOutputMigrationService().migrate(scan, source(), List.of()).outputs()
-            .get("GET /property/maybe").responseAssertions()).isEmpty();
+        assertThat(TestRuleOutputs.generate(scan, source()).get("GET /property/maybe")
+            .responseAssertions()).isEmpty();
     }
 
     private void write(String relative, String content) throws Exception {

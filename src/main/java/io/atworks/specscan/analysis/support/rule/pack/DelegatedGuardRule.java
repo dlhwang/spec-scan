@@ -24,6 +24,10 @@ public final class DelegatedGuardRule implements GraphRule {
         List<FactNode> returnFacts = returns.stream().flatMap(node -> support.descendants(node.id()).stream()).toList();
         List<FactNode> enumConstants = returnFacts.stream()
             .filter(node -> node.type() == FactNodeType.ENUM_CONSTANT).toList();
+        if (enumConstants.isEmpty()) {
+            enumConstants = support.descendants(condition.id()).stream()
+                .filter(node -> node.type() == FactNodeType.ENUM_CONSTANT).toList();
+        }
         if (!enumConstants.isEmpty()) return List.of(stateRule(predicate, support, call, method, returns, enumConstants));
         if (isFieldParameterEquality(returnFacts, returns)) return List.of(versionRule(predicate, support, call, method, returns));
         return List.of();
@@ -47,6 +51,7 @@ public final class DelegatedGuardRule implements GraphRule {
         for (FactNode constant : constants) evidence = merge(evidence,
             support.evidence(predicate, constant, EvidenceRole.DOMAIN_ORIGIN));
         return support.resolved(predicate, ID, BusinessRuleCategory.STATE_PRECONDITION,
+            RuleEffect.REQUEST_REQUIREMENT,
             target == null ? TargetResolutionStatus.UNRESOLVED : TargetResolutionStatus.RESOLVED,
             constraint, 1.0, evidence);
     }
@@ -62,6 +67,7 @@ public final class DelegatedGuardRule implements GraphRule {
             method, EvidenceRole.DOMAIN_ORIGIN);
         if (input != null) evidence = merge(evidence, support.evidence(predicate, input, EvidenceRole.INPUT_ORIGIN));
         return support.resolved(predicate, ID, BusinessRuleCategory.VERSION_CONSISTENCY,
+            RuleEffect.REQUEST_REQUIREMENT,
             target == null ? TargetResolutionStatus.UNRESOLVED : TargetResolutionStatus.RESOLVED,
             constraint, 1.0, evidence);
     }

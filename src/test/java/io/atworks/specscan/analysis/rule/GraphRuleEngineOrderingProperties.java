@@ -10,7 +10,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class GraphRuleEngineOrderingProperties {
     @Property(tries = 200, generation = GenerationMode.RANDOMIZED)
-    void registrationOrderDoesNotChangeNormalizedResult(@ForAll boolean reverse) {
+    void registrationOrderDoesNotChangeRuleEngineResult(@ForAll boolean reverse) {
         GraphRule first = RuleTestFixtures.rule("alpha",
             RuleTestFixtures.ruleCandidate("alpha", BusinessRuleCategory.EXISTENCE, "condition"));
         GraphRule second = RuleTestFixtures.rule("beta",
