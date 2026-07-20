@@ -1,0 +1,673 @@
+{
+  "source" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate",
+  "scannedAt" : "2026-07-20T14:43:05.766885Z",
+  "stats" : {
+    "files" : 50,
+    "types" : 56,
+    "graphNodes" : 262,
+    "graphEdges" : 285,
+    "endpoints" : 6
+  },
+  "apis" : [ {
+    "operationId" : "AuthController.login",
+    "controller" : "com.estate.api.adapter.AuthController",
+    "handler" : "ResponseEntity<ErrorResponse> login(LoginDTO)",
+    "summary" : "로그인",
+    "description" : "토큰을 발급받습니다.",
+    "httpMethod" : "POST",
+    "path" : "/api/auth/login",
+    "consumes" : "application/json",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ ],
+    "queryParams" : [ ],
+    "requestBodyType" : "com.estate.global.model.LoginDTO",
+    "requestBody" : {
+      "javaType" : "com.estate.global.model.LoginDTO",
+      "type" : "object",
+      "fields" : {
+        "username" : {
+          "javaType" : "java.lang.String",
+          "type" : "string",
+          "description" : "인증할 대상자의 아이디.",
+          "example" : "user"
+        },
+        "password" : {
+          "javaType" : "java.lang.String",
+          "type" : "string",
+          "description" : "인증할 대상자의 패스워드.",
+          "example" : "user"
+        }
+      },
+      "description" : "인증할 대상자의 정보"
+    },
+    "responseBodyType" : "com.estate.global.model.DataResponse",
+    "responseBody" : {
+      "javaType" : "com.estate.global.model.DataResponse",
+      "type" : "object",
+      "fields" : {
+        "code" : {
+          "javaType" : "java.lang.String",
+          "type" : "string"
+        },
+        "message" : {
+          "javaType" : "java.lang.String",
+          "type" : "string"
+        },
+        "path" : {
+          "javaType" : "java.lang.String",
+          "type" : "string"
+        },
+        "timestamp" : {
+          "javaType" : "java.time.LocalDateTime",
+          "type" : "string",
+          "format" : "date-time"
+        },
+        "result" : {
+          "javaType" : "T",
+          "type" : "object"
+        }
+      }
+    },
+    "preConditions" : [ ],
+    "responseAssertions" : [ {
+      "path" : "$.result",
+      "operator" : "not_empty",
+      "location" : "BODY",
+      "source" : "response-construction",
+      "description" : "<- Jwts.builder().setIssuedAt(now).claim(\"id\", userDetails.getUsername()).claim(\"roles\", userDetails.ge…"
+    } ],
+    "others" : [ {
+      "path" : "$.password",
+      "operator" : "matches",
+      "expected" : "userDetails.getPassword()",
+      "location" : "BODY",
+      "source" : "if-return",
+      "description" : "정상 응답 경로로 진입하기 위한 조건",
+      "at" : "AuthService.java:24"
+    } ],
+    "at" : "AuthController.java:22"
+  }, {
+    "operationId" : "PropertyController.remove",
+    "controller" : "com.estate.api.adapter.PropertyController",
+    "handler" : "ResponseEntity<Void> remove(String)",
+    "summary" : "부동산 삭제",
+    "description" : "부동산 하나를 삭제합니다.",
+    "httpMethod" : "DELETE",
+    "path" : "/api/estate/properties/{propertyId}",
+    "successStatus" : 204,
+    "headers" : [ ],
+    "pathVariables" : [ {
+      "name" : "propertyId",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : true,
+      "description" : "부동산의 아이디"
+    } ],
+    "queryParams" : [ ],
+    "preConditions" : [ {
+      "path" : "$.propertyId",
+      "operator" : "exists",
+      "location" : "PATH",
+      "source" : "or-else-throw",
+      "description" : "findById 결과가 존재해야 함 — DataNotFoundException: 해당 부동산을 찾을 수 없습니다.",
+      "at" : "PropertyRemoveService.java:19"
+    } ],
+    "responseAssertions" : [ ],
+    "others" : [ ],
+    "at" : "PropertyController.java:93"
+  }, {
+    "operationId" : "PropertyController.getProperty",
+    "controller" : "com.estate.api.adapter.PropertyController",
+    "handler" : "ResponseEntity<PropertyResponse.PropertyVO> getProperty(String)",
+    "summary" : "부동산 상세 조회",
+    "description" : "부동산 하나를 조회합니다.",
+    "httpMethod" : "GET",
+    "path" : "/api/estate/properties/{propertyId}",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ {
+      "name" : "propertyId",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : true,
+      "description" : "부동산의 아이디"
+    } ],
+    "queryParams" : [ ],
+    "responseBodyType" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+    "responseBody" : {
+      "javaType" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+      "type" : "object",
+      "fields" : {
+        "propertyId" : {
+          "javaType" : "java.lang.String",
+          "type" : "string",
+          "description" : "부동산 아이디",
+          "example" : "hbavArRhRwOfQ5swS7eAq"
+        },
+        "propertyType" : {
+          "javaType" : "com.estate.api.domain.enumtype.PropertyType",
+          "type" : "string",
+          "enumValues" : [ "ONEROOM", "TWOROOM", "THREEROOM", "OTHERS" ],
+          "description" : "방 유형",
+          "example" : "ONEROOM, TWOROOM, THREEROOM"
+        },
+        "contractDetails" : {
+          "javaType" : "java.util.Set<com.estate.api.domain.model.ContractDetailVO>",
+          "type" : "array",
+          "items" : {
+            "javaType" : "com.estate.api.domain.model.ContractDetailVO",
+            "type" : "object"
+          },
+          "description" : "거래 유형의 따른 정보"
+        }
+      },
+      "description" : "부동산 상세 정보"
+    },
+    "preConditions" : [ {
+      "path" : "$.propertyId",
+      "operator" : "exists",
+      "location" : "PATH",
+      "source" : "or-else-throw",
+      "description" : "findById 결과가 존재해야 함 — DataNotFoundException: 해당 부동산을 찾을 수 없습니다.",
+      "at" : "PropertyService.java:34"
+    } ],
+    "responseAssertions" : [ {
+      "path" : "$.contractDetails",
+      "operator" : "not_null",
+      "location" : "BODY",
+      "source" : "response-construction",
+      "description" : "<- vo.getContractDetails()"
+    }, {
+      "path" : "$.propertyType",
+      "operator" : "not_empty",
+      "location" : "BODY",
+      "source" : "response-construction",
+      "description" : "<- vo.getPropertyType()"
+    }, {
+      "path" : "$.propertyId",
+      "operator" : "not_empty",
+      "location" : "BODY",
+      "source" : "response-construction",
+      "description" : "<- vo.getPropertyId()"
+    } ],
+    "others" : [ ],
+    "at" : "PropertyController.java:42"
+  }, {
+    "operationId" : "PropertyController.put",
+    "controller" : "com.estate.api.adapter.PropertyController",
+    "handler" : "ResponseEntity<PropertyResponse.PropertyVO> put(String, PropertyRequest.PropertySave)",
+    "summary" : "부동산 수정",
+    "description" : "부동산 정보를 수정합니다.",
+    "httpMethod" : "PUT",
+    "path" : "/api/estate/properties/{propertyId}",
+    "consumes" : "application/json",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ {
+      "name" : "propertyId",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : true,
+      "description" : "부동산의 아이디"
+    } ],
+    "queryParams" : [ ],
+    "requestBodyType" : "com.estate.api.application.dto.PropertyRequest.PropertySave",
+    "requestBody" : {
+      "javaType" : "com.estate.api.application.dto.PropertyRequest.PropertySave",
+      "type" : "object",
+      "fields" : {
+        "propertyType" : {
+          "javaType" : "com.estate.api.domain.enumtype.PropertyType",
+          "type" : "string",
+          "enumValues" : [ "ONEROOM", "TWOROOM", "THREEROOM", "OTHERS" ],
+          "description" : "등록할 방유형",
+          "example" : "TWOROOM"
+        },
+        "contractDetails" : {
+          "javaType" : "java.util.Set<com.estate.api.application.dto.PropertyRequest.ContractDetailDTO>",
+          "type" : "array",
+          "items" : {
+            "javaType" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO",
+            "type" : "object",
+            "fields" : {
+              "contractType" : {
+                "javaType" : "com.estate.api.domain.enumtype.ContractType",
+                "type" : "string",
+                "enumValues" : [ "MONTHLYRENT", "JEONSE" ],
+                "description" : "거래유형",
+                "example" : "MONTHLYRENT"
+              },
+              "deposit" : {
+                "javaType" : "long",
+                "type" : "integer",
+                "description" : "보증금",
+                "example" : "10000000"
+              },
+              "rent" : {
+                "javaType" : "long",
+                "type" : "integer",
+                "description" : "월세",
+                "example" : "500000"
+              }
+            },
+            "description" : "거래 유형"
+          },
+          "description" : "거래 유형들"
+        }
+      },
+      "description" : "부동산 등록"
+    },
+    "responseBodyType" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+    "responseBody" : {
+      "javaType" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+      "type" : "object",
+      "fields" : {
+        "propertyId" : {
+          "javaType" : "java.lang.String",
+          "type" : "string",
+          "description" : "부동산 아이디",
+          "example" : "hbavArRhRwOfQ5swS7eAq"
+        },
+        "propertyType" : {
+          "javaType" : "com.estate.api.domain.enumtype.PropertyType",
+          "type" : "string",
+          "enumValues" : [ "ONEROOM", "TWOROOM", "THREEROOM", "OTHERS" ],
+          "description" : "방 유형",
+          "example" : "ONEROOM, TWOROOM, THREEROOM"
+        },
+        "contractDetails" : {
+          "javaType" : "java.util.Set<com.estate.api.domain.model.ContractDetailVO>",
+          "type" : "array",
+          "items" : {
+            "javaType" : "com.estate.api.domain.model.ContractDetailVO",
+            "type" : "object"
+          },
+          "description" : "거래 유형의 따른 정보"
+        }
+      },
+      "description" : "부동산 상세 정보"
+    },
+    "preConditions" : [ {
+      "path" : "$.propertyType",
+      "operator" : "in",
+      "expected" : [ "ONEROOM", "TWOROOM", "THREEROOM", "OTHERS" ],
+      "location" : "BODY",
+      "source" : "type-constraint",
+      "description" : "enum PropertyType"
+    }, {
+      "path" : "$.contractDetails[*].contractType",
+      "operator" : "in",
+      "expected" : [ "MONTHLYRENT", "JEONSE" ],
+      "location" : "BODY",
+      "source" : "type-constraint",
+      "description" : "enum ContractType"
+    }, {
+      "path" : "$.propertyId",
+      "operator" : "exists",
+      "location" : "PATH",
+      "source" : "or-else-throw",
+      "description" : "findById 결과가 존재해야 함 — DataNotFoundException: 해당 부동산을 찾을 수 없습니다.",
+      "at" : "PropertyModifyService.java:23"
+    }, {
+      "path" : "$.propertyType",
+      "operator" : "not_empty",
+      "location" : "BODY",
+      "source" : "if-throw",
+      "description" : "IllegalArgumentException: 방 유형의 정보는 필수입니다.",
+      "at" : "Property.java:90"
+    }, {
+      "path" : "$.contractDetails",
+      "operator" : "not_empty",
+      "location" : "BODY",
+      "source" : "if-throw",
+      "description" : "IllegalArgumentException: 거래 유형의 정보는 필수입니다.",
+      "at" : "Property.java:76"
+    } ],
+    "responseAssertions" : [ {
+      "path" : "$.contractDetails",
+      "operator" : "not_null",
+      "location" : "BODY",
+      "source" : "response-construction",
+      "description" : "<- vo.getContractDetails()"
+    }, {
+      "path" : "$.propertyType",
+      "operator" : "not_empty",
+      "location" : "BODY",
+      "source" : "response-construction",
+      "description" : "<- vo.getPropertyType()"
+    }, {
+      "path" : "$.propertyId",
+      "operator" : "not_empty",
+      "location" : "BODY",
+      "source" : "response-construction",
+      "description" : "<- vo.getPropertyId()"
+    } ],
+    "others" : [ {
+      "path" : "$.contractDetails",
+      "operator" : "expr",
+      "expected" : "(this.contractDetails.size() == contractDetails.size())",
+      "location" : "BODY",
+      "source" : "if-return",
+      "description" : "정상 응답 경로로 진입하기 위한 조건",
+      "at" : "Property.java:80"
+    }, {
+      "path" : "$.contractDetails",
+      "operator" : "expr",
+      "expected" : "(this.contractDetails.containsAll(contractDetails))",
+      "location" : "BODY",
+      "source" : "if-return",
+      "description" : "정상 응답 경로로 진입하기 위한 조건",
+      "at" : "Property.java:80"
+    } ],
+    "at" : "PropertyController.java:74"
+  }, {
+    "operationId" : "PropertyController.getProperties",
+    "controller" : "com.estate.api.adapter.PropertyController",
+    "handler" : "ResponseEntity<PropertyResponse> getProperties(PropertyRequest.PropertySearch, Pageable)",
+    "summary" : "부동산 조회",
+    "description" : "부동산을 조회합니다.",
+    "httpMethod" : "GET",
+    "path" : "/api/estate/properties",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ ],
+    "queryParams" : [ {
+      "name" : "propertyType",
+      "javaType" : "PropertyType",
+      "type" : "string",
+      "required" : false,
+      "enumValues" : [ "ALL", "ONEROOM", "TWOROOM", "THREEROOM" ],
+      "description" : "검색할 방유형",
+      "example" : "ALL"
+    }, {
+      "name" : "contractType",
+      "javaType" : "ContractType",
+      "type" : "string",
+      "required" : false,
+      "enumValues" : [ "ALL", "MONTHLYRENT", "JEONSE" ],
+      "description" : "검색할 거래유형",
+      "example" : "ALL"
+    }, {
+      "name" : "priceStart",
+      "javaType" : "Long",
+      "type" : "integer",
+      "required" : false,
+      "description" : "검색할 가격범위 하한선",
+      "example" : "0"
+    }, {
+      "name" : "priceEnd",
+      "javaType" : "Long",
+      "type" : "integer",
+      "required" : false,
+      "description" : "검색할 가격범위 상한선",
+      "example" : "500000"
+    }, {
+      "name" : "page",
+      "javaType" : "int",
+      "type" : "integer",
+      "required" : false,
+      "defaultValue" : "0",
+      "description" : "페이지 번호 (0부터)"
+    }, {
+      "name" : "size",
+      "javaType" : "int",
+      "type" : "integer",
+      "required" : false,
+      "defaultValue" : "50",
+      "description" : "페이지 크기"
+    }, {
+      "name" : "sort",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false,
+      "description" : "정렬: property,asc|desc"
+    } ],
+    "responseBodyType" : "com.estate.api.application.dto.PropertyResponse",
+    "responseBody" : {
+      "javaType" : "com.estate.api.application.dto.PropertyResponse",
+      "type" : "object",
+      "fields" : {
+        "propertyList" : {
+          "javaType" : "Page<PropertyVO>",
+          "type" : "object",
+          "fields" : {
+            "content" : {
+              "javaType" : "java.util.List",
+              "type" : "array",
+              "items" : {
+                "javaType" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+                "type" : "object",
+                "fields" : {
+                  "propertyId" : {
+                    "javaType" : "java.lang.String",
+                    "type" : "string",
+                    "description" : "부동산 아이디",
+                    "example" : "hbavArRhRwOfQ5swS7eAq"
+                  },
+                  "propertyType" : {
+                    "javaType" : "com.estate.api.domain.enumtype.PropertyType",
+                    "type" : "string",
+                    "enumValues" : [ "ONEROOM", "TWOROOM", "THREEROOM", "OTHERS" ],
+                    "description" : "방 유형",
+                    "example" : "ONEROOM, TWOROOM, THREEROOM"
+                  },
+                  "contractDetails" : {
+                    "javaType" : "java.util.Set<com.estate.api.domain.model.ContractDetailVO>",
+                    "type" : "array",
+                    "items" : {
+                      "javaType" : "com.estate.api.domain.model.ContractDetailVO",
+                      "type" : "object"
+                    },
+                    "description" : "거래 유형의 따른 정보"
+                  }
+                },
+                "description" : "부동산 상세 정보"
+              }
+            },
+            "totalElements" : {
+              "javaType" : "long",
+              "type" : "integer"
+            },
+            "totalPages" : {
+              "javaType" : "int",
+              "type" : "integer"
+            },
+            "size" : {
+              "javaType" : "int",
+              "type" : "integer"
+            },
+            "number" : {
+              "javaType" : "int",
+              "type" : "integer"
+            },
+            "first" : {
+              "javaType" : "boolean",
+              "type" : "boolean"
+            },
+            "last" : {
+              "javaType" : "boolean",
+              "type" : "boolean"
+            },
+            "empty" : {
+              "javaType" : "boolean",
+              "type" : "boolean"
+            }
+          }
+        }
+      },
+      "description" : "부동산 정보"
+    },
+    "preConditions" : [ {
+      "path" : "$.propertyType",
+      "operator" : "in",
+      "expected" : [ "ALL", "ONEROOM", "TWOROOM", "THREEROOM" ],
+      "location" : "QUERY",
+      "source" : "type-constraint",
+      "description" : "enum PropertyType"
+    }, {
+      "path" : "$.contractType",
+      "operator" : "in",
+      "expected" : [ "ALL", "MONTHLYRENT", "JEONSE" ],
+      "location" : "QUERY",
+      "source" : "type-constraint",
+      "description" : "enum ContractType"
+    }, {
+      "path" : "$.priceStart",
+      "operator" : "loe",
+      "expected" : "$.priceEnd",
+      "location" : "QUERY",
+      "source" : "if-throw",
+      "description" : "IllegalArgumentException: 시작 값은 끝 값보다 작거나 같아야 합니다.",
+      "at" : "Range.java:27"
+    } ],
+    "responseAssertions" : [ {
+      "path" : "$.propertyList",
+      "operator" : "not_null",
+      "location" : "BODY",
+      "source" : "response-construction",
+      "description" : "<- new PageImpl<>(vos.stream().map(PropertyVO::to).toList(), vos.getPageable(), vos.getTotalElements())"
+    } ],
+    "others" : [ ],
+    "at" : "PropertyController.java:26"
+  }, {
+    "operationId" : "PropertyController.post",
+    "controller" : "com.estate.api.adapter.PropertyController",
+    "handler" : "ResponseEntity<PropertyResponse.PropertyVO> post(PropertyRequest.PropertySave)",
+    "summary" : "부동산 등록",
+    "description" : "부동산을 등록합니다.",
+    "httpMethod" : "POST",
+    "path" : "/api/estate/properties",
+    "consumes" : "application/json",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ ],
+    "queryParams" : [ ],
+    "requestBodyType" : "com.estate.api.application.dto.PropertyRequest.PropertySave",
+    "requestBody" : {
+      "javaType" : "com.estate.api.application.dto.PropertyRequest.PropertySave",
+      "type" : "object",
+      "fields" : {
+        "propertyType" : {
+          "javaType" : "com.estate.api.domain.enumtype.PropertyType",
+          "type" : "string",
+          "enumValues" : [ "ONEROOM", "TWOROOM", "THREEROOM", "OTHERS" ],
+          "description" : "등록할 방유형",
+          "example" : "TWOROOM"
+        },
+        "contractDetails" : {
+          "javaType" : "java.util.Set<com.estate.api.application.dto.PropertyRequest.ContractDetailDTO>",
+          "type" : "array",
+          "items" : {
+            "javaType" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO",
+            "type" : "object",
+            "fields" : {
+              "contractType" : {
+                "javaType" : "com.estate.api.domain.enumtype.ContractType",
+                "type" : "string",
+                "enumValues" : [ "MONTHLYRENT", "JEONSE" ],
+                "description" : "거래유형",
+                "example" : "MONTHLYRENT"
+              },
+              "deposit" : {
+                "javaType" : "long",
+                "type" : "integer",
+                "description" : "보증금",
+                "example" : "10000000"
+              },
+              "rent" : {
+                "javaType" : "long",
+                "type" : "integer",
+                "description" : "월세",
+                "example" : "500000"
+              }
+            },
+            "description" : "거래 유형"
+          },
+          "description" : "거래 유형들"
+        }
+      },
+      "description" : "부동산 등록"
+    },
+    "responseBodyType" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+    "responseBody" : {
+      "javaType" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+      "type" : "object",
+      "fields" : {
+        "propertyId" : {
+          "javaType" : "java.lang.String",
+          "type" : "string",
+          "description" : "부동산 아이디",
+          "example" : "hbavArRhRwOfQ5swS7eAq"
+        },
+        "propertyType" : {
+          "javaType" : "com.estate.api.domain.enumtype.PropertyType",
+          "type" : "string",
+          "enumValues" : [ "ONEROOM", "TWOROOM", "THREEROOM", "OTHERS" ],
+          "description" : "방 유형",
+          "example" : "ONEROOM, TWOROOM, THREEROOM"
+        },
+        "contractDetails" : {
+          "javaType" : "java.util.Set<com.estate.api.domain.model.ContractDetailVO>",
+          "type" : "array",
+          "items" : {
+            "javaType" : "com.estate.api.domain.model.ContractDetailVO",
+            "type" : "object"
+          },
+          "description" : "거래 유형의 따른 정보"
+        }
+      },
+      "description" : "부동산 상세 정보"
+    },
+    "preConditions" : [ {
+      "path" : "$.propertyType",
+      "operator" : "in",
+      "expected" : [ "ONEROOM", "TWOROOM", "THREEROOM", "OTHERS" ],
+      "location" : "BODY",
+      "source" : "type-constraint",
+      "description" : "enum PropertyType"
+    }, {
+      "path" : "$.contractDetails[*].contractType",
+      "operator" : "in",
+      "expected" : [ "MONTHLYRENT", "JEONSE" ],
+      "location" : "BODY",
+      "source" : "type-constraint",
+      "description" : "enum ContractType"
+    }, {
+      "path" : "$.propertyType",
+      "operator" : "not_null",
+      "location" : "BODY",
+      "source" : "if-throw",
+      "description" : "IllegalArgumentException: 방 유형의 정보는 필수입니다.",
+      "at" : "Property.java:60"
+    }, {
+      "path" : "$.contractDetails",
+      "operator" : "not_empty",
+      "location" : "BODY",
+      "source" : "if-throw",
+      "description" : "IllegalArgumentException: 거래 유형의 정보는 필수입니다.",
+      "at" : "Property.java:64"
+    } ],
+    "responseAssertions" : [ {
+      "path" : "$.contractDetails",
+      "operator" : "not_null",
+      "location" : "BODY",
+      "source" : "response-construction",
+      "description" : "<- vo.getContractDetails()"
+    }, {
+      "path" : "$.propertyType",
+      "operator" : "not_empty",
+      "location" : "BODY",
+      "source" : "response-construction",
+      "description" : "<- vo.getPropertyType()"
+    }, {
+      "path" : "$.propertyId",
+      "operator" : "not_empty",
+      "location" : "BODY",
+      "source" : "response-construction",
+      "description" : "<- vo.getPropertyId()"
+    } ],
+    "others" : [ ],
+    "at" : "PropertyController.java:56"
+  } ]
+}

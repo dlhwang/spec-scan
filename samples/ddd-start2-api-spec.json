@@ -1,0 +1,651 @@
+{
+  "source" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/ddd-start2",
+  "scannedAt" : "2026-07-20T14:42:32.720327Z",
+  "stats" : {
+    "files" : 131,
+    "types" : 132,
+    "graphNodes" : 813,
+    "graphEdges" : 957,
+    "endpoints" : 12
+  },
+  "apis" : [ {
+    "operationId" : "AdminOrderController.startShippingOrder",
+    "controller" : "com.myshop.admin.ui.AdminOrderController",
+    "handler" : "String startShippingOrder(String, long)",
+    "httpMethod" : "POST",
+    "path" : "/admin/orders/{orderNo}/shipping",
+    "produces" : "text/html",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ {
+      "name" : "orderNo",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : true
+    } ],
+    "queryParams" : [ {
+      "name" : "version",
+      "javaType" : "long",
+      "type" : "integer",
+      "required" : true
+    } ],
+    "responseBodyType" : "text/html (view)",
+    "preConditions" : [ {
+      "path" : "$.orderNo",
+      "operator" : "exists",
+      "location" : "PATH",
+      "source" : "or-else-throw",
+      "description" : "orderOpt 결과가 존재해야 함 — NoOrderException",
+      "at" : "StartShippingService.java:24"
+    } ],
+    "responseAssertions" : [ {
+      "path" : "$view",
+      "operator" : "in",
+      "expected" : [ "admin/adminOrderShipped", "admin/adminOrderLockFail" ],
+      "location" : "BODY",
+      "source" : "view-name",
+      "description" : "핸들러가 반환하는 뷰 이름",
+      "at" : "AdminOrderController.java:62"
+    } ],
+    "others" : [ {
+      "path" : "$.orderNo",
+      "operator" : "expr",
+      "expected" : "!(order.matchVersion(req.getVersion()))",
+      "location" : "PATH",
+      "source" : "if-throw",
+      "description" : "VersionConflictException",
+      "at" : "StartShippingService.java:25"
+    } ],
+    "at" : "AdminOrderController.java:62"
+  }, {
+    "operationId" : "AdminOrderController.orderDetail",
+    "controller" : "com.myshop.admin.ui.AdminOrderController",
+    "handler" : "String orderDetail(String, ModelMap)",
+    "httpMethod" : "ANY",
+    "path" : "/admin/orders/{orderNo}",
+    "produces" : "text/html",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ {
+      "name" : "orderNo",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : true
+    } ],
+    "queryParams" : [ ],
+    "responseBodyType" : "text/html (view)",
+    "preConditions" : [ ],
+    "responseAssertions" : [ {
+      "path" : "$view",
+      "operator" : "in",
+      "expected" : [ "admin/adminOrderDetail", "admin/noOrder" ],
+      "location" : "BODY",
+      "source" : "view-name",
+      "description" : "핸들러가 반환하는 뷰 이름",
+      "at" : "AdminOrderController.java:51"
+    } ],
+    "others" : [ {
+      "path" : "(orderDetail.isPresent())",
+      "operator" : "expr",
+      "expected" : "(orderDetail.isPresent())",
+      "location" : "DOMAIN",
+      "source" : "if-return",
+      "description" : "정상 응답 경로로 진입하기 위한 조건",
+      "at" : "AdminOrderController.java:54"
+    } ],
+    "at" : "AdminOrderController.java:51"
+  }, {
+    "operationId" : "AdminOrderController.orders",
+    "controller" : "com.myshop.admin.ui.AdminOrderController",
+    "handler" : "String orders(int, ModelMap)",
+    "httpMethod" : "ANY",
+    "path" : "/admin/orders",
+    "produces" : "text/html",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ ],
+    "queryParams" : [ {
+      "name" : "p",
+      "javaType" : "int",
+      "type" : "integer",
+      "required" : false,
+      "defaultValue" : "1"
+    } ],
+    "responseBodyType" : "text/html (view)",
+    "preConditions" : [ ],
+    "responseAssertions" : [ {
+      "path" : "$view",
+      "operator" : "eq",
+      "expected" : "admin/adminOrders",
+      "location" : "BODY",
+      "source" : "view-name",
+      "description" : "핸들러가 반환하는 뷰 이름",
+      "at" : "AdminOrderController.java:35"
+    } ],
+    "others" : [ ],
+    "at" : "AdminOrderController.java:35"
+  }, {
+    "operationId" : "EventApi.list",
+    "controller" : "com.myshop.eventstore.ui.EventApi",
+    "handler" : "List<EventEntry> list(Long, Long)",
+    "httpMethod" : "GET",
+    "path" : "/api/events",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ ],
+    "queryParams" : [ {
+      "name" : "offset",
+      "javaType" : "Long",
+      "type" : "integer",
+      "required" : true
+    }, {
+      "name" : "limit",
+      "javaType" : "Long",
+      "type" : "integer",
+      "required" : true
+    } ],
+    "responseBodyType" : "java.util.List<com.myshop.eventstore.api.EventEntry>",
+    "responseBody" : {
+      "javaType" : "java.util.List<com.myshop.eventstore.api.EventEntry>",
+      "type" : "array",
+      "items" : {
+        "javaType" : "com.myshop.eventstore.api.EventEntry",
+        "type" : "object",
+        "fields" : {
+          "id" : {
+            "javaType" : "java.lang.Long",
+            "type" : "integer"
+          },
+          "type" : {
+            "javaType" : "java.lang.String",
+            "type" : "string"
+          },
+          "contentType" : {
+            "javaType" : "java.lang.String",
+            "type" : "string"
+          },
+          "payload" : {
+            "javaType" : "java.lang.String",
+            "type" : "string"
+          },
+          "timestamp" : {
+            "javaType" : "long",
+            "type" : "integer"
+          }
+        }
+      }
+    },
+    "preConditions" : [ ],
+    "responseAssertions" : [ ],
+    "others" : [ ],
+    "at" : "EventApi.java:20"
+  }, {
+    "operationId" : "ProductController.list",
+    "controller" : "com.myshop.catalog.ui.ProductController",
+    "handler" : "String list(Long, int, ModelMap)",
+    "httpMethod" : "ANY",
+    "path" : "/categories/{categoryId}",
+    "produces" : "text/html",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ {
+      "name" : "categoryId",
+      "javaType" : "Long",
+      "type" : "integer",
+      "required" : true
+    } ],
+    "queryParams" : [ {
+      "name" : "page",
+      "javaType" : "int",
+      "type" : "integer",
+      "required" : false,
+      "defaultValue" : "1"
+    } ],
+    "responseBodyType" : "text/html (view)",
+    "preConditions" : [ {
+      "path" : "$.categoryId",
+      "operator" : "exists",
+      "location" : "PATH",
+      "source" : "or-else-throw",
+      "description" : "findById 결과가 존재해야 함 — NoCategoryException",
+      "at" : "ProductQueryService.java:31"
+    } ],
+    "responseAssertions" : [ {
+      "path" : "$view",
+      "operator" : "eq",
+      "expected" : "category/productList",
+      "location" : "BODY",
+      "source" : "view-name",
+      "description" : "핸들러가 반환하는 뷰 이름",
+      "at" : "ProductController.java:37"
+    } ],
+    "others" : [ ],
+    "at" : "ProductController.java:37"
+  }, {
+    "operationId" : "ProductController.categories",
+    "controller" : "com.myshop.catalog.ui.ProductController",
+    "handler" : "String categories(ModelMap)",
+    "httpMethod" : "ANY",
+    "path" : "/categories",
+    "produces" : "text/html",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ ],
+    "queryParams" : [ ],
+    "responseBodyType" : "text/html (view)",
+    "preConditions" : [ ],
+    "responseAssertions" : [ {
+      "path" : "$view",
+      "operator" : "eq",
+      "expected" : "category/categoryList",
+      "location" : "BODY",
+      "source" : "view-name",
+      "description" : "핸들러가 반환하는 뷰 이름",
+      "at" : "ProductController.java:30"
+    } ],
+    "others" : [ ],
+    "at" : "ProductController.java:30"
+  }, {
+    "operationId" : "CancelOrderController.orderDetail",
+    "controller" : "com.myshop.order.ui.CancelOrderController",
+    "handler" : "String orderDetail(String, ModelMap)",
+    "httpMethod" : "ANY",
+    "path" : "/my/orders/{orderNo}/cancel",
+    "produces" : "text/html",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ {
+      "name" : "orderNo",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : true
+    } ],
+    "queryParams" : [ ],
+    "responseBodyType" : "text/html (view)",
+    "preConditions" : [ {
+      "path" : "$.orderNo",
+      "operator" : "exists",
+      "location" : "PATH",
+      "source" : "or-else-throw",
+      "description" : "findById 결과가 존재해야 함 — NoOrderException",
+      "at" : "CancelOrderService.java:21"
+    } ],
+    "responseAssertions" : [ {
+      "path" : "$view",
+      "operator" : "eq",
+      "expected" : "my/orderCanceled",
+      "location" : "BODY",
+      "source" : "view-name",
+      "description" : "핸들러가 반환하는 뷰 이름",
+      "at" : "CancelOrderController.java:21"
+    } ],
+    "others" : [ {
+      "path" : "(cancelPolicy.hasCancellationPermission(order, canceller))",
+      "operator" : "expr",
+      "expected" : "(cancelPolicy.hasCancellationPermission(order, canceller))",
+      "location" : "DOMAIN",
+      "source" : "if-throw",
+      "description" : "NoCancellablePermission",
+      "at" : "CancelOrderService.java:23"
+    }, {
+      "path" : "(isNotYetShipped())",
+      "operator" : "expr",
+      "expected" : "(isNotYetShipped())",
+      "location" : "DOMAIN",
+      "source" : "if-throw",
+      "description" : "AlreadyShippedException",
+      "at" : "Order.java:126"
+    } ],
+    "at" : "CancelOrderController.java:21"
+  }, {
+    "operationId" : "MyOrderController.orderDetail",
+    "controller" : "com.myshop.order.ui.MyOrderController",
+    "handler" : "String orderDetail(String, ModelMap)",
+    "httpMethod" : "ANY",
+    "path" : "/my/orders/{orderNo}",
+    "produces" : "text/html",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ {
+      "name" : "orderNo",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : true
+    } ],
+    "queryParams" : [ ],
+    "responseBodyType" : "text/html (view)",
+    "preConditions" : [ ],
+    "responseAssertions" : [ {
+      "path" : "$view",
+      "operator" : "in",
+      "expected" : [ "my/orderDetail", "my/notYourOrder", "my/noOrder" ],
+      "location" : "BODY",
+      "source" : "view-name",
+      "description" : "핸들러가 반환하는 뷰 이름",
+      "at" : "MyOrderController.java:33"
+    } ],
+    "others" : [ {
+      "path" : "(orderDetail.get().getOrderer().getMemberId().getId().equals(user.getUsername()))",
+      "operator" : "expr",
+      "expected" : "(orderDetail.get().getOrderer().getMemberId().getId().equals(user.getUsername()))",
+      "location" : "DOMAIN",
+      "source" : "if-return",
+      "description" : "정상 응답 경로로 진입하기 위한 조건",
+      "at" : "MyOrderController.java:38"
+    } ],
+    "at" : "MyOrderController.java:33"
+  }, {
+    "operationId" : "MyOrderController.orders",
+    "controller" : "com.myshop.order.ui.MyOrderController",
+    "handler" : "String orders(ModelMap)",
+    "httpMethod" : "ANY",
+    "path" : "/my/orders",
+    "produces" : "text/html",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ ],
+    "queryParams" : [ ],
+    "responseBodyType" : "text/html (view)",
+    "preConditions" : [ ],
+    "responseAssertions" : [ {
+      "path" : "$view",
+      "operator" : "eq",
+      "expected" : "my/orders",
+      "location" : "BODY",
+      "source" : "view-name",
+      "description" : "핸들러가 반환하는 뷰 이름",
+      "at" : "MyOrderController.java:26"
+    } ],
+    "others" : [ ],
+    "at" : "MyOrderController.java:26"
+  }, {
+    "operationId" : "OrderController.orderConfirm",
+    "controller" : "com.myshop.order.ui.OrderController",
+    "handler" : "String orderConfirm(OrderRequest, ModelMap)",
+    "httpMethod" : "POST",
+    "path" : "/orders/orderConfirm",
+    "consumes" : "application/x-www-form-urlencoded",
+    "produces" : "text/html",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ ],
+    "queryParams" : [ {
+      "name" : "orderProducts",
+      "javaType" : "List",
+      "type" : "array",
+      "required" : false
+    }, {
+      "name" : "ordererMemberId.id",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.address.zipCode",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.address.address1",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.address.address2",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.message",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.receiver.name",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.receiver.phone",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    } ],
+    "responseBodyType" : "text/html (view)",
+    "preConditions" : [ {
+      "path" : "$.orderProducts[*].productId",
+      "operator" : "exists",
+      "location" : "QUERY",
+      "source" : "or-else-throw",
+      "description" : "productOpt 결과가 존재해야 함 — NoOrderProductException",
+      "at" : "OrderController.java:67"
+    } ],
+    "responseAssertions" : [ {
+      "path" : "$view",
+      "operator" : "eq",
+      "expected" : "order/confirm",
+      "location" : "BODY",
+      "source" : "view-name",
+      "description" : "핸들러가 반환하는 뷰 이름",
+      "at" : "OrderController.java:42"
+    } ],
+    "others" : [ ],
+    "at" : "OrderController.java:42"
+  }, {
+    "operationId" : "OrderController.order",
+    "controller" : "com.myshop.order.ui.OrderController",
+    "handler" : "String order(OrderRequest, BindingResult, ModelMap)",
+    "httpMethod" : "POST",
+    "path" : "/orders/order",
+    "consumes" : "application/x-www-form-urlencoded",
+    "produces" : "text/html",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ ],
+    "queryParams" : [ {
+      "name" : "orderProducts",
+      "javaType" : "List",
+      "type" : "array",
+      "required" : false
+    }, {
+      "name" : "ordererMemberId.id",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.address.zipCode",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.address.address1",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.address.address2",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.message",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.receiver.name",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    }, {
+      "name" : "shippingInfo.receiver.phone",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : false
+    } ],
+    "responseBodyType" : "text/html (view)",
+    "preConditions" : [ {
+      "path" : "$",
+      "operator" : "not_null",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "required",
+      "at" : "OrderRequestValidator.java:12"
+    }, {
+      "path" : "$.ordererMemberId",
+      "operator" : "not_null",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "ordererMemberId: required",
+      "at" : "OrderRequestValidator.java:15"
+    }, {
+      "path" : "$.orderProducts",
+      "operator" : "not_null",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "orderProducts: required",
+      "at" : "OrderRequestValidator.java:17"
+    }, {
+      "path" : "$.orderProducts",
+      "operator" : "not_empty",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "orderProducts: required",
+      "at" : "OrderRequestValidator.java:19"
+    }, {
+      "path" : "$.shippingInfo",
+      "operator" : "not_null",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "shippingInfo: required",
+      "at" : "OrderRequestValidator.java:22"
+    }, {
+      "path" : "$.shippingInfo.receiver",
+      "operator" : "not_null",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "shippingInfo.receiver: required",
+      "at" : "OrderRequestValidator.java:25"
+    }, {
+      "path" : "$.shippingInfo.receiver.name",
+      "operator" : "not_blank",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "shippingInfo.receiver.name: required",
+      "at" : "OrderRequestValidator.java:28"
+    }, {
+      "path" : "$.shippingInfo.receiver.phone",
+      "operator" : "not_blank",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "shippingInfo.receiver.phone: required",
+      "at" : "OrderRequestValidator.java:31"
+    }, {
+      "path" : "$.shippingInfo.address",
+      "operator" : "not_null",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "shippingInfo.address: required",
+      "at" : "OrderRequestValidator.java:34"
+    }, {
+      "path" : "$.shippingInfo.address.zipCode",
+      "operator" : "not_blank",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "shippingInfo.address.zipCode: required",
+      "at" : "OrderRequestValidator.java:37"
+    }, {
+      "path" : "$.shippingInfo.address.address1",
+      "operator" : "not_blank",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "shippingInfo.address.address1: required",
+      "at" : "OrderRequestValidator.java:40"
+    }, {
+      "path" : "$.shippingInfo.address.address2",
+      "operator" : "not_blank",
+      "location" : "QUERY",
+      "source" : "validation-error",
+      "description" : "shippingInfo.address.address2: required",
+      "at" : "OrderRequestValidator.java:43"
+    }, {
+      "path" : "$.orderProducts[*].productId",
+      "operator" : "exists",
+      "location" : "QUERY",
+      "source" : "or-else-throw",
+      "description" : "productOpt 결과가 존재해야 함 — NoOrderProductException",
+      "at" : "PlaceOrderService.java:38"
+    } ],
+    "responseAssertions" : [ {
+      "path" : "$view",
+      "operator" : "in",
+      "expected" : [ "order/orderComplete", "order/confirm" ],
+      "location" : "BODY",
+      "source" : "view-name",
+      "description" : "핸들러가 반환하는 뷰 이름",
+      "at" : "OrderController.java:73"
+    } ],
+    "others" : [ {
+      "path" : "$",
+      "operator" : "expr",
+      "expected" : "(errors.isEmpty())",
+      "location" : "QUERY",
+      "source" : "if-throw",
+      "description" : "ValidationErrorException",
+      "at" : "PlaceOrderService.java:33"
+    }, {
+      "path" : "!(number == null)",
+      "operator" : "expr",
+      "expected" : "!(number == null)",
+      "location" : "DOMAIN",
+      "source" : "if-throw",
+      "description" : "IllegalArgumentException: no number",
+      "at" : "Order.java:58"
+    }, {
+      "path" : "!(orderer == null)",
+      "operator" : "expr",
+      "expected" : "!(orderer == null)",
+      "location" : "DOMAIN",
+      "source" : "if-throw",
+      "description" : "IllegalArgumentException: no orderer",
+      "at" : "Order.java:63"
+    } ],
+    "at" : "OrderController.java:73"
+  }, {
+    "operationId" : "ProductController.detail",
+    "controller" : "com.myshop.catalog.ui.ProductController",
+    "handler" : "String detail(String, ModelMap, HttpServletResponse)",
+    "httpMethod" : "ANY",
+    "path" : "/products/{productId}",
+    "produces" : "text/html",
+    "successStatus" : 200,
+    "headers" : [ ],
+    "pathVariables" : [ {
+      "name" : "productId",
+      "javaType" : "String",
+      "type" : "string",
+      "required" : true
+    } ],
+    "queryParams" : [ ],
+    "responseBodyType" : "text/html (view)",
+    "preConditions" : [ ],
+    "responseAssertions" : [ {
+      "path" : "$view",
+      "operator" : "eq",
+      "expected" : "category/productDetail",
+      "location" : "BODY",
+      "source" : "view-name",
+      "description" : "핸들러가 반환하는 뷰 이름",
+      "at" : "ProductController.java:46"
+    } ],
+    "others" : [ {
+      "path" : "$.productId",
+      "operator" : "expr",
+      "expected" : "(product.isPresent())",
+      "location" : "PATH",
+      "source" : "if-return",
+      "description" : "정상 응답 경로로 진입하기 위한 조건",
+      "at" : "ProductController.java:51"
+    } ],
+    "at" : "ProductController.java:46"
+  } ]
+}

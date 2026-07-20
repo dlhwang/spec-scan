@@ -1,0 +1,2716 @@
+{
+  "nodes" : [ {
+    "id" : "com.estate.Application",
+    "kind" : "CLASS",
+    "label" : "Application",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/Application.java",
+    "line" : 8
+  }, {
+    "id" : "com.estate.Application.main/1",
+    "kind" : "METHOD",
+    "label" : "main",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/Application.java",
+    "line" : 12
+  }, {
+    "id" : "com.estate.config.JacksonConfig",
+    "kind" : "CLASS",
+    "label" : "JacksonConfig",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/JacksonConfig.java",
+    "line" : 8
+  }, {
+    "id" : "com.estate.config.JacksonConfig.jsonCustomizer/0",
+    "kind" : "METHOD",
+    "label" : "jsonCustomizer",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/JacksonConfig.java",
+    "line" : 11
+  }, {
+    "id" : "com.estate.config.SecurityConfig",
+    "kind" : "CLASS",
+    "label" : "SecurityConfig",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SecurityConfig.java",
+    "line" : 22
+  }, {
+    "id" : "com.estate.config.SecurityConfig.configure/0",
+    "kind" : "METHOD",
+    "label" : "configure",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SecurityConfig.java",
+    "line" : 27
+  }, {
+    "id" : "com.estate.config.SecurityConfig.securityFilterChain/1",
+    "kind" : "METHOD",
+    "label" : "securityFilterChain",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SecurityConfig.java",
+    "line" : 36
+  }, {
+    "id" : "com.estate.config.SecurityConfig.userDetailsService/0",
+    "kind" : "METHOD",
+    "label" : "userDetailsService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SecurityConfig.java",
+    "line" : 52
+  }, {
+    "id" : "com.estate.config.SecurityConfig.authenticationManager/0",
+    "kind" : "METHOD",
+    "label" : "authenticationManager",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SecurityConfig.java",
+    "line" : 57
+  }, {
+    "id" : "com.estate.config.SecurityConfig.passwordEncoder/0",
+    "kind" : "METHOD",
+    "label" : "passwordEncoder",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SecurityConfig.java",
+    "line" : 65
+  }, {
+    "id" : "com.estate.config.SecurityConfig.jwtAuthenticationProvider/0",
+    "kind" : "METHOD",
+    "label" : "jwtAuthenticationProvider",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SecurityConfig.java",
+    "line" : 70
+  }, {
+    "id" : "com.estate.config.SecurityConfig.jwtFilter/0",
+    "kind" : "METHOD",
+    "label" : "jwtFilter",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SecurityConfig.java",
+    "line" : 76
+  }, {
+    "id" : "com.estate.config.security.JwtExceptionFilter",
+    "kind" : "CLASS",
+    "label" : "JwtExceptionFilter",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtExceptionFilter.java",
+    "line" : 18
+  }, {
+    "id" : "com.estate.config.security.JwtExceptionFilter.doFilterInternal/3",
+    "kind" : "METHOD",
+    "label" : "doFilterInternal",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtExceptionFilter.java",
+    "line" : 19
+  }, {
+    "id" : "com.estate.config.security.JwtExceptionFilter.setErrorResponse/2",
+    "kind" : "METHOD",
+    "label" : "setErrorResponse",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtExceptionFilter.java",
+    "line" : 30
+  }, {
+    "id" : "com.estate.config.security.JwtFilter",
+    "kind" : "CLASS",
+    "label" : "JwtFilter",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtFilter.java",
+    "line" : 16
+  }, {
+    "id" : "com.estate.config.security.JwtFilter#TOKEN_HEADER",
+    "kind" : "FIELD",
+    "label" : "TOKEN_HEADER",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtFilter.java",
+    "line" : 19
+  }, {
+    "id" : "com.estate.config.security.JwtFilter#TOKEN_PREFIX",
+    "kind" : "FIELD",
+    "label" : "TOKEN_PREFIX",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtFilter.java",
+    "line" : 20
+  }, {
+    "id" : "com.estate.config.security.JwtFilter#jwtAuthenticationProvider",
+    "kind" : "FIELD",
+    "label" : "jwtAuthenticationProvider",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtFilter.java",
+    "line" : 22
+  }, {
+    "id" : "com.estate.config.security.JwtFilter.doFilterInternal/3",
+    "kind" : "METHOD",
+    "label" : "doFilterInternal",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtFilter.java",
+    "line" : 24
+  }, {
+    "id" : "com.estate.config.security.JwtFilter.resolveToken/1",
+    "kind" : "METHOD",
+    "label" : "resolveToken",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtFilter.java",
+    "line" : 48
+  }, {
+    "id" : "com.estate.config.security.JwtAuthenticationProvider",
+    "kind" : "CLASS",
+    "label" : "JwtAuthenticationProvider",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtAuthenticationProvider.java",
+    "line" : 15
+  }, {
+    "id" : "com.estate.config.security.JwtAuthenticationProvider#userDetailsService",
+    "kind" : "FIELD",
+    "label" : "userDetailsService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtAuthenticationProvider.java",
+    "line" : 19
+  }, {
+    "id" : "com.estate.config.security.JwtAuthenticationProvider#secretKey",
+    "kind" : "FIELD",
+    "label" : "secretKey",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtAuthenticationProvider.java",
+    "line" : 22
+  }, {
+    "id" : "com.estate.config.security.JwtAuthenticationProvider#refreshSecretKey",
+    "kind" : "FIELD",
+    "label" : "refreshSecretKey",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtAuthenticationProvider.java",
+    "line" : 26
+  }, {
+    "id" : "com.estate.config.security.JwtAuthenticationProvider#accessExpiredMinutes",
+    "kind" : "FIELD",
+    "label" : "accessExpiredMinutes",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtAuthenticationProvider.java",
+    "line" : 30
+  }, {
+    "id" : "com.estate.config.security.JwtAuthenticationProvider.getClaimsFormToken/1",
+    "kind" : "METHOD",
+    "label" : "getClaimsFormToken",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtAuthenticationProvider.java",
+    "line" : 35
+  }, {
+    "id" : "com.estate.config.security.JwtAuthenticationProvider.getSubject/1",
+    "kind" : "METHOD",
+    "label" : "getSubject",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtAuthenticationProvider.java",
+    "line" : 57
+  }, {
+    "id" : "com.estate.config.security.JwtAuthenticationProvider.getAuthentication/1",
+    "kind" : "METHOD",
+    "label" : "getAuthentication",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtAuthenticationProvider.java",
+    "line" : 62
+  }, {
+    "id" : "com.estate.config.security.JwtAuthenticationProvider.generateJwtToken/1",
+    "kind" : "METHOD",
+    "label" : "generateJwtToken",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtAuthenticationProvider.java",
+    "line" : 69
+  }, {
+    "id" : "com.estate.config.security.JwtAuthenticationProvider.isValidToken/1",
+    "kind" : "METHOD",
+    "label" : "isValidToken",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/JwtAuthenticationProvider.java",
+    "line" : 82
+  }, {
+    "id" : "com.estate.config.security.CustomUserDetailsService",
+    "kind" : "CLASS",
+    "label" : "CustomUserDetailsService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/CustomUserDetailsService.java",
+    "line" : 12
+  }, {
+    "id" : "com.estate.config.security.CustomUserDetailsService#passwordEncoder",
+    "kind" : "FIELD",
+    "label" : "passwordEncoder",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/CustomUserDetailsService.java",
+    "line" : 16
+  }, {
+    "id" : "com.estate.config.security.CustomUserDetailsService#users",
+    "kind" : "FIELD",
+    "label" : "users",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/CustomUserDetailsService.java",
+    "line" : 17
+  }, {
+    "id" : "com.estate.config.security.CustomUserDetailsService.loadUserByUsername/1",
+    "kind" : "METHOD",
+    "label" : "loadUserByUsername",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/CustomUserDetailsService.java",
+    "line" : 19
+  }, {
+    "id" : "com.estate.config.security.AuthUser",
+    "kind" : "CLASS",
+    "label" : "AuthUser",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 13
+  }, {
+    "id" : "com.estate.config.security.AuthUser#serialVersionUID",
+    "kind" : "FIELD",
+    "label" : "serialVersionUID",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 16
+  }, {
+    "id" : "com.estate.config.security.AuthUser#username",
+    "kind" : "FIELD",
+    "label" : "username",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 18
+  }, {
+    "id" : "com.estate.config.security.AuthUser#password",
+    "kind" : "FIELD",
+    "label" : "password",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 19
+  }, {
+    "id" : "com.estate.config.security.AuthUser#authorities",
+    "kind" : "FIELD",
+    "label" : "authorities",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 20
+  }, {
+    "id" : "com.estate.config.security.AuthUser.newInstance/3",
+    "kind" : "METHOD",
+    "label" : "newInstance",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 22
+  }, {
+    "id" : "com.estate.config.security.AuthUser.getAuthorities/0",
+    "kind" : "METHOD",
+    "label" : "getAuthorities",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 27
+  }, {
+    "id" : "com.estate.config.security.AuthUser.getPassword/0",
+    "kind" : "METHOD",
+    "label" : "getPassword",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 32
+  }, {
+    "id" : "com.estate.config.security.AuthUser.getUsername/0",
+    "kind" : "METHOD",
+    "label" : "getUsername",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 37
+  }, {
+    "id" : "com.estate.config.security.AuthUser.isAccountNonExpired/0",
+    "kind" : "METHOD",
+    "label" : "isAccountNonExpired",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 42
+  }, {
+    "id" : "com.estate.config.security.AuthUser.isAccountNonLocked/0",
+    "kind" : "METHOD",
+    "label" : "isAccountNonLocked",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 47
+  }, {
+    "id" : "com.estate.config.security.AuthUser.isCredentialsNonExpired/0",
+    "kind" : "METHOD",
+    "label" : "isCredentialsNonExpired",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 52
+  }, {
+    "id" : "com.estate.config.security.AuthUser.isEnabled/0",
+    "kind" : "METHOD",
+    "label" : "isEnabled",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 57
+  }, {
+    "id" : "com.estate.config.security.AuthUser.to/1",
+    "kind" : "METHOD",
+    "label" : "to",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/security/AuthUser.java",
+    "line" : 62
+  }, {
+    "id" : "com.estate.config.DataLoader",
+    "kind" : "CLASS",
+    "label" : "DataLoader",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/DataLoader.java",
+    "line" : 16
+  }, {
+    "id" : "com.estate.config.DataLoader#propertyRepository",
+    "kind" : "FIELD",
+    "label" : "propertyRepository",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/DataLoader.java",
+    "line" : 20
+  }, {
+    "id" : "com.estate.config.DataLoader.run/1",
+    "kind" : "METHOD",
+    "label" : "run",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/DataLoader.java",
+    "line" : 22
+  }, {
+    "id" : "com.estate.config.GlobalExceptionHandler",
+    "kind" : "CLASS",
+    "label" : "GlobalExceptionHandler",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/GlobalExceptionHandler.java",
+    "line" : 20
+  }, {
+    "id" : "com.estate.config.GlobalExceptionHandler.handleDataNotFoundException/2",
+    "kind" : "METHOD",
+    "label" : "handleDataNotFoundException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/GlobalExceptionHandler.java",
+    "line" : 25
+  }, {
+    "id" : "com.estate.config.GlobalExceptionHandler.handleConflictException/2",
+    "kind" : "METHOD",
+    "label" : "handleConflictException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/GlobalExceptionHandler.java",
+    "line" : 41
+  }, {
+    "id" : "com.estate.config.GlobalExceptionHandler.handleIllegalArgumentException/2",
+    "kind" : "METHOD",
+    "label" : "handleIllegalArgumentException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/GlobalExceptionHandler.java",
+    "line" : 57
+  }, {
+    "id" : "com.estate.config.GlobalExceptionHandler.handleNotInvalidException/1",
+    "kind" : "METHOD",
+    "label" : "handleNotInvalidException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/GlobalExceptionHandler.java",
+    "line" : 73
+  }, {
+    "id" : "com.estate.config.GlobalExceptionHandler.handleUsernameNotFoundException/1",
+    "kind" : "METHOD",
+    "label" : "handleUsernameNotFoundException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/GlobalExceptionHandler.java",
+    "line" : 82
+  }, {
+    "id" : "com.estate.config.GlobalExceptionHandler.handleLazyInitializationException/1",
+    "kind" : "METHOD",
+    "label" : "handleLazyInitializationException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/GlobalExceptionHandler.java",
+    "line" : 92
+  }, {
+    "id" : "com.estate.config.GlobalExceptionHandler.handleAuthenticationException/1",
+    "kind" : "METHOD",
+    "label" : "handleAuthenticationException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/GlobalExceptionHandler.java",
+    "line" : 102
+  }, {
+    "id" : "com.estate.config.GlobalExceptionHandler.handleException/1",
+    "kind" : "METHOD",
+    "label" : "handleException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/GlobalExceptionHandler.java",
+    "line" : 112
+  }, {
+    "id" : "com.estate.config.WebConfig",
+    "kind" : "CLASS",
+    "label" : "WebConfig",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/WebConfig.java",
+    "line" : 7
+  }, {
+    "id" : "com.estate.config.WebConfig.addCorsMappings/1",
+    "kind" : "METHOD",
+    "label" : "addCorsMappings",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/WebConfig.java",
+    "line" : 9
+  }, {
+    "id" : "com.estate.config.SwaggerConfig",
+    "kind" : "CLASS",
+    "label" : "SwaggerConfig",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SwaggerConfig.java",
+    "line" : 13
+  }, {
+    "id" : "com.estate.config.SwaggerConfig.openAPI/0",
+    "kind" : "METHOD",
+    "label" : "openAPI",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SwaggerConfig.java",
+    "line" : 17
+  }, {
+    "id" : "com.estate.config.SwaggerConfig.getSecurityScheme/0",
+    "kind" : "METHOD",
+    "label" : "getSecurityScheme",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SwaggerConfig.java",
+    "line" : 27
+  }, {
+    "id" : "com.estate.config.SwaggerConfig.getSecurityRequireMent/0",
+    "kind" : "METHOD",
+    "label" : "getSecurityRequireMent",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/SwaggerConfig.java",
+    "line" : 36
+  }, {
+    "id" : "com.estate.config.QuerydslConfig",
+    "kind" : "CLASS",
+    "label" : "QuerydslConfig",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/QuerydslConfig.java",
+    "line" : 10
+  }, {
+    "id" : "com.estate.config.QuerydslConfig#entityManager",
+    "kind" : "FIELD",
+    "label" : "entityManager",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/QuerydslConfig.java",
+    "line" : 12
+  }, {
+    "id" : "com.estate.config.QuerydslConfig.jpaQueryFactory/0",
+    "kind" : "METHOD",
+    "label" : "jpaQueryFactory",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/QuerydslConfig.java",
+    "line" : 14
+  }, {
+    "id" : "com.estate.config.JpaAuditingConfiguration",
+    "kind" : "CLASS",
+    "label" : "JpaAuditingConfiguration",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/JpaAuditingConfiguration.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.config.exception.JwtInvalidException",
+    "kind" : "CLASS",
+    "label" : "JwtInvalidException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/JwtInvalidException.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.config.exception.JwtInvalidException#serialVersionUID",
+    "kind" : "FIELD",
+    "label" : "serialVersionUID",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/JwtInvalidException.java",
+    "line" : 7
+  }, {
+    "id" : "com.estate.config.exception.JwtInvalidException.<init>/1",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/JwtInvalidException.java",
+    "line" : 9
+  }, {
+    "id" : "com.estate.config.exception.JwtInvalidException.<init>/2",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/JwtInvalidException.java",
+    "line" : 13
+  }, {
+    "id" : "com.estate.config.exception.ConflictException",
+    "kind" : "CLASS",
+    "label" : "ConflictException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/ConflictException.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.config.exception.ConflictException#serialVersionUID",
+    "kind" : "FIELD",
+    "label" : "serialVersionUID",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/ConflictException.java",
+    "line" : 7
+  }, {
+    "id" : "com.estate.config.exception.ConflictException.<init>/0",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/ConflictException.java",
+    "line" : 9
+  }, {
+    "id" : "com.estate.config.exception.ConflictException.<init>/1",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/ConflictException.java",
+    "line" : 11
+  }, {
+    "id" : "com.estate.config.exception.DataNotFoundException",
+    "kind" : "CLASS",
+    "label" : "DataNotFoundException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/DataNotFoundException.java",
+    "line" : 5
+  }, {
+    "id" : "com.estate.config.exception.DataNotFoundException#serialVersionUID",
+    "kind" : "FIELD",
+    "label" : "serialVersionUID",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/DataNotFoundException.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.config.exception.DataNotFoundException.<init>/0",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/DataNotFoundException.java",
+    "line" : 8
+  }, {
+    "id" : "com.estate.config.exception.DataNotFoundException.<init>/1",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/DataNotFoundException.java",
+    "line" : 10
+  }, {
+    "id" : "com.estate.config.exception.NotInvalidException",
+    "kind" : "CLASS",
+    "label" : "NotInvalidException",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/NotInvalidException.java",
+    "line" : 5
+  }, {
+    "id" : "com.estate.config.exception.NotInvalidException#serialVersionUID",
+    "kind" : "FIELD",
+    "label" : "serialVersionUID",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/NotInvalidException.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.config.exception.NotInvalidException.<init>/1",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/NotInvalidException.java",
+    "line" : 8
+  }, {
+    "id" : "com.estate.config.exception.NotInvalidException.<init>/0",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/config/exception/NotInvalidException.java",
+    "line" : 12
+  }, {
+    "id" : "com.estate.utills.NanoId",
+    "kind" : "CLASS",
+    "label" : "NanoId",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/utills/NanoId.java",
+    "line" : 11
+  }, {
+    "id" : "com.estate.utills.NanoIdGenerator",
+    "kind" : "CLASS",
+    "label" : "NanoIdGenerator",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/utills/NanoIdGenerator.java",
+    "line" : 9
+  }, {
+    "id" : "com.estate.utills.NanoIdGenerator#serialVersionUID",
+    "kind" : "FIELD",
+    "label" : "serialVersionUID",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/utills/NanoIdGenerator.java",
+    "line" : 11
+  }, {
+    "id" : "com.estate.utills.NanoIdGenerator.generate/2",
+    "kind" : "METHOD",
+    "label" : "generate",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/utills/NanoIdGenerator.java",
+    "line" : 13
+  }, {
+    "id" : "com.estate.api.adapter.PropertyController",
+    "kind" : "CLASS",
+    "label" : "PropertyController",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 18
+  }, {
+    "id" : "com.estate.api.adapter.PropertyController#service",
+    "kind" : "FIELD",
+    "label" : "service",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 24
+  }, {
+    "id" : "com.estate.api.adapter.PropertyController.getProperties/2",
+    "kind" : "METHOD",
+    "label" : "getProperties",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 26
+  }, {
+    "id" : "com.estate.api.adapter.PropertyController.getProperty/1",
+    "kind" : "METHOD",
+    "label" : "getProperty",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 42
+  }, {
+    "id" : "com.estate.api.adapter.PropertyController.post/1",
+    "kind" : "METHOD",
+    "label" : "post",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 56
+  }, {
+    "id" : "com.estate.api.adapter.PropertyController.put/2",
+    "kind" : "METHOD",
+    "label" : "put",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 74
+  }, {
+    "id" : "com.estate.api.adapter.PropertyController.remove/1",
+    "kind" : "METHOD",
+    "label" : "remove",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 93
+  }, {
+    "id" : "com.estate.api.adapter.AuthController",
+    "kind" : "CLASS",
+    "label" : "AuthController",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/AuthController.java",
+    "line" : 14
+  }, {
+    "id" : "com.estate.api.adapter.AuthController#service",
+    "kind" : "FIELD",
+    "label" : "service",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/AuthController.java",
+    "line" : 20
+  }, {
+    "id" : "com.estate.api.adapter.AuthController.login/1",
+    "kind" : "METHOD",
+    "label" : "login",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/AuthController.java",
+    "line" : 22
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyResponse",
+    "kind" : "CLASS",
+    "label" : "PropertyResponse",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyResponse.java",
+    "line" : 15
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyResponse#propertyList",
+    "kind" : "FIELD",
+    "label" : "propertyList",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyResponse.java",
+    "line" : 20
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyResponse.to/1",
+    "kind" : "METHOD",
+    "label" : "to",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyResponse.java",
+    "line" : 45
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+    "kind" : "CLASS",
+    "label" : "PropertyVO",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyResponse.java",
+    "line" : 22
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyResponse.PropertyVO#propertyId",
+    "kind" : "FIELD",
+    "label" : "propertyId",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyResponse.java",
+    "line" : 27
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyResponse.PropertyVO#propertyType",
+    "kind" : "FIELD",
+    "label" : "propertyType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyResponse.java",
+    "line" : 30
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyResponse.PropertyVO#contractDetails",
+    "kind" : "FIELD",
+    "label" : "contractDetails",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyResponse.java",
+    "line" : 33
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyResponse.PropertyVO.to/1",
+    "kind" : "METHOD",
+    "label" : "to",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyResponse.java",
+    "line" : 36
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest",
+    "kind" : "CLASS",
+    "label" : "PropertyRequest",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 14
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertyType",
+    "kind" : "ENUM",
+    "label" : "PropertyType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 16
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertyType#propertyType",
+    "kind" : "FIELD",
+    "label" : "propertyType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 23
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.ContractType",
+    "kind" : "ENUM",
+    "label" : "ContractType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 26
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.ContractType#contractType",
+    "kind" : "FIELD",
+    "label" : "contractType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 32
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertySearch",
+    "kind" : "CLASS",
+    "label" : "PropertySearch",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 35
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertySearch#propertyType",
+    "kind" : "FIELD",
+    "label" : "propertyType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 38
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertySearch#contractType",
+    "kind" : "FIELD",
+    "label" : "contractType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 41
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertySearch#priceStart",
+    "kind" : "FIELD",
+    "label" : "priceStart",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 44
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertySearch#priceEnd",
+    "kind" : "FIELD",
+    "label" : "priceEnd",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 47
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertySearch.to/0",
+    "kind" : "METHOD",
+    "label" : "to",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 50
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertySave",
+    "kind" : "CLASS",
+    "label" : "PropertySave",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 55
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertySave#propertyType",
+    "kind" : "FIELD",
+    "label" : "propertyType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 58
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertySave#contractDetails",
+    "kind" : "FIELD",
+    "label" : "contractDetails",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 61
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.PropertySave.to/0",
+    "kind" : "METHOD",
+    "label" : "to",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 64
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO",
+    "kind" : "CLASS",
+    "label" : "ContractDetailDTO",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 71
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO#contractType",
+    "kind" : "FIELD",
+    "label" : "contractType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 75
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO#deposit",
+    "kind" : "FIELD",
+    "label" : "deposit",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 78
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO#rent",
+    "kind" : "FIELD",
+    "label" : "rent",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 81
+  }, {
+    "id" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO.to/0",
+    "kind" : "METHOD",
+    "label" : "to",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/application/dto/PropertyRequest.java",
+    "line" : 84
+  }, {
+    "id" : "com.estate.api.service.PropertyService",
+    "kind" : "CLASS",
+    "label" : "PropertyService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/PropertyService.java",
+    "line" : 17
+  }, {
+    "id" : "com.estate.api.service.PropertyService#propertyRepository",
+    "kind" : "FIELD",
+    "label" : "propertyRepository",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/PropertyService.java",
+    "line" : 21
+  }, {
+    "id" : "com.estate.api.service.PropertyService#propertySaveService",
+    "kind" : "FIELD",
+    "label" : "propertySaveService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/PropertyService.java",
+    "line" : 22
+  }, {
+    "id" : "com.estate.api.service.PropertyService#propertyModifyService",
+    "kind" : "FIELD",
+    "label" : "propertyModifyService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/PropertyService.java",
+    "line" : 23
+  }, {
+    "id" : "com.estate.api.service.PropertyService#propertyRemoveService",
+    "kind" : "FIELD",
+    "label" : "propertyRemoveService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/PropertyService.java",
+    "line" : 24
+  }, {
+    "id" : "com.estate.api.service.PropertyService.getAll/2",
+    "kind" : "METHOD",
+    "label" : "getAll",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/PropertyService.java",
+    "line" : 26
+  }, {
+    "id" : "com.estate.api.service.PropertyService.getProperty/1",
+    "kind" : "METHOD",
+    "label" : "getProperty",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/PropertyService.java",
+    "line" : 31
+  }, {
+    "id" : "com.estate.api.service.PropertyService.save/1",
+    "kind" : "METHOD",
+    "label" : "save",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/PropertyService.java",
+    "line" : 40
+  }, {
+    "id" : "com.estate.api.service.PropertyService.modify/2",
+    "kind" : "METHOD",
+    "label" : "modify",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/PropertyService.java",
+    "line" : 44
+  }, {
+    "id" : "com.estate.api.service.PropertyService.remove/1",
+    "kind" : "METHOD",
+    "label" : "remove",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/PropertyService.java",
+    "line" : 49
+  }, {
+    "id" : "com.estate.api.service.AuthService",
+    "kind" : "CLASS",
+    "label" : "AuthService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/AuthService.java",
+    "line" : 14
+  }, {
+    "id" : "com.estate.api.service.AuthService#passwordEncoder",
+    "kind" : "FIELD",
+    "label" : "passwordEncoder",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/AuthService.java",
+    "line" : 18
+  }, {
+    "id" : "com.estate.api.service.AuthService#userDetailsService",
+    "kind" : "FIELD",
+    "label" : "userDetailsService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/AuthService.java",
+    "line" : 19
+  }, {
+    "id" : "com.estate.api.service.AuthService#jwtAuthenticationProvider",
+    "kind" : "FIELD",
+    "label" : "jwtAuthenticationProvider",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/AuthService.java",
+    "line" : 20
+  }, {
+    "id" : "com.estate.api.service.AuthService.login/1",
+    "kind" : "METHOD",
+    "label" : "login",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/service/AuthService.java",
+    "line" : 22
+  }, {
+    "id" : "com.estate.api.domain.repository.PropertyRepository",
+    "kind" : "INTERFACE",
+    "label" : "PropertyRepository",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/repository/PropertyRepository.java",
+    "line" : 7
+  }, {
+    "id" : "com.estate.api.domain.repository.PropertyRepositoryCustom",
+    "kind" : "INTERFACE",
+    "label" : "PropertyRepositoryCustom",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/repository/PropertyRepositoryCustom.java",
+    "line" : 8
+  }, {
+    "id" : "com.estate.api.domain.repository.PropertyRepositoryCustom.getPropertyList/2",
+    "kind" : "METHOD",
+    "label" : "getPropertyList",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/repository/PropertyRepositoryCustom.java",
+    "line" : 9
+  }, {
+    "id" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl",
+    "kind" : "CLASS",
+    "label" : "PropertyRepositoryCustomImpl",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/repository/PropertyRepositoryCustomImpl.java",
+    "line" : 26
+  }, {
+    "id" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl#queryFactory",
+    "kind" : "FIELD",
+    "label" : "queryFactory",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/repository/PropertyRepositoryCustomImpl.java",
+    "line" : 29
+  }, {
+    "id" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.getPropertyList/2",
+    "kind" : "METHOD",
+    "label" : "getPropertyList",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/repository/PropertyRepositoryCustomImpl.java",
+    "line" : 31
+  }, {
+    "id" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.applyNormalCondition/0",
+    "kind" : "METHOD",
+    "label" : "applyNormalCondition",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/repository/PropertyRepositoryCustomImpl.java",
+    "line" : 40
+  }, {
+    "id" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.applySearch/1",
+    "kind" : "METHOD",
+    "label" : "applySearch",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/repository/PropertyRepositoryCustomImpl.java",
+    "line" : 44
+  }, {
+    "id" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.applyPageable/2",
+    "kind" : "METHOD",
+    "label" : "applyPageable",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/repository/PropertyRepositoryCustomImpl.java",
+    "line" : 97
+  }, {
+    "id" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.longBetween/3",
+    "kind" : "METHOD",
+    "label" : "longBetween",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/repository/PropertyRepositoryCustomImpl.java",
+    "line" : 105
+  }, {
+    "id" : "com.estate.api.domain.enumtype.ContractType",
+    "kind" : "ENUM",
+    "label" : "ContractType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/enumtype/ContractType.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.api.domain.enumtype.ContractType#title",
+    "kind" : "FIELD",
+    "label" : "title",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/enumtype/ContractType.java",
+    "line" : 11
+  }, {
+    "id" : "com.estate.api.domain.enumtype.PropertyType",
+    "kind" : "ENUM",
+    "label" : "PropertyType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/enumtype/PropertyType.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.api.domain.enumtype.PropertyType#title",
+    "kind" : "FIELD",
+    "label" : "title",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/enumtype/PropertyType.java",
+    "line" : 13
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetailVO",
+    "kind" : "RECORD",
+    "label" : "ContractDetailVO",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetailVO.java",
+    "line" : 5
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetailVO.newInstance/1",
+    "kind" : "METHOD",
+    "label" : "newInstance",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetailVO.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetailVO.to/0",
+    "kind" : "METHOD",
+    "label" : "to",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetailVO.java",
+    "line" : 11
+  }, {
+    "id" : "com.estate.api.domain.model.Property",
+    "kind" : "CLASS",
+    "label" : "Property",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/Property.java",
+    "line" : 19
+  }, {
+    "id" : "com.estate.api.domain.model.Property#serialVersionUID",
+    "kind" : "FIELD",
+    "label" : "serialVersionUID",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/Property.java",
+    "line" : 28
+  }, {
+    "id" : "com.estate.api.domain.model.Property#id",
+    "kind" : "FIELD",
+    "label" : "id",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/Property.java",
+    "line" : 30
+  }, {
+    "id" : "com.estate.api.domain.model.Property#propertyType",
+    "kind" : "FIELD",
+    "label" : "propertyType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/Property.java",
+    "line" : 36
+  }, {
+    "id" : "com.estate.api.domain.model.Property#contractDetails",
+    "kind" : "FIELD",
+    "label" : "contractDetails",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/Property.java",
+    "line" : 41
+  }, {
+    "id" : "com.estate.api.domain.model.Property#deleteYN",
+    "kind" : "FIELD",
+    "label" : "deleteYN",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/Property.java",
+    "line" : 47
+  }, {
+    "id" : "com.estate.api.domain.model.Property.validate/2",
+    "kind" : "METHOD",
+    "label" : "validate",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/Property.java",
+    "line" : 59
+  }, {
+    "id" : "com.estate.api.domain.model.Property.newInstance/2",
+    "kind" : "METHOD",
+    "label" : "newInstance",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/Property.java",
+    "line" : 69
+  }, {
+    "id" : "com.estate.api.domain.model.Property.changeContractDetails/1",
+    "kind" : "METHOD",
+    "label" : "changeContractDetails",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/Property.java",
+    "line" : 74
+  }, {
+    "id" : "com.estate.api.domain.model.Property.changePropertyType/1",
+    "kind" : "METHOD",
+    "label" : "changePropertyType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/Property.java",
+    "line" : 88
+  }, {
+    "id" : "com.estate.api.domain.model.Property.<init>/2",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/Property.java",
+    "line" : 51
+  }, {
+    "id" : "com.estate.api.domain.model.PropertySearch",
+    "kind" : "CLASS",
+    "label" : "PropertySearch",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertySearch.java",
+    "line" : 12
+  }, {
+    "id" : "com.estate.api.domain.model.PropertySearch#propertyType",
+    "kind" : "FIELD",
+    "label" : "propertyType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertySearch.java",
+    "line" : 16
+  }, {
+    "id" : "com.estate.api.domain.model.PropertySearch#contractType",
+    "kind" : "FIELD",
+    "label" : "contractType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertySearch.java",
+    "line" : 17
+  }, {
+    "id" : "com.estate.api.domain.model.PropertySearch#longRange",
+    "kind" : "FIELD",
+    "label" : "longRange",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertySearch.java",
+    "line" : 18
+  }, {
+    "id" : "com.estate.api.domain.model.PropertySearch.to/1",
+    "kind" : "METHOD",
+    "label" : "to",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertySearch.java",
+    "line" : 20
+  }, {
+    "id" : "com.estate.api.domain.model.PropertySearch.toString/0",
+    "kind" : "METHOD",
+    "label" : "toString",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertySearch.java",
+    "line" : 27
+  }, {
+    "id" : "com.estate.api.domain.model.PropertySave",
+    "kind" : "CLASS",
+    "label" : "PropertySave",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertySave.java",
+    "line" : 8
+  }, {
+    "id" : "com.estate.api.domain.model.PropertySave#propertyType",
+    "kind" : "FIELD",
+    "label" : "propertyType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertySave.java",
+    "line" : 10
+  }, {
+    "id" : "com.estate.api.domain.model.PropertySave#contractDetails",
+    "kind" : "FIELD",
+    "label" : "contractDetails",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertySave.java",
+    "line" : 11
+  }, {
+    "id" : "com.estate.api.domain.model.PropertySave.to/0",
+    "kind" : "METHOD",
+    "label" : "to",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertySave.java",
+    "line" : 13
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetail",
+    "kind" : "CLASS",
+    "label" : "ContractDetail",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetail.java",
+    "line" : 12
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetail#serialVersionUID",
+    "kind" : "FIELD",
+    "label" : "serialVersionUID",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetail.java",
+    "line" : 18
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetail#contractType",
+    "kind" : "FIELD",
+    "label" : "contractType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetail.java",
+    "line" : 21
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetail#deposit",
+    "kind" : "FIELD",
+    "label" : "deposit",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetail.java",
+    "line" : 26
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetail#rent",
+    "kind" : "FIELD",
+    "label" : "rent",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetail.java",
+    "line" : 30
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetail.newInstance/3",
+    "kind" : "METHOD",
+    "label" : "newInstance",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetail.java",
+    "line" : 43
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetail.isNotValid/3",
+    "kind" : "METHOD",
+    "label" : "isNotValid",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetail.java",
+    "line" : 47
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetail.equals/1",
+    "kind" : "METHOD",
+    "label" : "equals",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetail.java",
+    "line" : 59
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetail.hashCode/0",
+    "kind" : "METHOD",
+    "label" : "hashCode",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetail.java",
+    "line" : 67
+  }, {
+    "id" : "com.estate.api.domain.model.ContractDetail.<init>/3",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/ContractDetail.java",
+    "line" : 33
+  }, {
+    "id" : "com.estate.api.domain.model.PropertyVO",
+    "kind" : "CLASS",
+    "label" : "PropertyVO",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertyVO.java",
+    "line" : 8
+  }, {
+    "id" : "com.estate.api.domain.model.PropertyVO#propertyId",
+    "kind" : "FIELD",
+    "label" : "propertyId",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertyVO.java",
+    "line" : 10
+  }, {
+    "id" : "com.estate.api.domain.model.PropertyVO#propertyType",
+    "kind" : "FIELD",
+    "label" : "propertyType",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertyVO.java",
+    "line" : 11
+  }, {
+    "id" : "com.estate.api.domain.model.PropertyVO#contractDetails",
+    "kind" : "FIELD",
+    "label" : "contractDetails",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertyVO.java",
+    "line" : 12
+  }, {
+    "id" : "com.estate.api.domain.model.PropertyVO.to/1",
+    "kind" : "METHOD",
+    "label" : "to",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/model/PropertyVO.java",
+    "line" : 14
+  }, {
+    "id" : "com.estate.api.domain.service.PropertyRemoveService",
+    "kind" : "CLASS",
+    "label" : "PropertyRemoveService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/service/PropertyRemoveService.java",
+    "line" : 10
+  }, {
+    "id" : "com.estate.api.domain.service.PropertyRemoveService#propertyRepository",
+    "kind" : "FIELD",
+    "label" : "propertyRepository",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/service/PropertyRemoveService.java",
+    "line" : 14
+  }, {
+    "id" : "com.estate.api.domain.service.PropertyRemoveService.remove/1",
+    "kind" : "METHOD",
+    "label" : "remove",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/service/PropertyRemoveService.java",
+    "line" : 16
+  }, {
+    "id" : "com.estate.api.domain.service.PropertySaveService",
+    "kind" : "CLASS",
+    "label" : "PropertySaveService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/service/PropertySaveService.java",
+    "line" : 10
+  }, {
+    "id" : "com.estate.api.domain.service.PropertySaveService#propertyRepository",
+    "kind" : "FIELD",
+    "label" : "propertyRepository",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/service/PropertySaveService.java",
+    "line" : 14
+  }, {
+    "id" : "com.estate.api.domain.service.PropertySaveService.save/1",
+    "kind" : "METHOD",
+    "label" : "save",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/service/PropertySaveService.java",
+    "line" : 16
+  }, {
+    "id" : "com.estate.api.domain.service.PropertyModifyService",
+    "kind" : "CLASS",
+    "label" : "PropertyModifyService",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/service/PropertyModifyService.java",
+    "line" : 14
+  }, {
+    "id" : "com.estate.api.domain.service.PropertyModifyService#propertyRepository",
+    "kind" : "FIELD",
+    "label" : "propertyRepository",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/service/PropertyModifyService.java",
+    "line" : 18
+  }, {
+    "id" : "com.estate.api.domain.service.PropertyModifyService.modify/2",
+    "kind" : "METHOD",
+    "label" : "modify",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/domain/service/PropertyModifyService.java",
+    "line" : 20
+  }, {
+    "id" : "com.estate.global.model.DataResponse",
+    "kind" : "CLASS",
+    "label" : "DataResponse",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/DataResponse.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.global.model.DataResponse#result",
+    "kind" : "FIELD",
+    "label" : "result",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/DataResponse.java",
+    "line" : 9
+  }, {
+    "id" : "com.estate.global.model.LongRange",
+    "kind" : "CLASS",
+    "label" : "LongRange",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/LongRange.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.global.model.LongRange.getStart/0",
+    "kind" : "METHOD",
+    "label" : "getStart",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/LongRange.java",
+    "line" : 13
+  }, {
+    "id" : "com.estate.global.model.LongRange.getEnd/0",
+    "kind" : "METHOD",
+    "label" : "getEnd",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/LongRange.java",
+    "line" : 18
+  }, {
+    "id" : "com.estate.global.model.LongRange.<init>/2",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/LongRange.java",
+    "line" : 9
+  }, {
+    "id" : "com.estate.global.model.enumtype.ErrorCode",
+    "kind" : "ENUM",
+    "label" : "ErrorCode",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/enumtype/ErrorCode.java",
+    "line" : 7
+  }, {
+    "id" : "com.estate.global.model.enumtype.ErrorCode#status",
+    "kind" : "FIELD",
+    "label" : "status",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/enumtype/ErrorCode.java",
+    "line" : 18
+  }, {
+    "id" : "com.estate.global.model.enumtype.ErrorCode#message",
+    "kind" : "FIELD",
+    "label" : "message",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/enumtype/ErrorCode.java",
+    "line" : 19
+  }, {
+    "id" : "com.estate.global.model.enumtype.YN",
+    "kind" : "ENUM",
+    "label" : "YN",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/enumtype/YN.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.global.model.enumtype.YN#title",
+    "kind" : "FIELD",
+    "label" : "title",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/enumtype/YN.java",
+    "line" : 12
+  }, {
+    "id" : "com.estate.global.model.enumtype.YN#title2",
+    "kind" : "FIELD",
+    "label" : "title2",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/enumtype/YN.java",
+    "line" : 13
+  }, {
+    "id" : "com.estate.global.model.enumtype.YN.checked/1",
+    "kind" : "METHOD",
+    "label" : "checked",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/enumtype/YN.java",
+    "line" : 15
+  }, {
+    "id" : "com.estate.global.model.LoginDTO",
+    "kind" : "CLASS",
+    "label" : "LoginDTO",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/LoginDTO.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.global.model.LoginDTO#username",
+    "kind" : "FIELD",
+    "label" : "username",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/LoginDTO.java",
+    "line" : 10
+  }, {
+    "id" : "com.estate.global.model.LoginDTO#password",
+    "kind" : "FIELD",
+    "label" : "password",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/LoginDTO.java",
+    "line" : 13
+  }, {
+    "id" : "com.estate.global.model.ComparableRange",
+    "kind" : "INTERFACE",
+    "label" : "ComparableRange",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ComparableRange.java",
+    "line" : 3
+  }, {
+    "id" : "com.estate.global.model.ComparableRange.contains/1",
+    "kind" : "METHOD",
+    "label" : "contains",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ComparableRange.java",
+    "line" : 4
+  }, {
+    "id" : "com.estate.global.model.ComparableRange.overlaps/1",
+    "kind" : "METHOD",
+    "label" : "overlaps",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ComparableRange.java",
+    "line" : 6
+  }, {
+    "id" : "com.estate.global.model.EventConfig",
+    "kind" : "CLASS",
+    "label" : "EventConfig",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/EventConfig.java",
+    "line" : 9
+  }, {
+    "id" : "com.estate.global.model.EventConfig#applicationContext",
+    "kind" : "FIELD",
+    "label" : "applicationContext",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/EventConfig.java",
+    "line" : 13
+  }, {
+    "id" : "com.estate.global.model.EventConfig.eventsInitializer/0",
+    "kind" : "METHOD",
+    "label" : "eventsInitializer",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/EventConfig.java",
+    "line" : 15
+  }, {
+    "id" : "com.estate.global.model.Range",
+    "kind" : "CLASS",
+    "label" : "Range",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 18
+  }, {
+    "id" : "com.estate.global.model.Range#start",
+    "kind" : "FIELD",
+    "label" : "start",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 20
+  }, {
+    "id" : "com.estate.global.model.Range#end",
+    "kind" : "FIELD",
+    "label" : "end",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 22
+  }, {
+    "id" : "com.estate.global.model.Range.getStart/0",
+    "kind" : "METHOD",
+    "label" : "getStart",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 34
+  }, {
+    "id" : "com.estate.global.model.Range.getEnd/0",
+    "kind" : "METHOD",
+    "label" : "getEnd",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 38
+  }, {
+    "id" : "com.estate.global.model.Range.setStart/1",
+    "kind" : "METHOD",
+    "label" : "setStart",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 43
+  }, {
+    "id" : "com.estate.global.model.Range.setEnd/1",
+    "kind" : "METHOD",
+    "label" : "setEnd",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 47
+  }, {
+    "id" : "com.estate.global.model.Range.hasRange/0",
+    "kind" : "METHOD",
+    "label" : "hasRange",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 51
+  }, {
+    "id" : "com.estate.global.model.Range.contains/1",
+    "kind" : "METHOD",
+    "label" : "contains",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 55
+  }, {
+    "id" : "com.estate.global.model.Range.overlaps/1",
+    "kind" : "METHOD",
+    "label" : "overlaps",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 60
+  }, {
+    "id" : "com.estate.global.model.Range.toString/0",
+    "kind" : "METHOD",
+    "label" : "toString",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 65
+  }, {
+    "id" : "com.estate.global.model.Range.equals/1",
+    "kind" : "METHOD",
+    "label" : "equals",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 71
+  }, {
+    "id" : "com.estate.global.model.Range.hashCode/0",
+    "kind" : "METHOD",
+    "label" : "hashCode",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 82
+  }, {
+    "id" : "com.estate.global.model.Range.<init>/0",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 24
+  }, {
+    "id" : "com.estate.global.model.Range.<init>/2",
+    "kind" : "CONSTRUCTOR",
+    "label" : "<init>",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Range.java",
+    "line" : 26
+  }, {
+    "id" : "com.estate.global.model.Events",
+    "kind" : "CLASS",
+    "label" : "Events",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Events.java",
+    "line" : 5
+  }, {
+    "id" : "com.estate.global.model.Events#eventPublisher",
+    "kind" : "FIELD",
+    "label" : "eventPublisher",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Events.java",
+    "line" : 7
+  }, {
+    "id" : "com.estate.global.model.Events.setEventPublisher/1",
+    "kind" : "METHOD",
+    "label" : "setEventPublisher",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Events.java",
+    "line" : 9
+  }, {
+    "id" : "com.estate.global.model.Events.publishEvent/1",
+    "kind" : "METHOD",
+    "label" : "publishEvent",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/Events.java",
+    "line" : 13
+  }, {
+    "id" : "com.estate.global.model.ErrorResponse",
+    "kind" : "CLASS",
+    "label" : "ErrorResponse",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ErrorResponse.java",
+    "line" : 16
+  }, {
+    "id" : "com.estate.global.model.ErrorResponse#code",
+    "kind" : "FIELD",
+    "label" : "code",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ErrorResponse.java",
+    "line" : 22
+  }, {
+    "id" : "com.estate.global.model.ErrorResponse#message",
+    "kind" : "FIELD",
+    "label" : "message",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ErrorResponse.java",
+    "line" : 23
+  }, {
+    "id" : "com.estate.global.model.ErrorResponse#path",
+    "kind" : "FIELD",
+    "label" : "path",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ErrorResponse.java",
+    "line" : 24
+  }, {
+    "id" : "com.estate.global.model.ErrorResponse#timestamp",
+    "kind" : "FIELD",
+    "label" : "timestamp",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ErrorResponse.java",
+    "line" : 26
+  }, {
+    "id" : "com.estate.global.model.ErrorResponse.to/1",
+    "kind" : "METHOD",
+    "label" : "to",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ErrorResponse.java",
+    "line" : 32
+  }, {
+    "id" : "com.estate.global.model.ErrorResponse.of/3",
+    "kind" : "METHOD",
+    "label" : "of",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ErrorResponse.java",
+    "line" : 40
+  }, {
+    "id" : "com.estate.global.model.ErrorResponse.error/2",
+    "kind" : "METHOD",
+    "label" : "error",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ErrorResponse.java",
+    "line" : 44
+  }, {
+    "id" : "com.estate.global.model.ErrorResponse.token/2",
+    "kind" : "METHOD",
+    "label" : "token",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/global/model/ErrorResponse.java",
+    "line" : 55
+  }, {
+    "id" : "GET /api/estate/properties",
+    "kind" : "ENDPOINT",
+    "label" : "GET /api/estate/properties",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 26
+  }, {
+    "id" : "GET /api/estate/properties/{propertyId}",
+    "kind" : "ENDPOINT",
+    "label" : "GET /api/estate/properties/{propertyId}",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 42
+  }, {
+    "id" : "POST /api/estate/properties",
+    "kind" : "ENDPOINT",
+    "label" : "POST /api/estate/properties",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 56
+  }, {
+    "id" : "PUT /api/estate/properties/{propertyId}",
+    "kind" : "ENDPOINT",
+    "label" : "PUT /api/estate/properties/{propertyId}",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 74
+  }, {
+    "id" : "DELETE /api/estate/properties/{propertyId}",
+    "kind" : "ENDPOINT",
+    "label" : "DELETE /api/estate/properties/{propertyId}",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/PropertyController.java",
+    "line" : 93
+  }, {
+    "id" : "POST /api/auth/login",
+    "kind" : "ENDPOINT",
+    "label" : "POST /api/auth/login",
+    "file" : "/private/tmp/claude-501/-Users-sayongja-IdeaProjects-spec-scan/62810b42-394a-4009-8f7a-f357cf573da0/scratchpad/RealEstate/src/main/java/com/estate/api/adapter/AuthController.java",
+    "line" : 22
+  } ],
+  "edges" : [ {
+    "from" : "com.estate.Application",
+    "to" : "com.estate.Application.main/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.JacksonConfig",
+    "to" : "com.estate.config.JacksonConfig.jsonCustomizer/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.SecurityConfig",
+    "to" : "com.estate.config.SecurityConfig.configure/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.SecurityConfig",
+    "to" : "com.estate.config.SecurityConfig.securityFilterChain/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.SecurityConfig",
+    "to" : "com.estate.config.SecurityConfig.userDetailsService/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.SecurityConfig",
+    "to" : "com.estate.config.SecurityConfig.authenticationManager/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.SecurityConfig",
+    "to" : "com.estate.config.SecurityConfig.passwordEncoder/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.SecurityConfig",
+    "to" : "com.estate.config.SecurityConfig.jwtAuthenticationProvider/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.SecurityConfig",
+    "to" : "com.estate.config.SecurityConfig.jwtFilter/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtExceptionFilter",
+    "to" : "com.estate.config.security.JwtExceptionFilter.doFilterInternal/3",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtExceptionFilter",
+    "to" : "com.estate.config.security.JwtExceptionFilter.setErrorResponse/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtFilter",
+    "to" : "com.estate.config.security.JwtFilter#TOKEN_HEADER",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtFilter",
+    "to" : "com.estate.config.security.JwtFilter#TOKEN_PREFIX",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtFilter",
+    "to" : "com.estate.config.security.JwtFilter#jwtAuthenticationProvider",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtFilter",
+    "to" : "com.estate.config.security.JwtFilter.doFilterInternal/3",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtFilter",
+    "to" : "com.estate.config.security.JwtFilter.resolveToken/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider#userDetailsService",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider#secretKey",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider#refreshSecretKey",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider#accessExpiredMinutes",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider.getClaimsFormToken/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider.getSubject/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider.getAuthentication/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider.generateJwtToken/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider.isValidToken/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.CustomUserDetailsService",
+    "to" : "com.estate.config.security.CustomUserDetailsService#passwordEncoder",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.CustomUserDetailsService",
+    "to" : "com.estate.config.security.CustomUserDetailsService#users",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.CustomUserDetailsService",
+    "to" : "com.estate.config.security.CustomUserDetailsService.loadUserByUsername/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser#serialVersionUID",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser#username",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser#password",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser#authorities",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser.newInstance/3",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser.getAuthorities/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser.getPassword/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser.getUsername/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser.isAccountNonExpired/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser.isAccountNonLocked/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser.isCredentialsNonExpired/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser.isEnabled/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.security.AuthUser",
+    "to" : "com.estate.config.security.AuthUser.to/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.DataLoader",
+    "to" : "com.estate.config.DataLoader#propertyRepository",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.DataLoader",
+    "to" : "com.estate.config.DataLoader.run/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler",
+    "to" : "com.estate.config.GlobalExceptionHandler.handleDataNotFoundException/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler",
+    "to" : "com.estate.config.GlobalExceptionHandler.handleConflictException/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler",
+    "to" : "com.estate.config.GlobalExceptionHandler.handleIllegalArgumentException/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler",
+    "to" : "com.estate.config.GlobalExceptionHandler.handleNotInvalidException/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler",
+    "to" : "com.estate.config.GlobalExceptionHandler.handleUsernameNotFoundException/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler",
+    "to" : "com.estate.config.GlobalExceptionHandler.handleLazyInitializationException/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler",
+    "to" : "com.estate.config.GlobalExceptionHandler.handleAuthenticationException/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler",
+    "to" : "com.estate.config.GlobalExceptionHandler.handleException/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.WebConfig",
+    "to" : "com.estate.config.WebConfig.addCorsMappings/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.SwaggerConfig",
+    "to" : "com.estate.config.SwaggerConfig.openAPI/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.SwaggerConfig",
+    "to" : "com.estate.config.SwaggerConfig.getSecurityScheme/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.SwaggerConfig",
+    "to" : "com.estate.config.SwaggerConfig.getSecurityRequireMent/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.QuerydslConfig",
+    "to" : "com.estate.config.QuerydslConfig#entityManager",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.QuerydslConfig",
+    "to" : "com.estate.config.QuerydslConfig.jpaQueryFactory/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.JwtInvalidException",
+    "to" : "com.estate.config.exception.JwtInvalidException#serialVersionUID",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.JwtInvalidException",
+    "to" : "com.estate.config.exception.JwtInvalidException.<init>/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.JwtInvalidException",
+    "to" : "com.estate.config.exception.JwtInvalidException.<init>/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.ConflictException",
+    "to" : "com.estate.config.exception.ConflictException#serialVersionUID",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.ConflictException",
+    "to" : "com.estate.config.exception.ConflictException.<init>/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.ConflictException",
+    "to" : "com.estate.config.exception.ConflictException.<init>/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.DataNotFoundException",
+    "to" : "com.estate.config.exception.DataNotFoundException#serialVersionUID",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.DataNotFoundException",
+    "to" : "com.estate.config.exception.DataNotFoundException.<init>/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.DataNotFoundException",
+    "to" : "com.estate.config.exception.DataNotFoundException.<init>/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.NotInvalidException",
+    "to" : "com.estate.config.exception.NotInvalidException#serialVersionUID",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.NotInvalidException",
+    "to" : "com.estate.config.exception.NotInvalidException.<init>/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.exception.NotInvalidException",
+    "to" : "com.estate.config.exception.NotInvalidException.<init>/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.utills.NanoIdGenerator",
+    "to" : "com.estate.utills.NanoIdGenerator#serialVersionUID",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.utills.NanoIdGenerator",
+    "to" : "com.estate.utills.NanoIdGenerator.generate/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.adapter.PropertyController",
+    "to" : "com.estate.api.adapter.PropertyController#service",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.adapter.PropertyController",
+    "to" : "com.estate.api.adapter.PropertyController.getProperties/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.adapter.PropertyController",
+    "to" : "com.estate.api.adapter.PropertyController.getProperty/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.adapter.PropertyController",
+    "to" : "com.estate.api.adapter.PropertyController.post/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.adapter.PropertyController",
+    "to" : "com.estate.api.adapter.PropertyController.put/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.adapter.PropertyController",
+    "to" : "com.estate.api.adapter.PropertyController.remove/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.adapter.AuthController",
+    "to" : "com.estate.api.adapter.AuthController#service",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.adapter.AuthController",
+    "to" : "com.estate.api.adapter.AuthController.login/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyResponse",
+    "to" : "com.estate.api.application.dto.PropertyResponse#propertyList",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyResponse",
+    "to" : "com.estate.api.application.dto.PropertyResponse.to/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+    "to" : "com.estate.api.application.dto.PropertyResponse.PropertyVO#propertyId",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+    "to" : "com.estate.api.application.dto.PropertyResponse.PropertyVO#propertyType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+    "to" : "com.estate.api.application.dto.PropertyResponse.PropertyVO#contractDetails",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyResponse.PropertyVO",
+    "to" : "com.estate.api.application.dto.PropertyResponse.PropertyVO.to/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.PropertyType",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertyType#propertyType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.ContractType",
+    "to" : "com.estate.api.application.dto.PropertyRequest.ContractType#contractType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.PropertySearch",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertySearch#propertyType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.PropertySearch",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertySearch#contractType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.PropertySearch",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertySearch#priceStart",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.PropertySearch",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertySearch#priceEnd",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.PropertySearch",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertySearch.to/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.PropertySave",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertySave#propertyType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.PropertySave",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertySave#contractDetails",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.PropertySave",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertySave.to/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO",
+    "to" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO#contractType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO",
+    "to" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO#deposit",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO",
+    "to" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO#rent",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO",
+    "to" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO.to/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.PropertyService",
+    "to" : "com.estate.api.service.PropertyService#propertyRepository",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.PropertyService",
+    "to" : "com.estate.api.service.PropertyService#propertySaveService",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.PropertyService",
+    "to" : "com.estate.api.service.PropertyService#propertyModifyService",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.PropertyService",
+    "to" : "com.estate.api.service.PropertyService#propertyRemoveService",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.PropertyService",
+    "to" : "com.estate.api.service.PropertyService.getAll/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.PropertyService",
+    "to" : "com.estate.api.service.PropertyService.getProperty/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.PropertyService",
+    "to" : "com.estate.api.service.PropertyService.save/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.PropertyService",
+    "to" : "com.estate.api.service.PropertyService.modify/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.PropertyService",
+    "to" : "com.estate.api.service.PropertyService.remove/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.AuthService",
+    "to" : "com.estate.api.service.AuthService#passwordEncoder",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.AuthService",
+    "to" : "com.estate.api.service.AuthService#userDetailsService",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.AuthService",
+    "to" : "com.estate.api.service.AuthService#jwtAuthenticationProvider",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.service.AuthService",
+    "to" : "com.estate.api.service.AuthService.login/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustom",
+    "to" : "com.estate.api.domain.repository.PropertyRepositoryCustom.getPropertyList/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl",
+    "to" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl#queryFactory",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl",
+    "to" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.getPropertyList/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl",
+    "to" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.applyNormalCondition/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl",
+    "to" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.applySearch/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl",
+    "to" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.applyPageable/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl",
+    "to" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.longBetween/3",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.enumtype.ContractType",
+    "to" : "com.estate.api.domain.enumtype.ContractType#title",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.enumtype.PropertyType",
+    "to" : "com.estate.api.domain.enumtype.PropertyType#title",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetailVO",
+    "to" : "com.estate.api.domain.model.ContractDetailVO.newInstance/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetailVO",
+    "to" : "com.estate.api.domain.model.ContractDetailVO.to/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.Property",
+    "to" : "com.estate.api.domain.model.Property#serialVersionUID",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.Property",
+    "to" : "com.estate.api.domain.model.Property#id",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.Property",
+    "to" : "com.estate.api.domain.model.Property#propertyType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.Property",
+    "to" : "com.estate.api.domain.model.Property#contractDetails",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.Property",
+    "to" : "com.estate.api.domain.model.Property#deleteYN",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.Property",
+    "to" : "com.estate.api.domain.model.Property.validate/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.Property",
+    "to" : "com.estate.api.domain.model.Property.newInstance/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.Property",
+    "to" : "com.estate.api.domain.model.Property.changeContractDetails/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.Property",
+    "to" : "com.estate.api.domain.model.Property.changePropertyType/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.Property",
+    "to" : "com.estate.api.domain.model.Property.<init>/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertySearch",
+    "to" : "com.estate.api.domain.model.PropertySearch#propertyType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertySearch",
+    "to" : "com.estate.api.domain.model.PropertySearch#contractType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertySearch",
+    "to" : "com.estate.api.domain.model.PropertySearch#longRange",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertySearch",
+    "to" : "com.estate.api.domain.model.PropertySearch.to/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertySearch",
+    "to" : "com.estate.api.domain.model.PropertySearch.toString/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertySave",
+    "to" : "com.estate.api.domain.model.PropertySave#propertyType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertySave",
+    "to" : "com.estate.api.domain.model.PropertySave#contractDetails",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertySave",
+    "to" : "com.estate.api.domain.model.PropertySave.to/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetail",
+    "to" : "com.estate.api.domain.model.ContractDetail#serialVersionUID",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetail",
+    "to" : "com.estate.api.domain.model.ContractDetail#contractType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetail",
+    "to" : "com.estate.api.domain.model.ContractDetail#deposit",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetail",
+    "to" : "com.estate.api.domain.model.ContractDetail#rent",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetail",
+    "to" : "com.estate.api.domain.model.ContractDetail.newInstance/3",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetail",
+    "to" : "com.estate.api.domain.model.ContractDetail.isNotValid/3",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetail",
+    "to" : "com.estate.api.domain.model.ContractDetail.equals/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetail",
+    "to" : "com.estate.api.domain.model.ContractDetail.hashCode/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetail",
+    "to" : "com.estate.api.domain.model.ContractDetail.<init>/3",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertyVO",
+    "to" : "com.estate.api.domain.model.PropertyVO#propertyId",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertyVO",
+    "to" : "com.estate.api.domain.model.PropertyVO#propertyType",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertyVO",
+    "to" : "com.estate.api.domain.model.PropertyVO#contractDetails",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertyVO",
+    "to" : "com.estate.api.domain.model.PropertyVO.to/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.service.PropertyRemoveService",
+    "to" : "com.estate.api.domain.service.PropertyRemoveService#propertyRepository",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.service.PropertyRemoveService",
+    "to" : "com.estate.api.domain.service.PropertyRemoveService.remove/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.service.PropertySaveService",
+    "to" : "com.estate.api.domain.service.PropertySaveService#propertyRepository",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.service.PropertySaveService",
+    "to" : "com.estate.api.domain.service.PropertySaveService.save/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.service.PropertyModifyService",
+    "to" : "com.estate.api.domain.service.PropertyModifyService#propertyRepository",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.api.domain.service.PropertyModifyService",
+    "to" : "com.estate.api.domain.service.PropertyModifyService.modify/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.DataResponse",
+    "to" : "com.estate.global.model.DataResponse#result",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.LongRange",
+    "to" : "com.estate.global.model.LongRange.getStart/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.LongRange",
+    "to" : "com.estate.global.model.LongRange.getEnd/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.LongRange",
+    "to" : "com.estate.global.model.LongRange.<init>/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.enumtype.ErrorCode",
+    "to" : "com.estate.global.model.enumtype.ErrorCode#status",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.enumtype.ErrorCode",
+    "to" : "com.estate.global.model.enumtype.ErrorCode#message",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.enumtype.YN",
+    "to" : "com.estate.global.model.enumtype.YN#title",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.enumtype.YN",
+    "to" : "com.estate.global.model.enumtype.YN#title2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.enumtype.YN",
+    "to" : "com.estate.global.model.enumtype.YN.checked/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.LoginDTO",
+    "to" : "com.estate.global.model.LoginDTO#username",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.LoginDTO",
+    "to" : "com.estate.global.model.LoginDTO#password",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.ComparableRange",
+    "to" : "com.estate.global.model.ComparableRange.contains/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.ComparableRange",
+    "to" : "com.estate.global.model.ComparableRange.overlaps/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.EventConfig",
+    "to" : "com.estate.global.model.EventConfig#applicationContext",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.EventConfig",
+    "to" : "com.estate.global.model.EventConfig.eventsInitializer/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range#start",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range#end",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.getStart/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.getEnd/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.setStart/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.setEnd/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.hasRange/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.contains/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.overlaps/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.toString/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.equals/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.hashCode/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.<init>/0",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.Range.<init>/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Events",
+    "to" : "com.estate.global.model.Events#eventPublisher",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Events",
+    "to" : "com.estate.global.model.Events.setEventPublisher/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.Events",
+    "to" : "com.estate.global.model.Events.publishEvent/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse",
+    "to" : "com.estate.global.model.ErrorResponse#code",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse",
+    "to" : "com.estate.global.model.ErrorResponse#message",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse",
+    "to" : "com.estate.global.model.ErrorResponse#path",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse",
+    "to" : "com.estate.global.model.ErrorResponse#timestamp",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse",
+    "to" : "com.estate.global.model.ErrorResponse.to/1",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse",
+    "to" : "com.estate.global.model.ErrorResponse.of/3",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse",
+    "to" : "com.estate.global.model.ErrorResponse.error/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse",
+    "to" : "com.estate.global.model.ErrorResponse.token/2",
+    "kind" : "DECLARES"
+  }, {
+    "from" : "com.estate.config.SecurityConfig.securityFilterChain/1",
+    "to" : "com.estate.config.SecurityConfig.jwtFilter/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.SecurityConfig.securityFilterChain/1",
+    "to" : "com.estate.config.security.JwtExceptionFilter",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.config.SecurityConfig.userDetailsService/0",
+    "to" : "com.estate.config.SecurityConfig.passwordEncoder/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.SecurityConfig.userDetailsService/0",
+    "to" : "com.estate.config.security.CustomUserDetailsService",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.config.SecurityConfig.authenticationManager/0",
+    "to" : "com.estate.config.SecurityConfig.userDetailsService/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.SecurityConfig.authenticationManager/0",
+    "to" : "com.estate.config.SecurityConfig.passwordEncoder/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.SecurityConfig.jwtAuthenticationProvider/0",
+    "to" : "com.estate.config.SecurityConfig.userDetailsService/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.SecurityConfig.jwtAuthenticationProvider/0",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.config.SecurityConfig.jwtFilter/0",
+    "to" : "com.estate.config.SecurityConfig.jwtAuthenticationProvider/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.SecurityConfig.jwtFilter/0",
+    "to" : "com.estate.config.security.JwtFilter",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.config.security.JwtExceptionFilter.setErrorResponse/2",
+    "to" : "com.estate.global.model.ErrorResponse.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.security.JwtFilter.doFilterInternal/3",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider.isValidToken/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.security.JwtFilter.doFilterInternal/3",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider.getAuthentication/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.security.JwtFilter.doFilterInternal/3",
+    "to" : "com.estate.config.exception.JwtInvalidException",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider.getClaimsFormToken/1",
+    "to" : "com.estate.config.exception.JwtInvalidException",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider.getSubject/1",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider.getClaimsFormToken/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider.getAuthentication/1",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider.getClaimsFormToken/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider.getAuthentication/1",
+    "to" : "com.estate.config.security.AuthUser.getAuthorities/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.security.JwtAuthenticationProvider.isValidToken/1",
+    "to" : "com.estate.config.security.JwtAuthenticationProvider.getClaimsFormToken/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.security.AuthUser.newInstance/3",
+    "to" : "com.estate.config.security.AuthUser",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.config.DataLoader.run/1",
+    "to" : "com.estate.api.domain.model.Property.newInstance/2",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.DataLoader.run/1",
+    "to" : "com.estate.api.domain.model.ContractDetail.newInstance/3",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler.handleNotInvalidException/1",
+    "to" : "com.estate.global.model.ErrorResponse.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler.handleUsernameNotFoundException/1",
+    "to" : "com.estate.global.model.ErrorResponse.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler.handleLazyInitializationException/1",
+    "to" : "com.estate.global.model.ErrorResponse.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler.handleAuthenticationException/1",
+    "to" : "com.estate.global.model.ErrorResponse.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.GlobalExceptionHandler.handleException/1",
+    "to" : "com.estate.global.model.ErrorResponse.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.SwaggerConfig.openAPI/0",
+    "to" : "com.estate.config.SwaggerConfig.getSecurityScheme/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.config.SwaggerConfig.openAPI/0",
+    "to" : "com.estate.config.SwaggerConfig.getSecurityRequireMent/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.adapter.PropertyController.getProperty/1",
+    "to" : "com.estate.api.service.PropertyService.getProperty/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.adapter.PropertyController.post/1",
+    "to" : "com.estate.api.service.PropertyService.save/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.adapter.PropertyController.put/2",
+    "to" : "com.estate.api.service.PropertyService.modify/2",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.adapter.PropertyController.remove/1",
+    "to" : "com.estate.api.service.PropertyService.remove/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.adapter.AuthController.login/1",
+    "to" : "com.estate.api.service.AuthService.login/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.PropertySearch.to/0",
+    "to" : "com.estate.api.domain.model.PropertySearch.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.application.dto.PropertyRequest.ContractDetailDTO.to/0",
+    "to" : "com.estate.api.domain.model.ContractDetailVO",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.api.service.PropertyService.getAll/2",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertySearch.to/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.service.PropertyService.getProperty/1",
+    "to" : "com.estate.api.application.dto.PropertyResponse.PropertyVO.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.service.PropertyService.getProperty/1",
+    "to" : "com.estate.api.domain.model.PropertyVO.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.service.PropertyService.getProperty/1",
+    "to" : "com.estate.config.exception.DataNotFoundException",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.api.service.PropertyService.save/1",
+    "to" : "com.estate.api.application.dto.PropertyResponse.PropertyVO.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.service.PropertyService.save/1",
+    "to" : "com.estate.api.domain.service.PropertySaveService.save/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.service.PropertyService.save/1",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertySave.to/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.service.PropertyService.modify/2",
+    "to" : "com.estate.api.application.dto.PropertyResponse.PropertyVO.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.service.PropertyService.modify/2",
+    "to" : "com.estate.api.domain.service.PropertyModifyService.modify/2",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.service.PropertyService.modify/2",
+    "to" : "com.estate.api.application.dto.PropertyRequest.PropertySave.to/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.service.PropertyService.remove/1",
+    "to" : "com.estate.api.domain.service.PropertyRemoveService.remove/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.service.AuthService.login/1",
+    "to" : "com.estate.global.model.ErrorResponse.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.service.AuthService.login/1",
+    "to" : "com.estate.global.model.DataResponse",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepository",
+    "to" : "com.estate.api.domain.repository.PropertyRepositoryCustom",
+    "kind" : "EXTENDS"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl",
+    "to" : "com.estate.api.domain.repository.PropertyRepositoryCustom",
+    "kind" : "IMPLEMENTS"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.getPropertyList/2",
+    "to" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.applyNormalCondition/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.getPropertyList/2",
+    "to" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.applySearch/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.applySearch/1",
+    "to" : "com.estate.global.model.Range.hasRange/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.applySearch/1",
+    "to" : "com.estate.global.model.LongRange.getStart/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.domain.repository.PropertyRepositoryCustomImpl.applySearch/1",
+    "to" : "com.estate.global.model.LongRange.getEnd/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetailVO.newInstance/1",
+    "to" : "com.estate.api.domain.model.ContractDetailVO",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetailVO.to/0",
+    "to" : "com.estate.api.domain.model.ContractDetail.newInstance/3",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.domain.model.Property.newInstance/2",
+    "to" : "com.estate.api.domain.model.Property",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.api.domain.model.Property.<init>/2",
+    "to" : "com.estate.api.domain.model.Property.validate/2",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.domain.model.PropertySearch.to/1",
+    "to" : "com.estate.global.model.LongRange",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetail.newInstance/3",
+    "to" : "com.estate.api.domain.model.ContractDetail",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.api.domain.model.ContractDetail.<init>/3",
+    "to" : "com.estate.api.domain.model.ContractDetail.isNotValid/3",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.domain.service.PropertyRemoveService.remove/1",
+    "to" : "com.estate.config.exception.DataNotFoundException",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.api.domain.service.PropertySaveService.save/1",
+    "to" : "com.estate.api.domain.model.PropertySave.to/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.api.domain.service.PropertyModifyService.modify/2",
+    "to" : "com.estate.config.exception.DataNotFoundException",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.global.model.DataResponse",
+    "to" : "com.estate.global.model.ErrorResponse",
+    "kind" : "EXTENDS"
+  }, {
+    "from" : "com.estate.global.model.LongRange",
+    "to" : "com.estate.global.model.Range",
+    "kind" : "EXTENDS"
+  }, {
+    "from" : "com.estate.global.model.LongRange.getStart/0",
+    "to" : "com.estate.global.model.Range.getStart/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.global.model.LongRange.getEnd/0",
+    "to" : "com.estate.global.model.Range.getEnd/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.global.model.Range",
+    "to" : "com.estate.global.model.ComparableRange",
+    "kind" : "IMPLEMENTS"
+  }, {
+    "from" : "com.estate.global.model.Range.equals/1",
+    "to" : "com.estate.global.model.Range.getStart/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.global.model.Range.equals/1",
+    "to" : "com.estate.global.model.Range.getEnd/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.global.model.Range.hashCode/0",
+    "to" : "com.estate.global.model.Range.getStart/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.global.model.Range.hashCode/0",
+    "to" : "com.estate.global.model.Range.getEnd/0",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse.to/1",
+    "to" : "com.estate.global.model.ErrorResponse",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse.of/3",
+    "to" : "com.estate.global.model.ErrorResponse",
+    "kind" : "CREATES"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse.error/2",
+    "to" : "com.estate.global.model.ErrorResponse.to/1",
+    "kind" : "CALLS"
+  }, {
+    "from" : "com.estate.global.model.ErrorResponse.token/2",
+    "to" : "com.estate.global.model.DataResponse",
+    "kind" : "CREATES"
+  }, {
+    "from" : "GET /api/estate/properties",
+    "to" : "com.estate.api.adapter.PropertyController.getProperties/2",
+    "kind" : "HANDLED_BY"
+  }, {
+    "from" : "GET /api/estate/properties/{propertyId}",
+    "to" : "com.estate.api.adapter.PropertyController.getProperty/1",
+    "kind" : "HANDLED_BY"
+  }, {
+    "from" : "POST /api/estate/properties",
+    "to" : "com.estate.api.adapter.PropertyController.post/1",
+    "kind" : "HANDLED_BY"
+  }, {
+    "from" : "PUT /api/estate/properties/{propertyId}",
+    "to" : "com.estate.api.adapter.PropertyController.put/2",
+    "kind" : "HANDLED_BY"
+  }, {
+    "from" : "DELETE /api/estate/properties/{propertyId}",
+    "to" : "com.estate.api.adapter.PropertyController.remove/1",
+    "kind" : "HANDLED_BY"
+  }, {
+    "from" : "POST /api/auth/login",
+    "to" : "com.estate.api.adapter.AuthController.login/1",
+    "kind" : "HANDLED_BY"
+  } ]
+}
