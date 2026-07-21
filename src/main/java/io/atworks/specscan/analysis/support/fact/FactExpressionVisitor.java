@@ -198,7 +198,21 @@ final class FactExpressionVisitor {
             } catch (RuntimeException ignored) { }
             return new FactNode(ids.generate(FactNodeType.FIELD_ACCESS, owner, range, role), FactNodeType.FIELD_ACCESS, range, field.toString(), TypeResolution.notApplicable(), new FactNodePayload.FieldAccessPayload(field.getNameAsString(), field.getScope().getClass().getSimpleName()));
         }
-        if (expression instanceof NameExpr name) return new FactNode(ids.generate(FactNodeType.FIELD_ACCESS, owner, range, role), FactNodeType.FIELD_ACCESS, range, name.toString(), TypeResolution.unresolved("DECLARATION_NOT_RESOLVED"), new FactNodePayload.FieldAccessPayload(name.getNameAsString(), "NameExpr"));
+        if (expression instanceof NameExpr name) {
+            try {
+                var declaration = name.resolve();
+                if (declaration.isEnumConstant()) return new FactNode(
+                    ids.generate(FactNodeType.ENUM_CONSTANT, owner, range, role),
+                    FactNodeType.ENUM_CONSTANT, range, name.toString(),
+                    TypeResolution.resolvedType(declaration.getType().describe()),
+                    new FactNodePayload.EnumConstantPayload(declaration.getType().describe(),
+                        name.getNameAsString()));
+            } catch (RuntimeException ignored) { }
+            return new FactNode(ids.generate(FactNodeType.FIELD_ACCESS, owner, range, role),
+                FactNodeType.FIELD_ACCESS, range, name.toString(),
+                TypeResolution.unresolved("DECLARATION_NOT_RESOLVED"),
+                new FactNodePayload.FieldAccessPayload(name.getNameAsString(), "NameExpr"));
+        }
         if (expression instanceof NullLiteralExpr) return new FactNode(ids.generate(FactNodeType.NULL_LITERAL, owner, range, role), FactNodeType.NULL_LITERAL, range, expression.toString(), TypeResolution.notApplicable(), new FactNodePayload.NullLiteralPayload());
         if (expression instanceof LiteralExpr literal) return new FactNode(ids.generate(FactNodeType.LITERAL, owner, range, role), FactNodeType.LITERAL, range, literal.toString(), TypeResolution.notApplicable(), new FactNodePayload.LiteralPayload(literal.toString(), literal.getClass().getSimpleName()));
         return null;

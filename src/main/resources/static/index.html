@@ -25,6 +25,7 @@
         </div>
       </div>
       <div class="system-status">
+        <a href="/intelligence.html" style="color:inherit;margin-right:1rem">API Intelligence</a>
         <span class="status-indicator online"></span>
         <span class="status-label">Scanner Engine Active</span>
       </div>
@@ -44,6 +45,16 @@
             <div class="input-wrapper">
               <i class="ph ph-folder"></i>
               <input type="text" id="projectName" name="projectName" value="my-project" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="analysisMode">Analysis Mode</label>
+            <div class="select-wrapper">
+              <select id="analysisMode" name="analysisMode">
+                <option value="RULE">Rule Based</option>
+                <option value="LLM">LLM Intelligence</option>
+              </select>
             </div>
           </div>
 

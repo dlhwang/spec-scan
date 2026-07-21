@@ -14,11 +14,15 @@ public record FactNode(String id, FactNodeType type, SourceRange sourceRange, St
         case HTTP_STATUS -> payload instanceof FactNodePayload.HttpStatusPayload;
         case PARAMETER -> payload instanceof FactNodePayload.ParameterPayload;
         case LOCAL_VARIABLE -> payload instanceof FactNodePayload.LocalVariablePayload;
+        case TYPE -> payload instanceof FactNodePayload.TypePayload;
+        case SCHEMA_FIELD -> payload instanceof FactNodePayload.SchemaFieldPayload;
+        case ANNOTATION -> payload instanceof FactNodePayload.AnnotationPayload;
         case FIELD_ACCESS, VALUE_FIELD -> payload instanceof FactNodePayload.FieldAccessPayload;
         case ENUM_CONSTANT -> payload instanceof FactNodePayload.EnumConstantPayload;
         case LITERAL -> payload instanceof FactNodePayload.LiteralPayload;
         case NULL_LITERAL -> payload instanceof FactNodePayload.NullLiteralPayload;
         case METHOD_CALL -> payload instanceof FactNodePayload.MethodCallPayload;
+        case RESPONSE_FACTORY -> payload instanceof FactNodePayload.ResponseFactoryPayload;
         case CONDITION -> payload instanceof FactNodePayload.ConditionPayload;
         case THROW, RETURN -> payload instanceof FactNodePayload.OutcomePayload;
     }; }

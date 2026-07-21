@@ -24,8 +24,6 @@ public final class InitialRuleCatalog {
                 BusinessRuleCategory.INVARIANT, RuleEffect.REQUEST_REQUIREMENT, CALL),
             descriptor(DelegatedGuardRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,
                 BusinessRuleCategory.STATE_PRECONDITION, RuleEffect.REQUEST_REQUIREMENT, CALL),
-            descriptor(AuthorizationGuardCallRule.ID, "java-language", RuleLayer.JAVA_LANGUAGE,
-                BusinessRuleCategory.AUTHORIZATION, RuleEffect.BUSINESS_RESTRICTION, CALL),
             descriptor(OptionalLookupFailureRule.ID, "jdk-idiom", RuleLayer.JDK_IDIOM,
                 BusinessRuleCategory.EXISTENCE, RuleEffect.BUSINESS_RESTRICTION, CALL),
             descriptor(PasswordEncoderMatchFailureRule.ID, "spring", RuleLayer.SPRING,

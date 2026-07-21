@@ -472,6 +472,72 @@ class OpenApiAssemblyServiceTest {
     }
 
     @Test
+    void executionExportAppliesResponseFactoryConstantAssertionsToExample(@TempDir Path tempDir) throws Exception {
+        Path srcRoot = tempDir.resolve("src/main/java/io/atworks/api");
+        Files.createDirectories(srcRoot);
+        Files.writeString(srcRoot.resolve("ApiResponse.java"), """
+            package io.atworks.api;
+            public class ApiResponse {
+                public boolean success;
+                public Object response;
+                public Object error;
+            }
+            """);
+        SourceTrace trace = new SourceTrace("src/main/java/io/atworks/api/Controller.java", 1, 1);
+        ApiEndpoint endpoint = new ApiEndpoint("POST", "/login", "io.atworks.api.Controller", "login",
+            List.of(), new ResponseBinding("io.atworks.api.ApiResponse", trace), trace);
+        StaticScanResult scan = new StaticScanResult(List.of(endpoint), 1, List.of(),
+            new IngestionMetadata(Instant.now(), Instant.now(), 1, "LOCAL", "main", 0));
+        var evidence = new io.atworks.specscan.analysis.domain.candidate.EvidenceRef("literal",
+            trace.fileRelativePath(), 1, 1, 1, 5,
+            io.atworks.specscan.analysis.domain.candidate.EvidenceRole.PREDICATE, "true");
+        var assertion = new io.atworks.specscan.analysis.domain.output.ExecutableCondition("BODY",
+            "$.success", "EQ", List.of("true"), "literal", "RESPONSE_FACTORY_CONSTANT", 1.0,
+            List.of(evidence));
+        EndpointRuleOutput output = new EndpointRuleOutput("/login", List.of(), List.of(assertion),
+            List.of(), List.of());
+
+        JsonNode json = objectMapper.readTree(new ExecutionSpecExporter().export(scan,
+            Map.of("POST /login", output), List.of(), buildRepositorySource(tempDir, scan)));
+
+        assertThat(json.at("/operations/0/response200/example/success").asBoolean()).isTrue();
+    }
+
+    @Test
+    void executionExportSubstitutesGenericResponseBodyType(@TempDir Path tempDir) throws Exception {
+        Path srcRoot = tempDir.resolve("src/main/java/io/atworks/api");
+        Files.createDirectories(srcRoot);
+        Files.writeString(srcRoot.resolve("ApiResponse.java"), """
+            package io.atworks.api;
+            public class ApiResponse<T> {
+                @com.fasterxml.jackson.annotation.JsonIgnore
+                public Object httpStatus;
+                public boolean success;
+                public T response;
+                public ErrorResponse error;
+            }
+            class ErrorResponse { String code; String message; }
+            """);
+        Files.writeString(srcRoot.resolve("LoginResponse.java"), """
+            package io.atworks.api;
+            public class LoginResponse { public long id; }
+            """);
+        SourceTrace trace = new SourceTrace("src/main/java/io/atworks/api/Controller.java", 1, 1);
+        ApiEndpoint endpoint = new ApiEndpoint("POST", "/login", "io.atworks.api.Controller", "login",
+            List.of(), new ResponseBinding("io.atworks.api.ApiResponse<io.atworks.api.LoginResponse>", trace), trace);
+        StaticScanResult scan = new StaticScanResult(List.of(endpoint), 2, List.of(),
+            new IngestionMetadata(Instant.now(), Instant.now(), 2, "LOCAL", "main", 0));
+
+        JsonNode json = objectMapper.readTree(new ExecutionSpecExporter().export(scan, Map.of(), List.of(),
+            buildRepositorySource(tempDir, scan)));
+
+        assertThat(json.at("/operations/0/response200/schema/properties/response/properties/id/type").asText())
+            .isEqualTo("integer");
+        assertThat(json.at("/operations/0/response200/example/response/id").isNumber()).isTrue();
+        assertThat(json.at("/operations/0/response200/schema/properties/httpStatus").isMissingNode()).isTrue();
+    }
+
+    @Test
     void executionExportIncludesLateServiceHintWarnings(@TempDir Path tempDir) throws Exception {
         SourceTrace trace = new SourceTrace("src/main/java/io/atworks/order/OrderController.java", 10, 15);
         ApiEndpoint endpoint = new ApiEndpoint(
@@ -657,7 +723,7 @@ class OpenApiAssemblyServiceTest {
 
         assertThat(executionJson.at("/operations/0/excludedBusinessRules").toString()).contains("$.version");
         assertThat(executionJson.at("/operations/0/excludedBusinessRules").toString()).contains("OPTIMISTIC_LOCK_MATCH");
-        assertThat(executionJson.at("/operations/1/excludedBusinessRules").toString()).contains("HAS_CANCELLATION_PERMISSION");
+        assertThat(executionJson.at("/operations/1/excludedBusinessRules").toString()).doesNotContain("HAS_CANCELLATION_PERMISSION");
     }
 
     @Test
@@ -782,7 +848,7 @@ class OpenApiAssemblyServiceTest {
         assertThat(executionJson.at("/operations/2/excludedBusinessRules").toString())
             .contains("OPTIMISTIC_LOCK_MATCH");
         assertThat(executionJson.at("/operations/3/excludedBusinessRules").toString())
-            .contains("HAS_CANCELLATION_PERMISSION")
+            .doesNotContain("HAS_CANCELLATION_PERMISSION")
             .contains("STATE_IN");
     }
 

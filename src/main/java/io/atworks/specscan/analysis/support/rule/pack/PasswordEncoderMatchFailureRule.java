@@ -3,6 +3,7 @@ package io.atworks.specscan.analysis.support.rule.pack;
 import io.atworks.specscan.analysis.domain.candidate.*;
 import io.atworks.specscan.analysis.domain.fact.*;
 import io.atworks.specscan.analysis.domain.rule.*;
+import io.atworks.specscan.analysis.support.semantic.SpringSecurityPasswordMatcher;
 import java.util.List;
 
 public final class PasswordEncoderMatchFailureRule implements GraphRule {
@@ -15,7 +16,7 @@ public final class PasswordEncoderMatchFailureRule implements GraphRule {
         if (condition == null || !(condition.payload() instanceof FactNodePayload.ConditionPayload payload)
                 || !rejectsMismatch(condition, payload, support)) return List.of();
         FactNode call = support.callOperand(condition.id()).orElse(null);
-        if (call == null || !isPasswordMatch(call.typeResolution())) return List.of();
+        if (call == null || !SpringSecurityPasswordMatcher.matches(call.typeResolution())) return List.of();
         List<FactNode> arguments = support.callArguments(call.id());
         FactNode input = arguments.size() > 0 ? arguments.get(0) : null;
         FactNode stored = arguments.size() > 1 ? arguments.get(1) : null;
@@ -38,12 +39,6 @@ public final class PasswordEncoderMatchFailureRule implements GraphRule {
             RuleEffect.BUSINESS_RESTRICTION,
             targetResolved ? TargetResolutionStatus.RESOLVED : TargetResolutionStatus.UNRESOLVED,
             constraint, 1.0, evidence, diagnostics));
-    }
-    private boolean isPasswordMatch(TypeResolution resolution) {
-        String signature = resolution.resolvedSignature();
-        return resolution.status() == TypeResolutionStatus.RESOLVED && signature != null
-            && signature.contains("org.springframework.security.crypto.password")
-            && signature.endsWith(".matches(java.lang.CharSequence, java.lang.String)");
     }
     private boolean rejectsMismatch(FactNode condition, FactNodePayload.ConditionPayload payload,
                                     StructuralRuleSupport support) {

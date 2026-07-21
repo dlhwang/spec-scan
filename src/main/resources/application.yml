@@ -1,0 +1,16 @@
+api-intelligence:
+  output-root: build/api-intelligence-runs
+  graph:
+    max-depth: 8
+    max-methods: 100
+    max-edges: 2000
+  openai:
+    api-key: ""
+    endpoint: https://api.openai.com/v1/responses
+    model: gpt-4o-mini
+    request-timeout-seconds: 60
+    connect-timeout-seconds: 10
+    max-retries: 2
+    max-concurrency: 2
+    retry-after-cap-seconds: 30
+    max-input-characters: 30000

@@ -21,6 +21,86 @@ final class RuleTestFixtures {
             new FactEdge("outcome-edge", condition.id(), outcome.id(), FactEdgeType.THEN_OUTCOME, -1, outcomeType.name())));
     }
     static MethodScope scope() { return new MethodScope("graph", Set.of("root")); }
+    static FactCodeGraph delegatedBooleanGraph(boolean negatedGuard, boolean helperReturn,
+                                                boolean failureOutcome) {
+        SourceRange range = range();
+        FactNode root = new FactNode("root", FactNodeType.API_METHOD, range, "api()",
+            TypeResolution.resolvedSignature("sample.Api.api()"),
+            new FactNodePayload.MethodPayload("sample.Api", "api()", true));
+        FactNode outer = new FactNode("outer", FactNodeType.CONDITION, range,
+            negatedGuard ? "!isValid(value)" : "isInvalid(value)", TypeResolution.notApplicable(),
+            new FactNodePayload.ConditionPayload(negatedGuard ? "UnaryExpr" : "MethodCallExpr",
+                negatedGuard ? "!" : "MethodCallExpr"));
+        FactNode outcome = new FactNode("outcome", failureOutcome ? FactNodeType.THROW : FactNodeType.RETURN,
+            range, failureOutcome ? "throw failure" : "return success", TypeResolution.notApplicable(),
+            new FactNodePayload.OutcomePayload(failureOutcome ? "THROW" : "RETURN", "statement"));
+        FactNode call = new FactNode("call", FactNodeType.METHOD_CALL, range,
+            negatedGuard ? "isValid(value)" : "isInvalid(value)", TypeResolution.resolvedSignature(
+            negatedGuard ? "sample.Api.isValid(java.lang.String)" : "sample.Api.isInvalid(java.lang.String)"),
+            new FactNodePayload.MethodCallPayload(negatedGuard ? "isValid" : "isInvalid", 1, true));
+        FactNode helper = new FactNode("helper", FactNodeType.METHOD, range,
+            negatedGuard ? "isValid(String)" : "isInvalid(String)", TypeResolution.resolvedSignature(
+            negatedGuard ? "sample.Api.isValid(java.lang.String)" : "sample.Api.isInvalid(java.lang.String)"),
+            new FactNodePayload.MethodPayload("sample.Api", negatedGuard ? "isValid(String)" : "isInvalid(String)", false));
+        FactNode inner = new FactNode("inner", FactNodeType.CONDITION, range, "value == null",
+            TypeResolution.notApplicable(), new FactNodePayload.ConditionPayload("BinaryExpr", "=="));
+        FactNode returned = new FactNode("returned", FactNodeType.RETURN, range,
+            "return " + helperReturn, TypeResolution.notApplicable(),
+            new FactNodePayload.OutcomePayload("RETURN", "ReturnStmt"));
+        FactNode literal = new FactNode("literal", FactNodeType.LITERAL, range,
+            Boolean.toString(helperReturn), TypeResolution.notApplicable(),
+            new FactNodePayload.LiteralPayload(Boolean.toString(helperReturn), "BooleanLiteralExpr"));
+        return new FactCodeGraph("graph", root.id(),
+            List.of(root, outer, outcome, call, helper, inner, returned, literal), List.of(
+            new FactEdge("root-outer", root.id(), outer.id(), FactEdgeType.CONTROLS, -1, "IF"),
+            new FactEdge("outer-outcome", outer.id(), outcome.id(), FactEdgeType.THEN_OUTCOME, -1,
+                failureOutcome ? "THROW" : "RETURN"),
+            new FactEdge("outer-call", outer.id(), call.id(), FactEdgeType.OPERAND_OF, 0, "CALL"),
+            new FactEdge("call-helper", call.id(), helper.id(), FactEdgeType.CALLS, -1, "TARGET"),
+            new FactEdge("helper-inner", helper.id(), inner.id(), FactEdgeType.CONTROLS, -1, "IF"),
+            new FactEdge("inner-return", inner.id(), returned.id(), FactEdgeType.THEN_OUTCOME, -1, "RETURN"),
+            new FactEdge("return-literal", returned.id(), literal.id(), FactEdgeType.OPERAND_OF, 0, "VALUE")));
+    }
+    static FactCodeGraph delegatedDepthGraph(boolean cycle) {
+        SourceRange range = range();
+        List<FactNode> nodes = new ArrayList<>(); List<FactEdge> edges = new ArrayList<>();
+        FactNode root = new FactNode("root", FactNodeType.API_METHOD, range, "api()",
+            TypeResolution.resolvedSignature("sample.Api.api()"),
+            new FactNodePayload.MethodPayload("sample.Api", "api()", true));
+        FactNode outer = new FactNode("outer", FactNodeType.CONDITION, range, "invalid()",
+            TypeResolution.notApplicable(), new FactNodePayload.ConditionPayload("MethodCallExpr", "MethodCallExpr"));
+        FactNode failure = outcome("failure", range);
+        nodes.addAll(List.of(root, outer, failure));
+        edges.add(new FactEdge("root-outer", "root", "outer", FactEdgeType.CONTROLS, -1, "IF"));
+        edges.add(new FactEdge("outer-failure", "outer", "failure", FactEdgeType.THEN_OUTCOME, -1, "THROW"));
+        String parentCondition = "outer";
+        for (int depth = 1; depth <= 3; depth++) {
+            String callId = "call-" + depth, helperId = "helper-" + depth, conditionId = "condition-" + depth;
+            FactNode call = new FactNode(callId, FactNodeType.METHOD_CALL, range, "helper" + depth + "()",
+                TypeResolution.resolvedSignature("sample.Api.helper" + depth + "()"),
+                new FactNodePayload.MethodCallPayload("helper" + depth, 0, true));
+            FactNode helper = new FactNode(helperId, FactNodeType.METHOD, range, "helper" + depth + "()",
+                TypeResolution.resolvedSignature("sample.Api.helper" + depth + "()"),
+                new FactNodePayload.MethodPayload("sample.Api", "helper" + depth + "()", false));
+            FactNode condition = new FactNode(conditionId, FactNodeType.CONDITION, range, "guard" + depth,
+                TypeResolution.notApplicable(), new FactNodePayload.ConditionPayload("MethodCallExpr", "MethodCallExpr"));
+            FactNode returned = new FactNode("return-" + depth, FactNodeType.RETURN, range, "return true",
+                TypeResolution.notApplicable(), new FactNodePayload.OutcomePayload("RETURN", "ReturnStmt"));
+            FactNode literal = new FactNode("true-" + depth, FactNodeType.LITERAL, range, "true",
+                TypeResolution.notApplicable(), new FactNodePayload.LiteralPayload("true", "BooleanLiteralExpr"));
+            nodes.addAll(List.of(call, helper, condition, returned, literal));
+            edges.add(new FactEdge("operand-" + depth, parentCondition, callId, FactEdgeType.OPERAND_OF, 0, "CALL"));
+            String target = cycle && depth == 3 ? "helper-1" : helperId;
+            edges.add(new FactEdge("target-" + depth, callId, target, FactEdgeType.CALLS, -1, "TARGET"));
+            edges.add(new FactEdge("control-" + depth, helperId, conditionId, FactEdgeType.CONTROLS, -1, "IF"));
+            edges.add(new FactEdge("return-branch-" + depth, conditionId, returned.id(),
+                FactEdgeType.THEN_OUTCOME, -1, "RETURN"));
+            edges.add(new FactEdge("return-value-" + depth, returned.id(), literal.id(),
+                FactEdgeType.OPERAND_OF, 0, "VALUE"));
+            parentCondition = conditionId;
+        }
+        return new FactCodeGraph("graph", root.id(), nodes, edges);
+    }
     static FactCodeGraph graphWithTwoThrows() {
         SourceRange range = range();
         FactNode root = new FactNode("root", FactNodeType.API_METHOD, range, "api()",

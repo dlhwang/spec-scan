@@ -26,6 +26,8 @@ public final class ResponseMetadataAdapter {
                 && endpoint.responseBinding().statusSource().startsWith("CONFLICT:")) {
             diagnostics.add(new CandidateOutputDiagnostic("RESPONSE_METADATA_CONFLICT",
                 endpoint.responseBinding().statusSource(), "response:" + endpoint.httpMethod() + ":" + endpoint.path(), null));
+        } else if (assertions.isEmpty() && isSpringHandler(graph)) {
+            assertions.add(frameworkDefaultStatusAssertion(graph));
         } else if (assertions.isEmpty() && endpoint.responseBinding().explicitHeaders().isEmpty()) {
             diagnostics.add(new CandidateOutputDiagnostic("RESPONSE_METADATA_UNRESOLVED",
                 "No explicit normal response status, body condition, or header assertion was observed",
@@ -34,7 +36,39 @@ public final class ResponseMetadataAdapter {
         endpoint.responseBinding().explicitHeaders().forEach((name, value) ->
             assertions.add(headerAssertion(endpoint, name, value)));
         return new EndpointRuleOutput(output.endpointPath(), output.requestPreconditions(),
-            assertions, output.excludedBusinessRules(), diagnostics);
+            assertions, output.externalStatePrerequisites(), output.excludedBusinessRules(), diagnostics);
+    }
+
+    private boolean isSpringHandler(FactCodeGraph graph) {
+        if (graph == null) return false;
+        Set<String> mappings = Set.of("RequestMapping", "GetMapping", "PostMapping", "PutMapping",
+            "PatchMapping", "DeleteMapping");
+        Set<String> annotations = new HashSet<>();
+        graph.edges().stream()
+            .filter(edge -> edge.sourceNodeId().equals(graph.apiMethodNodeId()))
+            .filter(edge -> edge.type() == FactEdgeType.HAS_ANNOTATION)
+            .map(FactEdge::targetNodeId)
+            .forEach(annotations::add);
+        return graph.nodes().stream().filter(node -> annotations.contains(node.id()))
+            .filter(node -> node.payload() instanceof FactNodePayload.AnnotationPayload)
+            .map(node -> ((FactNodePayload.AnnotationPayload) node.payload()).annotationType())
+            .anyMatch(mappings::contains);
+    }
+
+    private ExecutableCondition frameworkDefaultStatusAssertion(FactCodeGraph graph) {
+        FactNode mapping = graph.edges().stream()
+            .filter(edge -> edge.sourceNodeId().equals(graph.apiMethodNodeId()))
+            .filter(edge -> edge.type() == FactEdgeType.HAS_ANNOTATION)
+            .map(edge -> graph.nodes().stream()
+                .filter(node -> node.id().equals(edge.targetNodeId())).findFirst().orElse(null))
+            .filter(Objects::nonNull)
+            .filter(node -> node.payload() instanceof FactNodePayload.AnnotationPayload annotation
+                && annotation.annotationType().endsWith("Mapping"))
+            .findFirst().orElseThrow();
+        EvidenceRef evidence = evidenceMapper.fromFact(mapping, EvidenceRole.DOMAIN_ORIGIN);
+        return new ExecutableCondition("STATUS", "$status", "EQ", List.of("200"),
+            "Spring MVC default success status", "SPRING_MVC_DEFAULT_RESPONSE_STATUS", 1.0,
+            List.of(evidence));
     }
 
     private ExecutableCondition statusAssertion(ApiEndpoint endpoint, FactCodeGraph graph) {

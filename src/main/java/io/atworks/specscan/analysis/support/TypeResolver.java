@@ -59,13 +59,17 @@ public class TypeResolver {
             .map(ClassOrInterfaceDeclaration.class::cast);
     }
 
+    public Optional<TypeDeclaration<?>> resolveAnyTypeDeclaration(String typeName) {
+        return resolveTypeDeclaration(typeName);
+    }
+
     public Map<String, Object> resolveExpandedSchema(
         String typeName,
         List<ApiConditionDraft> drafts,
         List<ApiCondition> conditions
     ) {
         Map<String, FieldConstraints> constraintIndex = buildConstraintIndex(drafts, conditions);
-        return resolveExpandedSchema(typeName, constraintIndex, new LinkedHashSet<>());
+        return resolveExpandedSchema(typeName, constraintIndex, new LinkedHashSet<>(), Map.of());
     }
 
     public Optional<MethodDeclaration> resolveMethodDeclaration(ResolvedMethodDeclaration resolvedMethod) {
@@ -94,7 +98,7 @@ public class TypeResolver {
         String scope = call.getScope().get().toString();
         String simple = scope.substring(scope.lastIndexOf('.') + 1);
         if (simple.isBlank() || !Character.isUpperCase(simple.charAt(0))) return Optional.empty();
-        List<MethodDeclaration> matches = resolveClassDeclaration(scope).stream()
+        List<MethodDeclaration> matches = resolveAnyTypeDeclaration(scope).stream()
             .flatMap(type -> type.getMethodsByName(call.getNameAsString()).stream())
             .filter(method -> method.isStatic() && method.getParameters().size() == call.getArguments().size())
             .toList();
@@ -346,25 +350,26 @@ public class TypeResolver {
     private Map<String, Object> resolveExpandedSchema(
         String typeName,
         Map<String, FieldConstraints> constraintIndex,
-        Set<String> visitedTypes
+        Set<String> visitedTypes,
+        Map<String, String> typeBindings
     ) {
-        String normalized = normalizeTypeName(typeName);
+        String normalized = normalizeTypeName(typeBindings.getOrDefault(typeName, typeName));
         if (normalized.isEmpty()) {
             return new LinkedHashMap<>(Map.of("type", "object"));
         }
         if (isWrapperType(normalized)) {
-            return resolveExpandedSchema(extractFirstGenericArgument(normalized), constraintIndex, visitedTypes);
+            return resolveExpandedSchema(extractFirstGenericArgument(normalized), constraintIndex, visitedTypes, typeBindings);
         }
         if (isReactiveCollectionType(normalized)) {
             Map<String, Object> schema = new LinkedHashMap<>();
             schema.put("type", "array");
-            schema.put("items", resolveExpandedSchema(extractFirstGenericArgument(normalized), constraintIndex, visitedTypes));
+            schema.put("items", resolveExpandedSchema(extractFirstGenericArgument(normalized), constraintIndex, visitedTypes, typeBindings));
             return schema;
         }
         if (isCollectionType(normalized)) {
             Map<String, Object> schema = new LinkedHashMap<>();
             schema.put("type", "array");
-            schema.put("items", resolveExpandedSchema(extractFirstGenericArgument(normalized), constraintIndex, visitedTypes));
+            schema.put("items", resolveExpandedSchema(extractFirstGenericArgument(normalized), constraintIndex, visitedTypes, typeBindings));
             return schema;
         }
         if (isMapType(normalized)) {
@@ -390,7 +395,8 @@ public class TypeResolver {
             return new LinkedHashMap<>(Map.of("type", "object"));
         }
 
-        Map<String, Object> schema = buildObjectSchema(typeDeclaration.get(), constraintIndex, visitedTypes);
+        Map<String, String> nestedBindings = bindTypeArguments(typeDeclaration.get(), normalized, typeBindings);
+        Map<String, Object> schema = buildObjectSchema(typeDeclaration.get(), constraintIndex, visitedTypes, nestedBindings);
         visitedTypes.remove(visitedKey);
         return schema;
     }
@@ -398,7 +404,8 @@ public class TypeResolver {
     private Map<String, Object> buildObjectSchema(
         TypeDeclaration<?> declaration,
         Map<String, FieldConstraints> constraintIndex,
-        Set<String> visitedTypes
+        Set<String> visitedTypes,
+        Map<String, String> typeBindings
     ) {
         if (declaration instanceof EnumDeclaration enumDeclaration) {
             Map<String, Object> schema = new LinkedHashMap<>();
@@ -415,15 +422,16 @@ public class TypeResolver {
 
         if (declaration instanceof RecordDeclaration recordDeclaration) {
             for (Parameter component : recordDeclaration.getParameters()) {
-                addProperty(properties, required, component.getNameAsString(), component.getType().asString(), constraintIndex, visitedTypes);
+                if (component.isAnnotationPresent("JsonIgnore")) continue;
+                addProperty(properties, required, component.getNameAsString(), component.getType().asString(), constraintIndex, visitedTypes, typeBindings);
             }
         } else if (declaration instanceof ClassOrInterfaceDeclaration classDeclaration) {
             for (FieldDeclaration fieldDeclaration : classDeclaration.getFields()) {
-                if (fieldDeclaration.isStatic()) {
+                if (fieldDeclaration.isStatic() || fieldDeclaration.isAnnotationPresent("JsonIgnore")) {
                     continue;
                 }
                 for (VariableDeclarator variable : fieldDeclaration.getVariables()) {
-                    addProperty(properties, required, variable.getNameAsString(), variable.getType().asString(), constraintIndex, visitedTypes);
+                    addProperty(properties, required, variable.getNameAsString(), variable.getType().asString(), constraintIndex, visitedTypes, typeBindings);
                 }
             }
         }
@@ -441,14 +449,52 @@ public class TypeResolver {
         String fieldName,
         String fieldType,
         Map<String, FieldConstraints> constraintIndex,
-        Set<String> visitedTypes
+        Set<String> visitedTypes,
+        Map<String, String> typeBindings
     ) {
-        Map<String, Object> fieldSchema = resolveExpandedSchema(fieldType, constraintIndex, visitedTypes);
+        Map<String, Object> fieldSchema = resolveExpandedSchema(fieldType, constraintIndex, visitedTypes, typeBindings);
         applyConstraints(fieldSchema, constraintIndex.get(fieldName));
         properties.put(fieldName, fieldSchema);
         if (isRequired(constraintIndex.get(fieldName))) {
             required.add(fieldName);
         }
+    }
+
+    private Map<String, String> bindTypeArguments(TypeDeclaration<?> declaration, String declaredType,
+                                                   Map<String, String> inherited) {
+        List<String> parameters = declaration instanceof ClassOrInterfaceDeclaration type
+            ? type.getTypeParameters().stream().map(parameter -> parameter.getNameAsString()).toList()
+            : declaration instanceof RecordDeclaration type
+                ? type.getTypeParameters().stream().map(parameter -> parameter.getNameAsString()).toList()
+                : List.of();
+        List<String> arguments = genericArguments(declaredType);
+        if (parameters.isEmpty() || arguments.isEmpty()) return inherited;
+        Map<String, String> result = new LinkedHashMap<>(inherited);
+        for (int index = 0; index < Math.min(parameters.size(), arguments.size()); index++) {
+            result.put(parameters.get(index), inherited.getOrDefault(arguments.get(index), arguments.get(index)));
+        }
+        return Map.copyOf(result);
+    }
+
+    private List<String> genericArguments(String typeName) {
+        int start = typeName.indexOf('<');
+        int end = typeName.lastIndexOf('>');
+        if (start < 0 || end <= start) return List.of();
+        List<String> result = new ArrayList<>();
+        String inner = typeName.substring(start + 1, end);
+        int depth = 0;
+        int boundary = 0;
+        for (int index = 0; index < inner.length(); index++) {
+            char current = inner.charAt(index);
+            if (current == '<') depth++;
+            else if (current == '>') depth--;
+            else if (current == ',' && depth == 0) {
+                result.add(inner.substring(boundary, index).trim());
+                boundary = index + 1;
+            }
+        }
+        result.add(inner.substring(boundary).trim());
+        return result;
     }
 
     private Map<String, FieldConstraints> buildConstraintIndex(

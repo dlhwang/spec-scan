@@ -41,6 +41,8 @@ public final class DefaultFactCodeGraphBuilder {
         FactNode rootNode = methodNode(method, owner, range, true); acc.addNode(rootNode);
         TraversalState state = new TraversalState(); state.methodNodes.put(owner, rootNode);
         traverse(method, rootNode, owner, appBase(endpoint.controllerClass()), 0, workspace, resolver, budget, acc, diagnostics, state, new LinkedHashSet<>());
+        new DtoSchemaGraphBuilder(ids).expandApiTypes(method, rootNode, owner, workspace, acc,
+            resolver);
         FactGraphTraversalStats stats = new FactGraphTraversalStats(state.maxDepth, state.visited.size(), acc.edgeCount());
         if (acc.edgeLimitReached()) diagnostics.add(diagnostic(owner, "MAX_EDGES_EXCEEDED", true, budget, stats, range, "edge addition stopped at configured limit"));
         FactCodeGraph graph = acc.snapshot("FACT_GRAPH:" + rootNode.id(), rootNode.id());
@@ -102,6 +104,24 @@ public final class DefaultFactCodeGraphBuilder {
             }
             ResolvedMethodDeclaration declaration = resolved.get(); String targetOwner = declaration.declaringType().getQualifiedName() + "." + declaration.getSignature();
             Optional<MethodDeclaration> target = resolver.resolveMethodDeclaration(declaration);
+            if (target.isEmpty()) {
+                Optional<MethodDeclaration> fallback = resolver.resolveStaticSourceMethodCall(call);
+                if (fallback.isPresent()) {
+                    MethodDeclaration sourceTarget = fallback.get();
+                    String sourceOwner = resolver.qualifiedOwner(sourceTarget) + "." + sourceTarget.getSignature();
+                    FactNode sourceNode = state.methodNodes.get(sourceOwner);
+                    if (sourceNode == null) {
+                        sourceNode = methodNode(sourceTarget, sourceOwner,
+                            FactExpressionVisitor.range(sourceTarget, workspace), false);
+                        state.methodNodes.put(sourceOwner, sourceNode);
+                    }
+                    relate(callNode, sourceNode, FactEdgeType.CALLS, -1, "SOURCE_FALLBACK", acc);
+                    traverse(sourceTarget, sourceNode, sourceOwner, appBase, depth + 1, workspace, resolver,
+                        budget, acc, diagnostics, state, new LinkedHashSet<>(path));
+                    bindArguments(callNode, sourceNode, acc);
+                }
+                continue;
+            }
             TraversalDecision decision = policy.decide(declaration.declaringType().getQualifiedName(), declaration.getName(), target.isPresent(), appBase);
             if (decision != TraversalDecision.VISIT_BODY || target.isEmpty()) continue;
             FactNode existingTarget = state.methodNodes.get(targetOwner);
@@ -165,8 +185,10 @@ public final class DefaultFactCodeGraphBuilder {
                         acc, diagnostics, state, new LinkedHashSet<>(path));
                     bindArguments(creationNode, targetNode, acc);
                 }));
-            if (resolvedCreation.flatMap(resolver::resolveConstructorDeclaration).isEmpty())
+            if (resolvedCreation.flatMap(resolver::resolveConstructorDeclaration).isEmpty()) {
+                synthesizeRecordConstructor(creation, creationNode, owner, workspace, resolver, acc);
                 synthesizeLombokConstructor(creation, creationNode, owner, workspace, resolver, acc);
+            }
         }
         for (ExplicitConstructorInvocationStmt invocation :
                 method.findAll(ExplicitConstructorInvocationStmt.class)) {
@@ -224,6 +246,28 @@ public final class DefaultFactCodeGraphBuilder {
                 }
             });
     }
+    private void synthesizeRecordConstructor(ObjectCreationExpr creation, FactNode creationNode, String owner,
+                                             Path workspace, TypeResolver resolver, FactGraphAccumulator acc) {
+        resolver.resolveAnyTypeDeclaration(creation.getTypeAsString())
+            .filter(com.github.javaparser.ast.body.RecordDeclaration.class::isInstance)
+            .map(com.github.javaparser.ast.body.RecordDeclaration.class::cast)
+            .filter(record -> record.getParameters().size() == creation.getArguments().size())
+            .ifPresent(record -> {
+                String typeOwner = resolver.qualifiedOwner(record);
+                for (int index = 0; index < record.getParameters().size(); index++) {
+                    var component = record.getParameter(index);
+                    SourceRange range = FactExpressionVisitor.range(component, workspace);
+                    FactNode field = new FactNode(ids.generate(FactNodeType.VALUE_FIELD, typeOwner, range,
+                        "record-field:" + component.getNameAsString()), FactNodeType.VALUE_FIELD, range,
+                        component.getNameAsString(), TypeResolution.unresolved("DECLARED_FIELD"),
+                        new FactNodePayload.FieldAccessPayload(component.getNameAsString(),
+                            "CONSTRUCTOR_PARAMETER:" + typeOwner));
+                    FactNode argument = operand(acc, creationNode.id(), index);
+                    if (argument != null) relate(argument, field, FactEdgeType.VALUE_FLOWS_TO, index,
+                        "RECORD_CONSTRUCTOR_ARGUMENT", acc);
+                }
+            });
+    }
     private FactNode operand(FactGraphAccumulator acc, String sourceId, int ordinal) {
         String targetId = acc.edges().stream().filter(edge -> edge.sourceNodeId().equals(sourceId)
                 && edge.type() == FactEdgeType.OPERAND_OF && edge.ordinal() == ordinal
@@ -251,6 +295,8 @@ public final class DefaultFactCodeGraphBuilder {
                 .ifPresent(argument -> {
                     relate(parameter, argument, FactEdgeType.ORIGINATES_FROM,
                         edge.ordinal(), "CALL_ARGUMENT", acc);
+                    relate(argument, parameter, FactEdgeType.VALUE_FLOWS_TO,
+                        edge.ordinal(), "CALL_ARGUMENT_TO_PARAMETER", acc);
                     if (target.type() == FactNodeType.CONSTRUCTOR
                             && parameter.payload() instanceof FactNodePayload.ParameterPayload payload
                             && target.payload() instanceof FactNodePayload.ConstructorPayload constructor) {

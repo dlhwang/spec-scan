@@ -15,6 +15,14 @@ import com.github.javaparser.ast.stmt.SwitchEntry;
 import com.github.javaparser.ast.stmt.SwitchStmt;
 import com.github.javaparser.ast.expr.SwitchExpr;
 import com.github.javaparser.ast.expr.Expression;
+import com.github.javaparser.ast.expr.AnnotationExpr;
+import com.github.javaparser.ast.expr.BooleanLiteralExpr;
+import com.github.javaparser.ast.expr.CharLiteralExpr;
+import com.github.javaparser.ast.expr.DoubleLiteralExpr;
+import com.github.javaparser.ast.expr.IntegerLiteralExpr;
+import com.github.javaparser.ast.expr.LongLiteralExpr;
+import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.YieldStmt;
 import io.atworks.specscan.analysis.domain.fact.*;
@@ -28,10 +36,34 @@ final class FactMethodVisitor {
 
     void visit(CallableDeclaration<?> method, FactNode methodNode, String owner, Path workspace, FactGraphAccumulator acc, TypeResolver resolver) {
         registerInstanceFields(method, owner, workspace, acc);
+        registerMethodAnnotations(method, methodNode, owner, workspace, acc);
         for (int i = 0; i < method.getParameters().size(); i++) {
             var p = method.getParameter(i); SourceRange r = FactExpressionVisitor.range(p, workspace);
-            FactNode n = new FactNode(ids.generate(FactNodeType.PARAMETER, owner, r, "parameter:" + i), FactNodeType.PARAMETER, r, p.toString(), TypeResolution.unresolved("DECLARED_ONLY"), new FactNodePayload.ParameterPayload(p.getNameAsString(), i, p.getTypeAsString()));
+            String bindingLocation = bindingLocation(p.getAnnotations());
+            String bindingName = bindingName(p.getAnnotations(), p.getNameAsString(), bindingLocation);
+            boolean required = bindingRequired(p.getAnnotations(), bindingLocation);
+            String qualifiedType = resolveParameterType(p);
+            TypeResolution parameterType = qualifiedType == null
+                ? TypeResolution.unresolved("PARAMETER_TYPE_RESOLUTION_FAILED")
+                : TypeResolution.resolvedType(qualifiedType);
+            FactNode n = new FactNode(ids.generate(FactNodeType.PARAMETER, owner, r,
+                "parameter:" + i), FactNodeType.PARAMETER, r, p.toString(), parameterType,
+                new FactNodePayload.ParameterPayload(p.getNameAsString(), i,
+                    p.getTypeAsString(), bindingLocation, bindingName, required));
             relation(methodNode, n, FactEdgeType.ORIGINATES_FROM, i, "PARAMETER", acc);
+            FactNode typeNode = parameterTypeNode(p, owner, r, i, qualifiedType);
+            relation(n, typeNode, FactEdgeType.HAS_TYPE, 0, "DECLARED_TYPE", acc);
+            for (int annotationIndex = 0; annotationIndex < p.getAnnotations().size(); annotationIndex++) {
+                AnnotationExpr annotation = p.getAnnotation(annotationIndex);
+                SourceRange annotationRange = FactExpressionVisitor.range(annotation, workspace);
+                FactNode annotationNode = new FactNode(ids.generate(FactNodeType.ANNOTATION, owner,
+                    annotationRange, "parameter-annotation:" + i + ":" + annotationIndex),
+                    FactNodeType.ANNOTATION, annotationRange, annotation.toString(),
+                    TypeResolution.notApplicable(), new FactNodePayload.AnnotationPayload(
+                        annotation.getNameAsString(), annotationAttributes(annotation)));
+                relation(n, annotationNode, FactEdgeType.HAS_ANNOTATION, annotationIndex,
+                    "PARAMETER_ANNOTATION", acc);
+            }
         }
         for (VariableDeclarator variable : method.findAll(VariableDeclarator.class)) {
             SourceRange r = FactExpressionVisitor.range(variable, workspace);
@@ -74,6 +106,8 @@ final class FactMethodVisitor {
         }
         for (MethodCallExpr call : method.findAll(MethodCallExpr.class)) {
             expressions.relateBuilderField(call, owner, workspace, acc, nested -> resolve(nested, resolver));
+            recordResponseFactory(call, methodNode, owner, workspace, acc);
+            recordDeclaredExceptions(call, owner, workspace, acc, resolver);
         }
         for (IfStmt statement : method.findAll(IfStmt.class)) {
             SourceRange r = FactExpressionVisitor.range(statement.getCondition(), workspace);
@@ -105,6 +139,187 @@ final class FactMethodVisitor {
             }
         }
     }
+
+    private void registerMethodAnnotations(CallableDeclaration<?> method, FactNode methodNode,
+        String owner, Path workspace, FactGraphAccumulator acc) {
+        for (int index = 0; index < method.getAnnotations().size(); index++) {
+            AnnotationExpr annotation = method.getAnnotation(index);
+            SourceRange range = FactExpressionVisitor.range(annotation, workspace);
+            FactNode annotationNode = new FactNode(ids.generate(FactNodeType.ANNOTATION, owner,
+                range, "method-annotation:" + index), FactNodeType.ANNOTATION, range,
+                annotation.toString(), TypeResolution.notApplicable(),
+                new FactNodePayload.AnnotationPayload(annotation.getNameAsString(),
+                    annotationAttributes(annotation)));
+            relation(methodNode, annotationNode, FactEdgeType.HAS_ANNOTATION, index,
+                "METHOD_ANNOTATION", acc);
+        }
+    }
+
+    private void recordResponseFactory(MethodCallExpr call, FactNode methodNode, String owner,
+        Path workspace, FactGraphAccumulator acc) {
+        String factoryMethod = call.getNameAsString();
+        if (!java.util.Set.of("ok", "noContent", "status").contains(factoryMethod)
+            || !call.toString().contains("ResponseEntity")) return;
+        Integer statusCode = switch (factoryMethod) {
+            case "ok" -> 200;
+            case "noContent" -> 204;
+            default -> call.getArguments().isEmpty() ? null : statusCode(call.getArgument(0));
+        };
+        String statusExpression = call.getArguments().isEmpty()
+            ? factoryMethod : call.getArgument(0).toString();
+        SourceRange range = FactExpressionVisitor.range(call, workspace);
+        FactNode factory = new FactNode(ids.generate(FactNodeType.RESPONSE_FACTORY, owner, range,
+            "response-factory:" + factoryMethod), FactNodeType.RESPONSE_FACTORY, range,
+            call.toString(), TypeResolution.notApplicable(),
+            new FactNodePayload.ResponseFactoryPayload(factoryMethod, statusCode,
+                statusExpression));
+        relation(methodNode, factory, FactEdgeType.EXECUTES, -1, "RESPONSE_FACTORY", acc);
+        if (statusCode != null) {
+            FactNode status = new FactNode(ids.generate(FactNodeType.HTTP_STATUS, owner, range,
+                "response-status:" + statusCode), FactNodeType.HTTP_STATUS, range,
+                String.valueOf(statusCode), TypeResolution.notApplicable(),
+                new FactNodePayload.HttpStatusPayload(statusCode, statusExpression));
+            relation(factory, status, FactEdgeType.MAPS_TO, 0, "HTTP_STATUS", acc);
+        }
+    }
+
+    private Integer statusCode(Expression expression) {
+        if (expression.isIntegerLiteralExpr()) {
+            try { return expression.asIntegerLiteralExpr().asInt(); }
+            catch (RuntimeException ignored) { return null; }
+        }
+        String value = expression.toString();
+        int separator = value.lastIndexOf('.');
+        String name = separator < 0 ? value : value.substring(separator + 1);
+        return switch (name) {
+            case "OK" -> 200;
+            case "CREATED" -> 201;
+            case "ACCEPTED" -> 202;
+            case "NO_CONTENT" -> 204;
+            case "BAD_REQUEST" -> 400;
+            case "UNAUTHORIZED" -> 401;
+            case "FORBIDDEN" -> 403;
+            case "NOT_FOUND" -> 404;
+            case "CONFLICT" -> 409;
+            case "UNPROCESSABLE_ENTITY" -> 422;
+            case "INTERNAL_SERVER_ERROR" -> 500;
+            default -> null;
+        };
+    }
+
+    private void recordDeclaredExceptions(MethodCallExpr call, String owner, Path workspace,
+        FactGraphAccumulator acc, TypeResolver resolver) {
+        resolver.resolveMethodCall(call).ifPresent(resolved -> {
+            FactNode callNode = expressions.callNode(call, owner, workspace,
+                TypeResolution.resolvedSignature(resolved.getQualifiedSignature()));
+            for (int index = 0; index < resolved.getNumberOfSpecifiedExceptions(); index++) {
+                String exceptionType = resolved.getSpecifiedException(index).describe();
+                SourceRange range = FactExpressionVisitor.range(call, workspace);
+                FactNode exceptionNode = new FactNode(ids.generate(FactNodeType.EXCEPTION, owner,
+                    range, "declared-exception:" + index + ":" + exceptionType),
+                    FactNodeType.EXCEPTION, range, exceptionType,
+                    TypeResolution.resolvedType(exceptionType),
+                    new FactNodePayload.ExceptionPayload(exceptionType, false));
+                relation(callNode, exceptionNode, FactEdgeType.MAY_THROW, index,
+                    "DECLARED_EXCEPTION", acc);
+            }
+        });
+    }
+
+    private FactNode parameterTypeNode(com.github.javaparser.ast.body.Parameter parameter,
+        String owner, SourceRange range, int index, String qualifiedType) {
+        String declaredType = parameter.getTypeAsString();
+        String elementType = parameter.getType().isArrayType()
+            ? parameter.getType().asArrayType().getComponentType().asString()
+            : parameter.getType().isClassOrInterfaceType()
+                ? parameter.getType().asClassOrInterfaceType().getTypeArguments()
+                    .filter(arguments -> !arguments.isEmpty())
+                    .map(arguments -> arguments.get(0).asString()).orElse(null)
+                : null;
+        String rawType = parameter.getType().isClassOrInterfaceType()
+            ? parameter.getType().asClassOrInterfaceType().getNameAsString() : declaredType;
+        boolean collection = parameter.getType().isArrayType()
+            || java.util.Set.of("Collection", "Iterable", "List", "Set", "Queue", "Deque")
+                .contains(rawType);
+        return new FactNode(ids.generate(FactNodeType.TYPE, owner, range,
+            "parameter-type:" + index), FactNodeType.TYPE, range, declaredType,
+            qualifiedType == null ? TypeResolution.unresolved("PARAMETER_TYPE_RESOLUTION_FAILED")
+                : TypeResolution.resolvedType(qualifiedType),
+            new FactNodePayload.TypePayload(declaredType, qualifiedType,
+                parameter.getType().isPrimitiveType(), collection, elementType));
+    }
+
+    private String resolveParameterType(com.github.javaparser.ast.body.Parameter parameter) {
+        try {
+            return parameter.resolve().getType().describe();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
+    private String bindingLocation(com.github.javaparser.ast.NodeList<AnnotationExpr> annotations) {
+        for (AnnotationExpr annotation : annotations) {
+            String name = annotation.getName().getIdentifier();
+            if (name.equals("PathVariable")) return "PATH";
+            if (name.equals("RequestParam")) return "QUERY";
+            if (name.equals("RequestHeader")) return "HEADER";
+            if (name.equals("RequestBody")) return "REQUEST_BODY";
+        }
+        return "UNKNOWN";
+    }
+
+    private boolean bindingRequired(com.github.javaparser.ast.NodeList<AnnotationExpr> annotations,
+        String location) {
+        if (location.equals("UNKNOWN")) return false;
+        for (AnnotationExpr annotation : annotations) {
+            if (java.util.Set.of("PathVariable", "RequestParam", "RequestHeader", "RequestBody")
+                .contains(annotation.getName().getIdentifier())) {
+                Object required = annotationAttributes(annotation).get("required");
+                return !(required instanceof Boolean value) || value;
+            }
+        }
+        return true;
+    }
+
+    private String bindingName(com.github.javaparser.ast.NodeList<AnnotationExpr> annotations,
+        String javaName, String location) {
+        if (location.equals("UNKNOWN") || location.equals("REQUEST_BODY")) return javaName;
+        for (AnnotationExpr annotation : annotations) {
+            if (!java.util.Set.of("PathVariable", "RequestParam", "RequestHeader")
+                .contains(annotation.getName().getIdentifier())) continue;
+            java.util.Map<String, Object> attributes = annotationAttributes(annotation);
+            Object explicit = attributes.containsKey("name") ? attributes.get("name") : attributes.get("value");
+            if (explicit instanceof String value && !value.isBlank()) return value;
+        }
+        return javaName;
+    }
+
+    private java.util.Map<String, Object> annotationAttributes(AnnotationExpr annotation) {
+        java.util.Map<String, Object> attributes = new java.util.LinkedHashMap<>();
+        if (annotation.isNormalAnnotationExpr()) {
+            annotation.asNormalAnnotationExpr().getPairs().forEach(pair ->
+                attributes.put(pair.getNameAsString(), annotationValue(pair.getValue())));
+        } else if (annotation instanceof SingleMemberAnnotationExpr single) {
+            attributes.put("value", annotationValue(single.getMemberValue()));
+        }
+        return attributes;
+    }
+
+    private Object annotationValue(Expression value) {
+        if (value instanceof StringLiteralExpr literal) return literal.asString();
+        if (value instanceof BooleanLiteralExpr literal) return literal.getValue();
+        if (value instanceof IntegerLiteralExpr literal) {
+            try { return literal.asInt(); } catch (RuntimeException ignored) { return literal.toString(); }
+        }
+        if (value instanceof LongLiteralExpr literal) {
+            try { return literal.asLong(); } catch (RuntimeException ignored) { return literal.toString(); }
+        }
+        if (value instanceof DoubleLiteralExpr literal) {
+            try { return literal.asDouble(); } catch (RuntimeException ignored) { return literal.toString(); }
+        }
+        if (value instanceof CharLiteralExpr literal) return literal.asChar();
+        return value.toString();
+    }
     private void registerInstanceFields(CallableDeclaration<?> method, String owner, Path workspace,
                                       FactGraphAccumulator acc) {
         method.findAncestor(ClassOrInterfaceDeclaration.class).ifPresent(type -> {
@@ -118,12 +333,39 @@ final class FactMethodVisitor {
                         SourceRange range = FactExpressionVisitor.range(field, workspace);
                         FactNode valueField = new FactNode(ids.generate(FactNodeType.VALUE_FIELD, typeOwner, range,
                             "lombok-field:" + field.getNameAsString()), FactNodeType.VALUE_FIELD, range,
-                            field.getNameAsString(), TypeResolution.unresolved("DECLARED_FIELD"),
+                            field.getNameAsString(), declaredFieldType(field),
                             new FactNodePayload.FieldAccessPayload(field.getNameAsString(),
                                 (lombokConstructor ? "LOMBOK_FIELD:" : "INSTANCE_FIELD:") + typeOwner));
                         acc.addNode(valueField);
+                        field.findAncestor(com.github.javaparser.ast.body.FieldDeclaration.class)
+                            .ifPresent(declaration -> {
+                                for (int index = 0; index < declaration.getAnnotations().size(); index++) {
+                                    AnnotationExpr annotation = declaration.getAnnotation(index);
+                                    SourceRange annotationRange = FactExpressionVisitor.range(annotation, workspace);
+                                    FactNode annotationNode = new FactNode(ids.generate(FactNodeType.ANNOTATION,
+                                        typeOwner, annotationRange,
+                                        "instance-field-annotation:" + field.getNameAsString() + ":" + index),
+                                        FactNodeType.ANNOTATION, annotationRange, annotation.toString(),
+                                        TypeResolution.notApplicable(), new FactNodePayload.AnnotationPayload(
+                                            annotation.getNameAsString(), annotationAttributes(annotation)));
+                                    relation(valueField, annotationNode, FactEdgeType.HAS_ANNOTATION, index,
+                                        "FIELD_ANNOTATION", acc);
+                                }
+                            });
                     });
-            });
+        });
+    }
+
+    private TypeResolution declaredFieldType(VariableDeclarator field) {
+        String declaredType = field.getTypeAsString();
+        String simpleType = declaredType.replaceAll("<.*>", "");
+        return field.findCompilationUnit().flatMap(unit -> unit.getImports().stream()
+                .filter(imported -> !imported.isAsterisk() && !imported.isStatic())
+                .map(imported -> imported.getNameAsString())
+                .filter(name -> name.endsWith("." + simpleType))
+                .findFirst())
+            .map(TypeResolution::resolvedType)
+            .orElseGet(() -> TypeResolution.unresolved("DECLARED_FIELD"));
     }
     private boolean returnsDirectly(Statement statement) {
         if (statement instanceof ReturnStmt) return true;
@@ -151,13 +393,19 @@ final class FactMethodVisitor {
             if (entry.getLabels().isEmpty()) continue;
             for (Expression label : entry.getLabels()) {
                 SourceRange range = FactExpressionVisitor.range(entry, workspace);
+                String conditionSnippet = switchConditionSnippet(selector, label, entry, isExpression);
                 FactNode condition = new FactNode(ids.generate(FactNodeType.CONDITION, owner, range,
                     "switch-case:" + label), FactNodeType.CONDITION, range,
-                    selector + " == " + label, TypeResolution.notApplicable(),
+                    conditionSnippet, TypeResolution.notApplicable(),
                     new FactNodePayload.ConditionPayload("SwitchEntry", "=="));
                 relation(methodNode, condition, FactEdgeType.CONTROLS, -1, "SWITCH_CASE", acc);
                 expressions.visit(selector, condition, owner, workspace, acc, call -> resolve(call, resolver));
-                expressions.visit(label, condition, owner, workspace, acc, call -> resolve(call, resolver));
+                FactNode enumLabel = enumSwitchLabel(selector, label, owner, workspace);
+                if (enumLabel == null) {
+                    expressions.visit(label, condition, owner, workspace, acc, call -> resolve(call, resolver));
+                } else {
+                    relation(condition, enumLabel, FactEdgeType.OPERAND_OF, 1, "RIGHT", acc);
+                }
                 for (Statement child : entry.getStatements()) {
                     if (child instanceof ThrowStmt thrown) {
                         outcome(thrown, condition, FactEdgeType.THEN_OUTCOME,
@@ -189,6 +437,33 @@ final class FactMethodVisitor {
                 }
             }
         }
+    }
+    private FactNode enumSwitchLabel(Expression selector, Expression label, String owner, Path workspace) {
+        try {
+            var selectorType = selector.calculateResolvedType();
+            if (!selectorType.isReferenceType()) return null;
+            var declaration = selectorType.asReferenceType().getTypeDeclaration().orElse(null);
+            if (declaration == null || !declaration.isEnum()) return null;
+            String qualifiedType = selectorType.describe();
+            SourceRange range = FactExpressionVisitor.range(label, workspace);
+            return new FactNode(ids.generate(FactNodeType.ENUM_CONSTANT, owner, range,
+                "switch-label:" + label), FactNodeType.ENUM_CONSTANT, range, label.toString(),
+                TypeResolution.resolvedType(qualifiedType),
+                new FactNodePayload.EnumConstantPayload(qualifiedType, label.toString()));
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+    private String switchConditionSnippet(Expression selector, Expression label, SwitchEntry entry,
+                                          boolean isExpression) {
+        String caseCondition = selector + " == " + label;
+        if (!isExpression || entry.getStatements().size() != 1) return caseCondition;
+        Statement statement = entry.getStatement(0);
+        Expression result = statement instanceof ExpressionStmt expressionStmt
+            ? expressionStmt.getExpression()
+            : statement instanceof YieldStmt yieldStmt ? yieldStmt.getExpression() : null;
+        if (result == null || result.isBooleanLiteralExpr()) return caseCondition;
+        return caseCondition + " && (" + result + ")";
     }
     private void directOutcomes(Statement branch, FactNode condition, FactEdgeType edge, String owner, Path workspace, FactGraphAccumulator acc, TypeResolver resolver) {
         if (branch instanceof ThrowStmt thrown) outcome(thrown, condition, edge, owner, workspace, acc, resolver);
@@ -232,8 +507,27 @@ final class FactMethodVisitor {
         Expression expression = statement.getExpression();
         if (expression != null) {
             expressions.visit(expression, thrown, owner, workspace, acc, call -> resolve(call, resolver));
+            String exceptionType = resolveThrownType(expression);
+            SourceRange exceptionRange = FactExpressionVisitor.range(expression, workspace);
+            FactNode exceptionNode = new FactNode(ids.generate(FactNodeType.EXCEPTION, owner,
+                exceptionRange, "thrown-exception:" + exceptionType), FactNodeType.EXCEPTION,
+                exceptionRange, exceptionType,
+                exceptionType.equals("UNKNOWN") ? TypeResolution.unresolved("THROWN_TYPE_FAILED")
+                    : TypeResolution.resolvedType(exceptionType),
+                new FactNodePayload.ExceptionPayload(exceptionType, false));
+            relation(thrown, exceptionNode, FactEdgeType.THROWS, 0, "EXCEPTION_TYPE", acc);
         }
         return thrown;
+    }
+
+    private String resolveThrownType(Expression expression) {
+        try { return expression.calculateResolvedType().describe(); }
+        catch (RuntimeException e) {
+            if (expression.isObjectCreationExpr()) {
+                return expression.asObjectCreationExpr().getTypeAsString();
+            }
+            return "UNKNOWN";
+        }
     }
 
     private void outcome(com.github.javaparser.ast.Node node, FactNode condition, FactEdgeType edge, String owner, Path workspace, FactGraphAccumulator acc, TypeResolver resolver) {
@@ -243,6 +537,12 @@ final class FactMethodVisitor {
         } else if (node instanceof ThrowStmt thrown) {
             FactNode n = getOrCreateThrowNode(thrown, owner, workspace, acc, resolver);
             relation(condition, n, edge, -1, "THROW", acc);
+            acc.edges().stream().filter(candidate -> candidate.sourceNodeId().equals(n.id())
+                    && candidate.type() == FactEdgeType.THROWS)
+                .findFirst().flatMap(candidate -> acc.nodes().stream()
+                    .filter(target -> target.id().equals(candidate.targetNodeId())).findFirst())
+                .ifPresent(exception -> relation(condition, exception, FactEdgeType.THROWS, -1,
+                    edge == FactEdgeType.THEN_OUTCOME ? "THEN_EXCEPTION" : "ELSE_EXCEPTION", acc));
         }
     }
     private com.github.javaparser.ast.Node findExecutableScope(com.github.javaparser.ast.Node node) {

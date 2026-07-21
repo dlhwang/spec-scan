@@ -36,8 +36,11 @@ public final class CandidateToOutputAdapter {
                 case BUSINESS_RESTRICTION -> excludedAdapter.add(candidate, constraint, excluded, diagnostics);
             }
         }
+        List<ExcludedBusinessRule> deduplicatedExcluded = deduplicateExcluded(excluded);
+        List<ExcludedBusinessRule> prerequisites = deduplicatedExcluded.stream()
+            .filter(rule -> "EXTERNAL_STATE_REQUIRED".equals(rule.reasonCode())).toList();
         return new EndpointRuleOutput(endpoint.path(), deduplicate(preconditions), deduplicate(assertions),
-            deduplicateExcluded(excluded), diagnostics);
+            prerequisites, deduplicatedExcluded, diagnostics);
     }
 
     private CandidateOutputDiagnostic diagnostic(String code, String message, BusinessRuleCandidate candidate) {
@@ -52,7 +55,8 @@ public final class CandidateToOutputAdapter {
     private List<ExcludedBusinessRule> deduplicateExcluded(List<ExcludedBusinessRule> values) {
         Map<String, ExcludedBusinessRule> result = new LinkedHashMap<>();
         for (ExcludedBusinessRule value : values) result.putIfAbsent(value.ruleId() + "|" + value.reasonCode()
-            + "|" + value.targetPath(), value);
+            + "|" + value.targetPath() + "|" + value.operator() + "|" + value.expectedValues()
+            + "|" + value.expectedSource(), value);
         return List.copyOf(result.values());
     }
 }

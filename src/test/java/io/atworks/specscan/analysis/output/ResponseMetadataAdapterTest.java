@@ -31,6 +31,28 @@ class ResponseMetadataAdapterTest {
         assertThat(result.diagnostics()).extracting("code").containsExactly("RESPONSE_METADATA_UNRESOLVED");
     }
 
+    @Test void createsFrameworkDefault200OnlyForSpringMappedHandler() {
+        SourceTrace trace = new SourceTrace("Controller.java", 10, 10);
+        ApiEndpoint endpoint = endpoint(new ResponseBinding("Property", trace), trace);
+        SourceRange range = new SourceRange("Controller.java", 10, 1, 10, 40);
+        FactNode api = new FactNode("api", FactNodeType.API_METHOD, range, "create()",
+            TypeResolution.notApplicable(), new FactNodePayload.MethodPayload("Controller", "create()", true));
+        FactNode annotation = new FactNode("mapping", FactNodeType.ANNOTATION, range, "@PostMapping",
+            TypeResolution.notApplicable(), new FactNodePayload.AnnotationPayload("PostMapping", java.util.Map.of()));
+        FactEdge edge = new FactEdge("edge", "api", "mapping", FactEdgeType.HAS_ANNOTATION, 0,
+            "METHOD_ANNOTATION");
+        FactCodeGraph graph = new FactCodeGraph("graph", "api", List.of(api, annotation), List.of(edge));
+
+        EndpointRuleOutput result = adapter.augment(endpoint, EndpointRuleOutput.empty(endpoint.path()), graph);
+
+        assertThat(result.responseAssertions()).singleElement().satisfies(assertion -> {
+            assertThat(assertion.expectedValues()).containsExactly("200");
+            assertThat(assertion.ruleId()).isEqualTo("SPRING_MVC_DEFAULT_RESPONSE_STATUS");
+            assertThat(assertion.evidence()).extracting("nodeId").containsExactly("mapping");
+        });
+        assertThat(result.diagnostics()).isEmpty();
+    }
+
     @Test void createsLiteralResponseHeaderAssertion() {
         SourceTrace trace = new SourceTrace("Controller.java", 10, 10);
         ResponseBinding binding = new ResponseBinding("Property", trace, 201, "ResponseEntity.status",

@@ -4,6 +4,7 @@ import io.atworks.specscan.analysis.domain.candidate.*;
 import io.atworks.specscan.analysis.domain.fact.FactCodeGraph;
 import io.atworks.specscan.analysis.domain.rule.*;
 import io.atworks.specscan.analysis.support.candidate.CandidateResolutionAccumulator;
+import io.atworks.specscan.analysis.support.semantic.*;
 import java.util.*;
 
 public final class DefaultGraphRuleEngine implements GraphRuleEngine {
@@ -25,8 +26,23 @@ public final class DefaultGraphRuleEngine implements GraphRuleEngine {
         stats.predicates(predicates.size());
         RuleInvocationBoundary invocation = new RuleInvocationBoundary();
         RuleMatchAccumulator matches = new RuleMatchAccumulator(stats);
-        for (PredicateCandidate predicate : predicates) for (GraphRule rule : registry.rules()) {
-            invocation.invoke(rule, graph, predicate, stats).forEach(matches::add);
+        SemanticContext semanticContext = new SemanticContext(graph);
+        Set<String> registeredRuleIds = registry.rules().stream()
+            .map(GraphRule::id).collect(java.util.stream.Collectors.toSet());
+        SemanticRuleDispatcher semanticDispatcher = new SemanticRuleDispatcher(registeredRuleIds);
+        for (PredicateCandidate predicate : predicates) {
+            SemanticDispatchResult semantic = semanticDispatcher.dispatch(
+                semanticContext, semanticContext.normalize(predicate));
+            semantic.candidates().stream().map(BusinessRuleCandidate::ruleId)
+                .filter(registeredRuleIds::contains).distinct()
+                .forEach(stats::executed);
+            for (BusinessRuleCandidate candidate : semantic.candidates()) {
+                stats.matched(candidate.ruleId()); matches.add(candidate);
+            }
+            for (GraphRule rule : registry.rules()) {
+                if (semantic.suppressedLegacyRuleIds().contains(rule.id())) continue;
+                invocation.invoke(rule, graph, predicate, stats).forEach(matches::add);
+            }
         }
 
         List<BusinessRuleCandidate> finalRules = new ArrayList<>(new RuleConflictAnnotator().annotate(matches.candidates(), registry));

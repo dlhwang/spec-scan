@@ -1,26 +1,50 @@
-# 기술 스택
+# Technology Stack
 
-## 언어와 런타임
+Auto-OAS (SpecScan) 정적 분석 파이프라인 엔진에서 활용되는 언어, 프레임워크, 라이브러리 및 개발 환경 명세입니다.
 
-- Java 21 toolchain: 애플리케이션, 정적 분석 모델 및 테스트 구현.
-- JavaParser language level Java 17: 분석기 구문 해석 수준.
-- Java 내장 `HttpServer`: 경량 Web UI/API 제공.
+---
 
-## 핵심 라이브러리
+## 1. Programming Language & Runtime
 
-- JGit `6.8.0.202311291450-r`: GitHub 저장소 clone 및 checkout.
-- Jackson Databind/YAML `2.15.2`: JSON/YAML 처리.
-- JavaParser Core/Symbol Solver `3.25.7`: AST와 타입/메서드 해석.
-- SLF4J Simple `1.7.36`: 런타임 로깅.
+- **Language**: Java 21
+- **Language Level**: `BLEEDING_EDGE` (JavaParser Language Level)
+- **Features Used**:
+  - Record Types (`record`)
+  - Pattern Matching for `switch` & `instanceof`
+  - Sealed Interfaces & Classes
+  - Text Blocks (`"""..."""`)
+  - Stream API & Lambda Expressions
 
-## 빌드와 테스트
+---
 
-- Gradle Wrapper, Java/Application 플러그인, Maven Central.
-- 실행/패키징: `runDemo`, `runWeb`, `gitSpecScanJar`, `webSpecScanJar`.
-- JUnit Jupiter `5.9.3`, AssertJ `3.24.2`, jqwik `1.7.4`.
-- 품질 태스크: `test`, `ruleEvaluation`, `deliveryVerification`, `unit05MigrationVerification`.
+## 2. Build & Dependency Management
 
-## 인프라
+- **Build System**: Gradle 9.0 (Gradle Wrapper `./gradlew`, `gradlew.bat`)
+- **Key Gradle Plugins**:
+  - `application` - CLI 및 런타임 실행 태스크 기동
+  - `java` - 자바 컴파일 및 테스트 태스크 기동
 
-- CDK, Terraform, CloudFormation 정의 없음.
-- 로컬 임시 파일시스템을 작업공간과 산출물 저장소로 사용.
+---
+
+## 3. Core Static Analysis & AST Engine
+
+- **JavaParser (`com.github.javaparser:javaparser-core:3.25.7`)**:
+  - AST(Abstract Syntax Tree) 생성 및 구문 순회 (Visitor Pattern)
+  - 타입 레솔루션 (`javaparser-symbol-solver-core`)
+- **Jackson (`com.fasterxml.jackson.core:jackson-databind`)**:
+  - JSON 모델 직렬화/역직렬화 및 OpenAPI 3.0 YAML 변환 구조체 처리
+
+---
+
+## 4. Testing & Verification Framework
+
+- **JUnit 5 (JUnit Jupiter 5.10.x)**: 단위 테스트 및 통합 테스트 구동 환경
+- **AssertJ**: 유연한 검증 및 가독성 높은 어서션 라이브러리
+- **Jqwik (1.9.2)**: Property-Based Testing (PBT) 프레임워크. 고유 불변식 및 그래프 비반복 정합성 자동 생성 검증
+
+---
+
+## 5. Web & Network Infrastructure
+
+- **Sun Embedded HTTP Server (`com.sun.net.httpserver.HttpServer`)**:
+  - 서드파티 무거운 웹 프레임워크(Spring Boot 런타임 엔진 자체)에 대한 의존성 없이, 경량화된 내장 자바 HTTP 서버로 분석 API 서빙.

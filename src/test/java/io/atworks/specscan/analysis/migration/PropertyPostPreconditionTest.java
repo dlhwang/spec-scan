@@ -3,6 +3,8 @@ package io.atworks.specscan.analysis.migration;
 import io.atworks.specscan.analysis.domain.*;
 import io.atworks.specscan.analysis.domain.output.*;
 import io.atworks.specscan.analysis.domain.fact.*;
+import io.atworks.specscan.analysis.application.RuleOutputService;
+import io.atworks.specscan.analysis.fixture.ContractDetailValidationFixture;
 import io.atworks.specscan.analysis.support.fact.DefaultFactCodeGraphBuilder;
 import io.atworks.specscan.ingestion.domain.*;
 import java.nio.file.*;
@@ -100,6 +102,62 @@ class PropertyPostPreconditionTest {
                 tuple("$.contractDetails[*].contractType", "NOT_NULL"));
         assertThat(output.requestPreconditions()).allSatisfy(condition ->
             assertThat(condition.evidence()).isNotEmpty());
+    }
+
+    @Test void emitsDelegatedContractDetailDomainGuardsForPost() throws Exception {
+        var scenario = ContractDetailValidationFixture.buildPostScenario(workspace);
+
+        EndpointRuleOutput output = new RuleOutputService().generate(
+            scenario.scan(), scenario.build(), List.of()).get("POST /api/estate/properties");
+
+        assertThat(output.requestPreconditions()).withFailMessage("output=%s", output)
+            .anySatisfy(condition -> {
+                assertThat(condition.targetPath()).isEqualTo("$.contractDetails[*].contractType");
+                assertThat(condition.operator()).isEqualTo("NOT_NULL");
+            });
+        assertThat(output.requestPreconditions()).filteredOn(condition ->
+            condition.ruleId().equals("JAVA_NULL_REJECTION_GUARD")).hasSize(1);
+    }
+
+    @Test void preservesJeonseDepositRequirementAsConditionalBusinessRule() throws Exception {
+        EndpointRuleOutput output = contractDetailOutput();
+
+        assertThat(output.requestPreconditions()).noneSatisfy(condition ->
+            assertThat(condition.targetPath()).isEqualTo("$.contractDetails[*].deposit"));
+        assertThat(output.excludedBusinessRules()).withFailMessage("output=%s", output)
+            .anySatisfy(rule -> {
+                assertThat(rule.targetPath()).isEqualTo("$.contractDetails[*].deposit");
+                assertThat(rule.operator()).isEqualTo("GT");
+                assertThat(rule.expectedValues()).containsExactly("0");
+                assertThat(rule.evidence()).anySatisfy(evidence ->
+                    assertThat(evidence.snippet()).contains("JEONSE"));
+            });
+        assertThat(output.diagnostics()).extracting(CandidateOutputDiagnostic::code)
+            .doesNotContain("SEMANTIC_UNRESOLVED");
+    }
+
+    @Test void preservesMonthlyRentDepositAndRentRequirementsAsConditionalBusinessRules() throws Exception {
+        EndpointRuleOutput output = contractDetailOutput();
+
+        assertThat(output.requestPreconditions()).noneSatisfy(condition ->
+            assertThat(condition.targetPath()).isIn(
+                "$.contractDetails[*].deposit", "$.contractDetails[*].rent"));
+        assertThat(output.excludedBusinessRules()).withFailMessage("output=%s", output)
+            .filteredOn(rule -> rule.evidence().stream()
+                .anyMatch(evidence -> evidence.snippet().contains("MONTHLYRENT")))
+            .extracting(ExcludedBusinessRule::targetPath, ExcludedBusinessRule::operator,
+                ExcludedBusinessRule::expectedValues)
+            .contains(
+                tuple("$.contractDetails[*].deposit", "GT", List.of("0")),
+                tuple("$.contractDetails[*].rent", "GT", List.of("0")));
+        assertThat(output.diagnostics()).extracting(CandidateOutputDiagnostic::code)
+            .doesNotContain("SEMANTIC_UNRESOLVED");
+    }
+
+    private EndpointRuleOutput contractDetailOutput() throws Exception {
+        var scenario = ContractDetailValidationFixture.buildPostScenario(workspace);
+        return new RuleOutputService().generate(
+            scenario.scan(), scenario.build(), List.of()).get("POST /api/estate/properties");
     }
 
     private void write(String relative, String content) throws Exception {

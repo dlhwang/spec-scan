@@ -43,7 +43,7 @@ public final class RequestBindingConditionAdapter {
                 draft.sourceTrace()));
         }
         return new EndpointRuleOutput(output.endpointPath(), deduplicate(conditions), output.responseAssertions(),
-            excluded, diagnostics);
+            output.externalStatePrerequisites(), excluded, diagnostics);
     }
 
     private ExecutableCondition condition(String location, String path, String operator, List<String> expected,

@@ -4,17 +4,22 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-
+import io.atworks.apiintelligence.application.ApiIntelligenceAnalysisService;
+import io.atworks.apiintelligence.config.ApiIntelligenceConfigurationLoader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SpecScanWebServer {
 
+    private static final Logger log = LoggerFactory.getLogger(SpecScanWebServer.class);
     private static final int DEFAULT_PORT = 8088;
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -23,9 +28,47 @@ public class SpecScanWebServer {
         HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
         server.createContext("/", SpecScanWebServer::handleIndex);
         server.createContext("/api/scan", SpecScanWebServer::handleScan);
+        server.createContext("/api/intelligence", SpecScanWebServer::handleIntelligence);
         server.setExecutor(Executors.newFixedThreadPool(4));
         server.start();
         System.out.println("Spec Scan Web UI: http://localhost:" + port);
+    }
+
+    private static void handleIntelligence(HttpExchange exchange) throws IOException {
+        if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+            sendJson(exchange, 405, Map.of("error", "Method Not Allowed"));
+            return;
+        }
+        try {
+            JsonNode request = OBJECT_MAPPER.readTree(exchange.getRequestBody());
+            String path = optionalText(request, "projectPath");
+            String gitUrl = optionalText(request, "gitUrl");
+            var config = new ApiIntelligenceConfigurationLoader().load();
+            if (!config.openai().configured()) {
+                throw new IllegalArgumentException("OPENAI_API_KEY is not configured");
+            }
+            io.atworks.apiintelligence.domain.source.AnalysisSource source;
+            if (path != null) {
+                source = new io.atworks.apiintelligence.domain.source.LocalSource(Path.of(path));
+            } else if (gitUrl != null) {
+                String rev = optionalText(request, "revision");
+                String type = optionalText(request, "revisionType");
+                source = new io.atworks.apiintelligence.domain.source.GitSource(
+                    java.net.URI.create(gitUrl), rev == null ? null
+                    : io.atworks.apiintelligence.domain.source.RevisionType.valueOf(
+                        type.toUpperCase()), rev);
+            } else {
+                throw new IllegalArgumentException("Missing required field: projectPath or gitUrl");
+            }
+            sendJson(exchange, 200, new ApiIntelligenceAnalysisService().analyze(source, config));
+        } catch (IllegalArgumentException e) {
+            sendJson(exchange, 400, Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            sendJson(exchange, 500,
+                Map.of("error", "Intelligence analysis failed", "message", e.getMessage()));
+
+            log.error("Intelligence analysis failed", e);
+        }
     }
 
     private static int parsePort(String[] args) {
@@ -86,12 +129,25 @@ public class SpecScanWebServer {
             requiredText(request, "baseUrl");
             String revisionType = optionalText(request, "revisionType");
             String revision = optionalText(request, "revision");
+            String analysisMode = optionalText(request, "analysisMode");
 
-            String result = new GitExecutionSpecScanService().scanWithArtifacts(repositorySource, revisionType, revision);
+            String result;
+            if ("LLM".equalsIgnoreCase(analysisMode)) {
+                var config = new io.atworks.apiintelligence.config.ApiIntelligenceConfigurationLoader().load();
+                if (!config.openai().configured()) {
+                    throw new IllegalArgumentException("OPENAI_API_KEY is not configured");
+                }
+                result = new GitExecutionSpecScanService().scanWithLlmArtifacts(repositorySource,
+                    revisionType, revision, config);
+            } else {
+                result = new GitExecutionSpecScanService().scanWithArtifacts(repositorySource,
+                    revisionType, revision);
+            }
             send(exchange, 200, "application/json; charset=utf-8", result);
         } catch (IllegalArgumentException e) {
             sendJson(exchange, 400, Map.of("error", e.getMessage()));
         } catch (Exception e) {
+            log.error("Scan failed", e);
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("error", "Scan failed");
             body.put("message", e.getMessage());
@@ -143,6 +199,7 @@ public class SpecScanWebServer {
             exchange.close();
         }
     }
+
     private static String indexHtml() {
         return "";
     }

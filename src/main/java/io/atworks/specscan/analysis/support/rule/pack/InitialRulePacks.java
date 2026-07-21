@@ -13,7 +13,7 @@ public final class InitialRulePacks {
         return new RulePack("java-language", true, List.of(
             new EnumAllowedValueGuardRule(), new InputDomainMismatchGuardRule(), new NullRejectionGuardRule(),
             new EmptyRejectionGuardRule(),
-            new DelegatedGuardRule(), new AuthorizationGuardCallRule()),
+            new DelegatedGuardRule()),
             RulePrecedence.none());
     }
     public static RulePack jdkIdioms() {

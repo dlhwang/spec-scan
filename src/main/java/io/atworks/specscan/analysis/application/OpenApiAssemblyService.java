@@ -39,16 +39,31 @@ public class OpenApiAssemblyService {
         this.ruleOutputService = new RuleOutputService();
     }
 
+    public void assemble(ScanAnalysisContext context, Path outputPath) throws IngestionException {
+        assemble(context.scanResult(), context.validationResult(), context.repositorySource(),
+            outputPath, context.factGraphs());
+    }
+
     public void assemble(
         StaticScanResult scanResult,
         ValidationExtractionResult extractResult,
         RepositorySource source,
         Path outputPath
     ) throws IngestionException {
-        List<IngestionWarning> warnings = new ArrayList<>(scanResult.warnings());
-        warnings.addAll(extractResult.warnings());
         FactGraphBuildResult factGraphs = new DefaultFactCodeGraphBuilder().build(
             scanResult, source, FactGraphTraversalBudget.defaults());
+        assemble(scanResult, extractResult, source, outputPath, factGraphs);
+    }
+
+    public void assemble(
+        StaticScanResult scanResult,
+        ValidationExtractionResult extractResult,
+        RepositorySource source,
+        Path outputPath,
+        FactGraphBuildResult factGraphs
+    ) throws IngestionException {
+        List<IngestionWarning> warnings = new ArrayList<>(scanResult.warnings());
+        warnings.addAll(extractResult.warnings());
 
         Map<String, EndpointRuleOutput> ruleOutputs = ruleOutputService.generate(
             scanResult, factGraphs, extractResult.directConditions());

@@ -1,11 +1,14 @@
 package io.atworks.specscan.analysis.fact;
 
 import io.atworks.specscan.analysis.domain.*;
+import io.atworks.specscan.analysis.domain.candidate.NormalizedConstraint;
 import io.atworks.specscan.analysis.domain.fact.*;
 import io.atworks.specscan.analysis.domain.rule.GraphRuleEngineResult;
+import io.atworks.specscan.analysis.fixture.ContractDetailValidationFixture;
 import io.atworks.specscan.analysis.support.fact.DefaultFactCodeGraphBuilder;
 import io.atworks.specscan.analysis.support.rule.*;
 import io.atworks.specscan.analysis.support.rule.pack.*;
+import io.atworks.specscan.analysis.support.semantic.*;
 import io.atworks.specscan.ingestion.domain.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -13,9 +16,466 @@ import java.nio.file.*;
 import java.time.Instant;
 import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 
 class FactCodeGraphBuilderTest {
     @TempDir Path workspace;
+
+    @Test void traversesPostApiToContractDetailValidationHelper() throws Exception {
+        FactCodeGraph graph = ContractDetailValidationFixture.buildPostGraph(workspace);
+        List<String> methods = graph.nodes().stream()
+            .filter(node -> node.type() == FactNodeType.METHOD
+                || node.type() == FactNodeType.CONSTRUCTOR)
+            .map(FactNode::snippet).toList();
+
+        assertThat(methods).withFailMessage("visitedMethods=%s", methods)
+            .anyMatch(value -> value.contains("newInstance"))
+            .anyMatch(value -> value.contains("ContractDetail("))
+            .anyMatch(value -> value.contains("isNotValid"));
+    }
+
+    @Test void representsContractDetailNullJeonseAndMonthlyRentConditions() throws Exception {
+        FactCodeGraph graph = ContractDetailValidationFixture.buildPostGraph(workspace);
+        List<String> conditions = graph.nodes().stream()
+            .filter(node -> node.type() == FactNodeType.CONDITION)
+            .map(FactNode::snippet).toList();
+
+        assertThat(conditions)
+            .anyMatch(value -> value.contains("contractType == null"))
+            .anyMatch(value -> value.contains("contractType == JEONSE")
+                && value.contains("deposit <= 0"))
+            .anyMatch(value -> value.contains("contractType == MONTHLYRENT")
+                && value.contains("rent <= 0") && value.contains("deposit <= 0"));
+    }
+
+    @Test void connectsContractDetailValidationArgumentsToHelperParameters() throws Exception {
+        FactCodeGraph graph = ContractDetailValidationFixture.buildPostGraph(workspace);
+        FactNode helper = graph.nodes().stream()
+            .filter(node -> node.type() == FactNodeType.METHOD && node.snippet().contains("isNotValid"))
+            .findFirst().orElseThrow();
+        List<FactNode> parameters = graph.edges().stream()
+            .filter(edge -> edge.sourceNodeId().equals(helper.id())
+                && edge.type() == FactEdgeType.ORIGINATES_FROM)
+            .map(FactEdge::targetNodeId)
+            .map(id -> graph.nodes().stream().filter(node -> node.id().equals(id)).findFirst().orElseThrow())
+            .filter(node -> node.type() == FactNodeType.PARAMETER).toList();
+
+        assertThat(parameters).hasSize(3);
+        assertThat(parameters).allSatisfy(parameter -> assertThat(graph.edges())
+            .anyMatch(edge -> edge.targetNodeId().equals(parameter.id())
+                && edge.type() == FactEdgeType.VALUE_FLOWS_TO
+                && edge.role().equals("CALL_ARGUMENT_TO_PARAMETER")));
+    }
+
+    @Test void promotesContractDetailReturnedBooleanConditionsAsValidationPredicates() throws Exception {
+        FactCodeGraph graph = ContractDetailValidationFixture.buildPostGraph(workspace);
+        var scope = new io.atworks.specscan.analysis.domain.rule.MethodScope(graph.graphId(),
+            graph.nodes().stream().filter(node -> node.type() == FactNodeType.API_METHOD
+                || node.type() == FactNodeType.METHOD || node.type() == FactNodeType.CONSTRUCTOR)
+                .map(FactNode::id).collect(java.util.stream.Collectors.toSet()));
+
+        List<String> promoted = new DefaultValidationCandidateDetector(List.of()).detect(graph, scope).stream()
+            .map(candidate -> graph.nodes().stream()
+                .filter(node -> node.id().equals(candidate.conditionNodeId()))
+                .findFirst().orElseThrow().snippet())
+            .toList();
+
+        assertThat(promoted).withFailMessage("promoted=%s", promoted)
+            .anyMatch(value -> value.contains("contractType == null"))
+            .anyMatch(value -> value.contains("JEONSE") && value.contains("deposit <= 0"))
+            .anyMatch(value -> value.contains("MONTHLYRENT") && value.contains("rent <= 0"));
+    }
+
+    @Test void classifiesContractDetailEnumBranchesAndNumericRequirementsTogether() throws Exception {
+        FactCodeGraph graph = ContractDetailValidationFixture.buildPostGraph(workspace);
+        var scope = new io.atworks.specscan.analysis.domain.rule.MethodScope(graph.graphId(),
+            graph.nodes().stream().filter(node -> node.type() == FactNodeType.API_METHOD
+                || node.type() == FactNodeType.METHOD || node.type() == FactNodeType.CONSTRUCTOR)
+                .map(FactNode::id).collect(java.util.stream.Collectors.toSet()));
+        SemanticContext context = new SemanticContext(graph);
+        var semanticPredicates = new DefaultValidationCandidateDetector(List.of()).detect(graph, scope).stream()
+            .map(context::normalize).toList();
+        List<io.atworks.specscan.analysis.domain.semantic.CompositeConstraintMatch> matches =
+            semanticPredicates.stream()
+                .map(predicate -> new CompositeValidationClassifier().classify(context, predicate))
+                .flatMap(java.util.Optional::stream)
+                .toList();
+
+        assertThat(matches).withFailMessage("semanticPredicates=%s", semanticPredicates)
+            .flatExtracting(match -> match.activationGuards())
+            .extracting(NormalizedConstraint::operator, NormalizedConstraint::expectedValues)
+            .contains(tuple("EQ", List.of("JEONSE")), tuple("EQ", List.of("MONTHLYRENT")));
+        assertThat(matches).flatExtracting(match -> match.requirements())
+            .extracting(match -> match.constraint().operator(),
+                match -> match.constraint().expectedValues())
+            .contains(tuple("GT", List.of("0")));
+    }
+
+    @Test void structuresApiParameterBindingsTypesAndAnnotationAttributes() throws Exception {
+        write("demo/controller/PropertyController.java", """
+            package demo.controller;
+            import demo.dto.PropertySave;
+            import org.springframework.web.bind.annotation.*;
+            public class PropertyController {
+                @ApiResponse(responseCode = "201", description = "Updated")
+                public void modify(
+                    @PathVariable(value = "propertyId") long propertyId,
+                    @RequestHeader(value = "X-Tenant", required = false) String tenant,
+                    @RequestBody PropertySave modify) {}
+            }
+            @interface ApiResponse { String responseCode(); String description(); }
+            """);
+        write("demo/dto/PropertySave.java", """
+            package demo.dto;
+            public class PropertySave { String name; }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.PropertyController", "modify"), source(2),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.PARAMETER)
+            .extracting(node -> ((FactNodePayload.ParameterPayload) node.payload()).bindingLocation())
+            .containsExactlyInAnyOrder("PATH", "HEADER", "REQUEST_BODY");
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.PARAMETER
+                && ((FactNodePayload.ParameterPayload) node.payload()).name().equals("tenant"))
+            .singleElement().satisfies(node -> {
+                FactNodePayload.ParameterPayload parameter =
+                    (FactNodePayload.ParameterPayload) node.payload();
+                assertThat(parameter.bindingName()).isEqualTo("X-Tenant");
+                assertThat(parameter.required()).isFalse();
+            });
+        assertThat(graph.edges()).extracting(FactEdge::type)
+            .contains(FactEdgeType.HAS_TYPE, FactEdgeType.HAS_ANNOTATION);
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.TYPE)
+            .extracting(node -> ((FactNodePayload.TypePayload) node.payload()).qualifiedType())
+            .contains("long", "java.lang.String", "demo.dto.PropertySave");
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.ANNOTATION
+                && ((FactNodePayload.AnnotationPayload) node.payload()).annotationType()
+                    .equals("RequestHeader"))
+            .singleElement().satisfies(node -> assertThat(
+                ((FactNodePayload.AnnotationPayload) node.payload()).attributes())
+                .containsEntry("value", "X-Tenant").containsEntry("required", false));
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.ANNOTATION
+                && ((FactNodePayload.AnnotationPayload) node.payload()).annotationType()
+                    .equals("ApiResponse"))
+            .singleElement().satisfies(node -> assertThat(
+                ((FactNodePayload.AnnotationPayload) node.payload()).attributes())
+                .containsEntry("responseCode", "201").containsEntry("description", "Updated"));
+    }
+
+    @Test void expandsNestedDtoFieldsCollectionElementsDefaultsAndJsonNames() throws Exception {
+        write("demo/controller/PropertyController.java", """
+            package demo.controller;
+            import demo.dto.PropertySave;
+            public class PropertyController {
+                public void save(PropertySave request) {}
+            }
+            """);
+        write("demo/dto/PropertySave.java", """
+            package demo.dto;
+            import java.util.Set;
+            public class PropertySave {
+                @JsonProperty("contract_details") @Size(min = 1, max = 10)
+                Set<ContractDetailDTO> contractDetails = new java.util.HashSet<>();
+            }
+            @interface JsonProperty { String value(); }
+            @interface Size { int min(); int max(); }
+            """);
+        write("demo/dto/ContractDetailDTO.java", """
+            package demo.dto;
+            public class ContractDetailDTO {
+                @Min(0) long deposit = 0;
+            }
+            @interface Min { int value(); }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.PropertyController", "save"), source(3),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.SCHEMA_FIELD)
+            .extracting(node -> ((FactNodePayload.SchemaFieldPayload) node.payload()).javaName())
+            .contains("contractDetails", "deposit");
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.SCHEMA_FIELD
+                && ((FactNodePayload.SchemaFieldPayload) node.payload()).javaName()
+                    .equals("contractDetails"))
+            .singleElement().satisfies(node -> {
+                FactNodePayload.SchemaFieldPayload payload =
+                    (FactNodePayload.SchemaFieldPayload) node.payload();
+                assertThat(payload.jsonName()).isEqualTo("contract_details");
+                assertThat(payload.declaredType()).isEqualTo("Set<ContractDetailDTO>");
+                assertThat(payload.defaultValue()).contains("HashSet");
+            });
+        assertThat(graph.edges()).extracting(FactEdge::type)
+            .contains(FactEdgeType.HAS_FIELD, FactEdgeType.ELEMENT_TYPE,
+                FactEdgeType.HAS_ANNOTATION);
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.ANNOTATION
+                && ((FactNodePayload.AnnotationPayload) node.payload()).annotationType()
+                    .equals("Size"))
+            .singleElement().satisfies(node -> assertThat(
+                ((FactNodePayload.AnnotationPayload) node.payload()).attributes())
+                .containsEntry("min", 1).containsEntry("max", 10));
+    }
+
+    @Test void linksApiMethodToGenericResponseBodyTypeAndFields() throws Exception {
+        write("demo/controller/PropertyController.java", """
+            package demo.controller;
+            import demo.dto.PropertyVO;
+            public class PropertyController {
+                public ResponseEntity<PropertyVO> find() { return null; }
+            }
+            class ResponseEntity<T> {}
+            """);
+        write("demo/dto/PropertyVO.java", """
+            package demo.dto;
+            public class PropertyVO { long id; String name; }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.PropertyController", "find"), source(2),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.edges()).extracting(FactEdge::type).contains(FactEdgeType.RETURNS_TYPE);
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.TYPE
+                && node.payload() instanceof FactNodePayload.TypePayload payload
+                && payload.declaredType().equals("PropertyVO"))
+            .singleElement().satisfies(node -> assertThat(node.typeResolution().qualifiedType())
+                .isEqualTo("demo.dto.PropertyVO"));
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.SCHEMA_FIELD)
+            .extracting(node -> ((FactNodePayload.SchemaFieldPayload) node.payload()).javaName())
+            .contains("id", "name");
+    }
+
+    @Test void structuresResponseEntityFactoriesAndDeterministicStatuses() throws Exception {
+        write("demo/controller/StatusController.java", """
+            package demo.controller;
+            public class StatusController {
+                public ResponseEntity<String> respond(int mode) {
+                    if (mode == 1) return ResponseEntity.ok("done");
+                    if (mode == 2) return ResponseEntity.noContent().build();
+                    return ResponseEntity.status(HttpStatus.CONFLICT).build();
+                }
+            }
+            enum HttpStatus { CONFLICT }
+            class ResponseEntity<T> {
+                static <T> ResponseEntity<T> ok(T body) { return null; }
+                static <T> ResponseEntity<T> noContent() { return null; }
+                static <T> ResponseEntity<T> status(HttpStatus status) { return null; }
+                ResponseEntity<T> build() { return this; }
+            }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.StatusController", "respond"), source(1),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.RESPONSE_FACTORY)
+            .extracting(node -> ((FactNodePayload.ResponseFactoryPayload) node.payload()).statusCode())
+            .containsExactlyInAnyOrder(200, 204, 409);
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.HTTP_STATUS)
+            .extracting(node -> ((FactNodePayload.HttpStatusPayload) node.payload()).statusCode())
+            .contains(200, 204, 409);
+        assertThat(graph.edges()).filteredOn(edge -> edge.type() == FactEdgeType.MAPS_TO)
+            .hasSizeGreaterThanOrEqualTo(3);
+    }
+
+    @Test void linksGuardedThrowToExceptionTypeAndDeclaredCallExceptions() throws Exception {
+        write("demo/controller/ExceptionController.java", """
+            package demo.controller;
+            public class ExceptionController {
+                private ExceptionService service;
+                public void execute(String id) throws java.io.IOException {
+                    if (id == null) throw new DataNotFoundException();
+                    service.load(id);
+                }
+            }
+            class DataNotFoundException extends RuntimeException {}
+            class ExceptionService {
+                void load(String id) throws java.io.IOException {}
+            }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.ExceptionController", "execute"), source(1),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.edges()).filteredOn(edge -> edge.type() == FactEdgeType.THROWS)
+            .anySatisfy(edge -> {
+                FactNode source = graph.nodes().stream()
+                    .filter(node -> node.id().equals(edge.sourceNodeId())).findFirst().orElseThrow();
+                FactNode target = graph.nodes().stream()
+                    .filter(node -> node.id().equals(edge.targetNodeId())).findFirst().orElseThrow();
+                assertThat(source.type()).isIn(FactNodeType.THROW, FactNodeType.CONDITION);
+                assertThat(target.type()).isEqualTo(FactNodeType.EXCEPTION);
+            });
+        assertThat(graph.edges()).filteredOn(edge -> edge.type() == FactEdgeType.MAY_THROW)
+            .anySatisfy(edge -> assertThat(graph.nodes().stream()
+                .filter(node -> node.id().equals(edge.targetNodeId())).findFirst().orElseThrow()
+                .snippet()).contains("IOException"));
+    }
+
+    @Test void preservesArgumentParameterGetterAndConstructorFieldFlow() throws Exception {
+        write("demo/controller/ConvertController.java", """
+            package demo.controller;
+            import demo.dto.PropertySave;
+            import demo.service.ConvertService;
+            public class ConvertController {
+                private ConvertService service;
+                public void convert(PropertySave request) { service.convert(request); }
+            }
+            """);
+        write("demo/service/ConvertService.java", """
+            package demo.service;
+            import demo.dto.PropertySave;
+            import demo.domain.Property;
+            public class ConvertService {
+                public Property convert(PropertySave request) {
+                    return new Property(request.getDeposit());
+                }
+            }
+            """);
+        write("demo/dto/PropertySave.java", """
+            package demo.dto;
+            public class PropertySave {
+                private long deposit;
+                public long getDeposit() { return deposit; }
+            }
+            """);
+        write("demo/domain/Property.java", """
+            package demo.domain;
+            public class Property {
+                private final long deposit;
+                public Property(long deposit) { this.deposit = deposit; }
+            }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.ConvertController", "convert"), source(4),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.edges()).filteredOn(edge -> edge.type() == FactEdgeType.VALUE_FLOWS_TO
+                && edge.role().equals("CALL_ARGUMENT_TO_PARAMETER"))
+            .isNotEmpty();
+        assertThat(graph.edges()).filteredOn(edge -> edge.type() == FactEdgeType.READS
+                && edge.role().equals("DTO_GETTER_FIELD"))
+            .anySatisfy(edge -> assertThat(graph.nodes().stream()
+                .filter(node -> node.id().equals(edge.targetNodeId())).findFirst().orElseThrow()
+                .payload()).isInstanceOf(FactNodePayload.SchemaFieldPayload.class));
+        assertThat(graph.edges()).filteredOn(edge -> edge.type() == FactEdgeType.VALUE_FLOWS_TO
+                && edge.role().equals("CONSTRUCTOR_ARGUMENT"))
+            .isNotEmpty();
+        assertThat(graph.edges()).filteredOn(edge -> edge.type() == FactEdgeType.MAPS_TO
+                && edge.role().equals("TRANSFORM_FIELD"))
+            .anySatisfy(edge -> {
+                FactNode sourceField = graph.nodes().stream()
+                    .filter(node -> node.id().equals(edge.sourceNodeId())).findFirst().orElseThrow();
+                FactNode targetField = graph.nodes().stream()
+                    .filter(node -> node.id().equals(edge.targetNodeId())).findFirst().orElseThrow();
+                assertThat(((FactNodePayload.SchemaFieldPayload) sourceField.payload()).javaName())
+                    .isEqualTo("deposit");
+                assertThat(((FactNodePayload.FieldAccessPayload) targetField.payload()).fieldName())
+                    .isEqualTo("deposit");
+            });
+    }
+
+    @Test void expandsGenericWrapperInheritanceAndEnumConstants() throws Exception {
+        write("demo/controller/GenericController.java", """
+            package demo.controller;
+            import demo.dto.*;
+            public class GenericController {
+                public ResponseEntity<DataResponse<PropertyVO>> find() { return null; }
+            }
+            class ResponseEntity<T> {}
+            """);
+        write("demo/dto/DataResponse.java", """
+            package demo.dto;
+            public class DataResponse<T> extends BaseResponse {
+                T result;
+                @JsonIgnore String internalStatus;
+            }
+            @interface JsonIgnore {}
+            class BaseResponse { boolean success = true; }
+            """);
+        write("demo/dto/PropertyVO.java", """
+            package demo.dto;
+            public class PropertyVO { PropertyType propertyType; }
+            enum PropertyType { APARTMENT, HOUSE, OFFICETEL }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.GenericController", "find"), source(3),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.SCHEMA_FIELD)
+            .extracting(node -> ((FactNodePayload.SchemaFieldPayload) node.payload()).javaName())
+            .contains("result", "success", "propertyType")
+            .doesNotContain("internalStatus");
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.SCHEMA_FIELD
+                && ((FactNodePayload.SchemaFieldPayload) node.payload()).javaName().equals("result"))
+            .singleElement().satisfies(node -> assertThat(node.typeResolution().qualifiedType())
+                .isEqualTo("demo.dto.PropertyVO"));
+        assertThat(graph.edges()).filteredOn(edge -> edge.type() == FactEdgeType.HAS_ENUM_CONSTANT)
+            .hasSize(3);
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.ENUM_CONSTANT)
+            .extracting(node -> ((FactNodePayload.EnumConstantPayload) node.payload()).constantName())
+            .contains("APARTMENT", "HOUSE", "OFFICETEL");
+    }
+
+    @Test void canonicalizesNestedEnumFactsReachedThroughDifferentTypeSpellings() throws Exception {
+        write("demo/controller/EnumController.java", """
+            package demo.controller;
+            import demo.dto.EnumRequest;
+            public class EnumController { public void save(EnumRequest request) {} }
+            """);
+        write("demo/dto/EnumRequest.java", """
+            package demo.dto;
+            public class EnumRequest {
+                PropertyRequest.PropertyType shortName;
+                demo.dto.PropertyRequest.PropertyType qualifiedName;
+            }
+            class PropertyRequest {
+                enum PropertyType { ALL, ONEROOM, TWOROOM }
+            }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.EnumController", "save"), source(2),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.ENUM_CONSTANT)
+            .hasSize(3)
+            .allSatisfy(node -> assertThat(
+                ((FactNodePayload.EnumConstantPayload) node.payload()).declaringType())
+                .isEqualTo("demo.dto.PropertyRequest.PropertyType"));
+    }
+
+    @Test void appliesJacksonNamingStrategyWithJsonPropertyOverride() throws Exception {
+        write("demo/controller/NamingController.java", """
+            package demo.controller;
+            import demo.dto.NamingRequest;
+            public class NamingController { public void save(NamingRequest request) {} }
+            """);
+        write("demo/dto/NamingRequest.java", """
+            package demo.dto;
+            @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+            public class NamingRequest {
+                String contractDetails;
+                @JsonProperty("explicit_name") String propertyName;
+            }
+            @interface JsonNaming { Class<?> value(); }
+            @interface JsonProperty { String value(); }
+            class PropertyNamingStrategies { static class SnakeCaseStrategy {} }
+            """);
+
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.NamingController", "save"), source(2),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+
+        assertThat(graph.nodes()).filteredOn(node -> node.type() == FactNodeType.SCHEMA_FIELD)
+            .extracting(node -> ((FactNodePayload.SchemaFieldPayload) node.payload()).jsonName())
+            .contains("contract_details", "explicit_name");
+    }
 
     @Test void extractsConditionCallArgumentsLocalVariableAndFailureBranch() throws Exception {
         write("demo/controller/AuthController.java", """
@@ -319,6 +779,56 @@ class FactCodeGraphBuilderTest {
             InitialRulePacks.all()).evaluate(graph, scope);
         assertThat(result.candidates().businessRules()).extracting("category")
             .contains(io.atworks.specscan.analysis.domain.candidate.BusinessRuleCategory.VERSION_CONSISTENCY);
+    }
+
+    @Test void promotesOnlyAnnotatedPersistenceVersionComparisonToOptimisticLock() throws Exception {
+        write("demo/controller/OrderController.java", """
+            package demo.controller;
+            import demo.service.OrderService;
+            public class OrderController { private OrderService service;
+                public void ship(long suppliedRevision) { service.ship(suppliedRevision); }
+            }
+            """);
+        write("demo/service/OrderService.java", """
+            package demo.service;
+            public class OrderService { private Order order;
+                public void ship(long suppliedRevision) {
+                    if (suppliedRevision != order.revision()) throw new IllegalStateException();
+                }
+            }
+            class Order {
+                @Version private long revision;
+                long revision() { return revision; }
+            }
+            @interface Version {}
+            """);
+        FactCodeGraph graph = new DefaultFactCodeGraphBuilder().build(
+            scan("demo.controller.OrderController", "ship"), source(2),
+            FactGraphTraversalBudget.defaults()).graphs().get(0);
+        FactNode versionField = graph.nodes().stream()
+            .filter(node -> node.type() == FactNodeType.VALUE_FIELD
+                && node.payload() instanceof FactNodePayload.FieldAccessPayload field
+                && field.fieldName().equals("revision"))
+            .findFirst().orElseThrow();
+        assertThat(graph.edges()).filteredOn(edge -> edge.sourceNodeId().equals(versionField.id())
+                && edge.type() == FactEdgeType.HAS_ANNOTATION)
+            .singleElement();
+        var scope = new io.atworks.specscan.analysis.domain.rule.MethodScope(graph.graphId(),
+            graph.nodes().stream().filter(node -> node.type() == FactNodeType.API_METHOD
+                || node.type() == FactNodeType.METHOD).map(FactNode::id)
+                .collect(java.util.stream.Collectors.toSet()));
+
+        GraphRuleEngineResult result = new DefaultGraphRuleEngine(
+            new DefaultValidationCandidateDetector(List.of()), InitialRulePacks.all()).evaluate(graph, scope);
+
+        assertThat(result.candidates().businessRules()).filteredOn(candidate -> candidate.constraint() != null
+                && "OPTIMISTIC_LOCK_MATCH".equals(candidate.constraint().operator()))
+            .singleElement().satisfies(candidate -> {
+                assertThat(candidate.constraint().targetPath()).isEqualTo("$.suppliedRevision");
+                assertThat(candidate.constraint().expectedSource()).isEqualTo(versionField.id());
+                assertThat(candidate.category()).isEqualTo(
+                    io.atworks.specscan.analysis.domain.candidate.BusinessRuleCategory.VERSION_CONSISTENCY);
+            });
     }
 
     @Test void nestedThrowBelongsOnlyToNestedCondition() throws Exception {

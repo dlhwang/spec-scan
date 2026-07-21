@@ -8,12 +8,22 @@ import java.util.*;
 
 public final class DefaultValidationCandidateDetector implements ReportedValidationCandidateDetector {
     private final List<FailureOutcomePolicy> policies;
+    private final List<ValidationSeedContributor> seedContributors;
     private final DeterministicCandidateIdGenerator ids = new DeterministicCandidateIdGenerator();
     private final PredicateTypeClassifier classifier = new PredicateTypeClassifier();
     private final EvidenceMapper evidenceMapper = new EvidenceMapper();
+    private final DelegatedBooleanPredicatePromoter delegatedBooleanPromoter =
+        new DelegatedBooleanPredicatePromoter();
 
     public DefaultValidationCandidateDetector(List<FailureOutcomePolicy> policies) {
+        this(policies, List.of(new ImplicitOptionalSeedContributor(),
+            new PasswordFailureSeedContributor(), new StandardGuardSeedContributor()));
+    }
+
+    public DefaultValidationCandidateDetector(List<FailureOutcomePolicy> policies,
+                                              List<ValidationSeedContributor> seedContributors) {
         this.policies = List.copyOf(policies);
+        this.seedContributors = List.copyOf(seedContributors);
     }
 
     @Override
@@ -54,90 +64,21 @@ public final class DefaultValidationCandidateDetector implements ReportedValidat
             if (failure) candidates.add(new PredicateCandidate(ids.forPredicate(graph.graphId(), condition.id()),
                 graph.graphId(), condition.id(), classifier.classify(graph, condition), status, evidence, diagnostics));
         }
-        addImplicitOptionalFailures(graph, scope, nodes, candidates);
-        addPasswordTrailingFailures(graph, conditionIds, nodes, candidates);
-        addValidationSinkFailures(graph, scope, nodes, candidates);
-        return new CandidateDetectionResult(candidates, reportDiagnostics);
-    }
-
-    private void addPasswordTrailingFailures(FactCodeGraph graph, Set<String> conditionIds,
-                                             Map<String, FactNode> nodes, List<PredicateCandidate> candidates) {
-        Set<String> existing = new HashSet<>();
-        candidates.forEach(candidate -> existing.add(candidate.conditionNodeId()));
-        for (String conditionId : conditionIds.stream().sorted().toList()) {
-            if (existing.contains(conditionId)) continue;
-            FactNode passwordCall = descendants(graph, nodes, conditionId).stream()
-                .filter(node -> node.payload() instanceof FactNodePayload.MethodCallPayload call
-                    && "matches".equals(call.methodName()) && isPasswordEncoder(node.typeResolution()))
-                .findFirst().orElse(null);
-            FactNode mismatch = graph.edges().stream().filter(edge -> edge.sourceNodeId().equals(conditionId)
-                    && edge.type() == FactEdgeType.ELSE_OUTCOME)
-                .map(edge -> nodes.get(edge.targetNodeId())).filter(Objects::nonNull).findFirst().orElse(null);
-            if (passwordCall == null || mismatch == null) continue;
-            FactNode condition = nodes.get(conditionId);
-            candidates.add(new PredicateCandidate(ids.forPredicate(graph.graphId(), conditionId), graph.graphId(),
-                conditionId, PredicateType.COMPOSITE, ExtractionStatus.EXTRACTED,
-                List.of(evidenceMapper.fromFact(condition, EvidenceRole.PREDICATE),
-                    evidenceMapper.fromFact(mismatch, EvidenceRole.FAILURE_OUTCOME)), List.of()));
+        for (ValidationSeedContributor contributor : seedContributors) {
+            try {
+                List<PredicateCandidate> contributed = contributor.contribute(graph, scope, List.copyOf(candidates));
+                if (contributed == null) throw new IllegalStateException("contributor returned null");
+                for (PredicateCandidate candidate : contributed) {
+                    if (candidate != null && candidates.stream().noneMatch(existing ->
+                            existing.conditionNodeId().equals(candidate.conditionNodeId()))) candidates.add(candidate);
+                }
+            } catch (RuntimeException exception) {
+                reportDiagnostics.add(new RuleExecutionDiagnostic(RuleExecutionDiagnosticSeverity.ERROR,
+                    "SEED_CONTRIBUTOR_FAILED", contributor.id(), null,
+                    exception.getClass().getName(), safeMessage(exception)));
+            }
         }
-    }
-
-    private List<FactNode> descendants(FactCodeGraph graph, Map<String, FactNode> nodes, String source) {
-        List<FactNode> result = new ArrayList<>(); Deque<String> pending = new ArrayDeque<>();
-        Set<String> visited = new HashSet<>(); pending.add(source);
-        while (!pending.isEmpty()) {
-            String current = pending.removeFirst(); if (!visited.add(current)) continue;
-            graph.edges().stream().filter(edge -> edge.sourceNodeId().equals(current)
-                    && edge.type() == FactEdgeType.OPERAND_OF).forEach(edge -> {
-                FactNode node = nodes.get(edge.targetNodeId());
-                if (node != null) { result.add(node); pending.addLast(node.id()); }
-            });
-        }
-        return result;
-    }
-
-    private boolean isPasswordEncoder(TypeResolution resolution) {
-        String signature = resolution.resolvedSignature();
-        return resolution.status() == TypeResolutionStatus.RESOLVED && signature != null
-            && signature.contains("org.springframework.security.crypto.password")
-            && signature.endsWith(".matches(java.lang.CharSequence, java.lang.String)");
-    }
-
-    private void addImplicitOptionalFailures(FactCodeGraph graph, MethodScope scope, Map<String, FactNode> nodes,
-                                              List<PredicateCandidate> candidates) {
-        Set<String> scopedCalls = new HashSet<>();
-        for (FactEdge edge : graph.edges()) if (edge.type() == FactEdgeType.CALLS
-                && scope.methodNodeIds().contains(edge.sourceNodeId())) scopedCalls.add(edge.targetNodeId());
-        for (String callId : scopedCalls.stream().sorted().toList()) {
-            FactNode call = nodes.get(callId);
-            if (call == null || !(call.payload() instanceof FactNodePayload.MethodCallPayload payload)
-                    || !"orElseThrow".equals(payload.methodName())
-                    || (!isJdkOptional(call.typeResolution()) && !hasResolvedSpringDataReceiver(graph, nodes, call.id()))) continue;
-            candidates.add(new PredicateCandidate(ids.forPredicate(graph.graphId(), call.id()), graph.graphId(),
-                call.id(), PredicateType.LOOKUP_CHAIN, ExtractionStatus.EXTRACTED,
-                List.of(evidenceMapper.fromFact(call, EvidenceRole.PREDICATE),
-                    evidenceMapper.fromFact(call, EvidenceRole.FAILURE_OUTCOME)), List.of()));
-        }
-    }
-
-    private boolean hasResolvedSpringDataReceiver(FactCodeGraph graph, Map<String, FactNode> nodes, String callId) {
-        for (FactEdge edge : graph.edges()) {
-            if (!edge.sourceNodeId().equals(callId) || edge.type() != FactEdgeType.OPERAND_OF
-                    || !"RECEIVER".equals(edge.role())) continue;
-            FactNode receiver = nodes.get(edge.targetNodeId());
-            if (receiver == null || !(receiver.payload() instanceof FactNodePayload.MethodCallPayload payload)
-                    || !"findById".equals(payload.methodName())) continue;
-            String signature = receiver.typeResolution().resolvedSignature();
-            if (receiver.typeResolution().status() == TypeResolutionStatus.RESOLVED && signature != null
-                    && signature.contains("org.springframework.data.repository") && signature.contains(".findById(")) return true;
-        }
-        return false;
-    }
-
-    private boolean isJdkOptional(TypeResolution resolution) {
-        String signature = resolution.resolvedSignature();
-        return resolution.status() == TypeResolutionStatus.RESOLVED && signature != null
-            && signature.contains("java.util.Optional") && signature.contains(".orElseThrow(");
+        return new CandidateDetectionResult(delegatedBooleanPromoter.promote(graph, candidates), reportDiagnostics);
     }
 
     private PolicyEvaluation evaluatePolicies(FactCodeGraph graph, FactNode condition, FactNode outcome,
@@ -155,47 +96,6 @@ public final class DefaultValidationCandidateDetector implements ReportedValidat
         return new PolicyEvaluation(false, ExtractionStatus.EXTRACTED, List.of());
     }
 
-    private void addValidationSinkFailures(FactCodeGraph graph, MethodScope scope, Map<String, FactNode> nodes,
-                                           List<PredicateCandidate> candidates) {
-        Set<String> scopedCalls = new HashSet<>();
-        for (FactEdge edge : graph.edges()) {
-            if (edge.type() == FactEdgeType.CALLS && scope.methodNodeIds().contains(edge.sourceNodeId())) {
-                scopedCalls.add(edge.targetNodeId());
-            }
-        }
-        for (String callId : scopedCalls.stream().sorted().toList()) {
-            FactNode call = nodes.get(callId);
-            if (call == null || !(call.payload() instanceof FactNodePayload.MethodCallPayload payload)) continue;
-            String name = payload.methodName();
-            String signature = call.typeResolution().resolvedSignature();
-            boolean isSink = false;
-            if (call.typeResolution().status() == TypeResolutionStatus.RESOLVED && signature != null) {
-                if (signature.startsWith("java.util.Objects.requireNonNull")
-                        || signature.startsWith("com.google.common.base.Preconditions.checkNotNull")
-                        || signature.startsWith("org.springframework.util.Assert.notNull")) {
-                    isSink = true;
-                }
-            } else {
-                String text = call.snippet();
-                if (text != null && (text.contains("requireNonNull") || text.contains("checkNotNull") || text.contains("notNull"))) {
-                    isSink = true;
-                }
-            }
-            if (isSink) {
-                if (candidates.stream().anyMatch(c -> c.conditionNodeId().equals(call.id()))) continue;
-                candidates.add(new PredicateCandidate(
-                    ids.forPredicate(graph.graphId(), call.id()),
-                    graph.graphId(),
-                    call.id(),
-                    PredicateType.COMPOSITE,
-                    ExtractionStatus.EXTRACTED,
-                    List.of(evidenceMapper.fromFact(call, EvidenceRole.PREDICATE),
-                            evidenceMapper.fromFact(call, EvidenceRole.FAILURE_OUTCOME)),
-                    List.of()
-                ));
-            }
-        }
-    }
 
     private void validateScope(FactCodeGraph graph, MethodScope scope) {
         if (!graph.graphId().equals(scope.graphId())) throw new IllegalArgumentException("INVALID_METHOD_SCOPE");

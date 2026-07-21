@@ -8,7 +8,9 @@ final class ExcludedBusinessRuleOutputAdapter {
     private static final Set<String> EXCLUDED_RULE_ALLOWLIST = Set.of(
         "SPRING_DATA_FIND_BY_ID_OR_ELSE_THROW", "JDK_OPTIONAL_LOOKUP_FAILURE",
         "SPRING_SECURITY_PASSWORD_MATCH_FAILURE", "JAVA_AUTHORIZATION_GUARD_CALL",
-        "JAVA_DELEGATED_GUARD", "INPUT_DOMAIN_VALUE_MISMATCH_GUARD");
+        "JAVA_DELEGATED_GUARD", "INPUT_DOMAIN_VALUE_MISMATCH_GUARD",
+        "JAVA_NULL_REJECTION_GUARD", "JAVA_EMPTY_REJECTION_GUARD",
+        "JAVA_CONDITIONAL_VALIDATION_GUARD");
 
     void add(BusinessRuleCandidate candidate, NormalizedConstraint constraint,
              List<ExcludedBusinessRule> excluded, List<CandidateOutputDiagnostic> diagnostics) {

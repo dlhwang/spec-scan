@@ -94,7 +94,10 @@ final class StructuralRuleSupport {
             if ("get".equals(call.methodName()) && call.argumentCount() == 1)
                 return base.map(value -> value + "[*]");
             String property = getterProperty(call.methodName());
-            return property == null ? base : base.map(value -> append(value, property));
+            if (property == null) property = recordAccessorProperty(node, call);
+            if (property == null) property = uniqueSchemaAccessorProperty(call);
+            String resolvedProperty = property;
+            return resolvedProperty == null ? base : base.map(value -> append(value, resolvedProperty));
         }
         Optional<FactNode> declaration = graph.edges().stream()
             .filter(edge -> edge.type() == FactEdgeType.READS && edge.sourceNodeId().equals(node.id()))
@@ -118,6 +121,46 @@ final class StructuralRuleSupport {
         String stem = methodName.startsWith("get") && methodName.length() > 3 ? methodName.substring(3)
             : methodName.startsWith("is") && methodName.length() > 2 ? methodName.substring(2) : null;
         return stem == null ? null : Character.toLowerCase(stem.charAt(0)) + stem.substring(1);
+    }
+
+    private String recordAccessorProperty(FactNode callNode, FactNodePayload.MethodCallPayload call) {
+        if (call.argumentCount() != 0 || callNode.typeResolution().status() != TypeResolutionStatus.RESOLVED) {
+            return null;
+        }
+        String signature = callNode.typeResolution().resolvedSignature();
+        if (signature == null) return null;
+        int methodBoundary = signature.lastIndexOf('.' + call.methodName() + "(");
+        if (methodBoundary < 0) return null;
+        String declaringType = signature.substring(0, methodBoundary);
+        for (FactNode type : nodes.values()) {
+            if (!(type.payload() instanceof FactNodePayload.TypePayload payload)
+                    || payload.qualifiedType() == null
+                    || !declaringType.equals(payload.qualifiedType())) continue;
+            boolean declaredField = graph.edges().stream().filter(edge -> edge.sourceNodeId().equals(type.id())
+                    && edge.type() == FactEdgeType.HAS_FIELD)
+                .map(edge -> nodes.get(edge.targetNodeId())).filter(Objects::nonNull)
+                .anyMatch(field -> field.payload() instanceof FactNodePayload.SchemaFieldPayload schema
+                    && schema.javaName().equals(call.methodName()));
+            if (declaredField) return call.methodName();
+        }
+        boolean mappedConstructorField = nodes.values().stream()
+            .filter(node -> node.type() == FactNodeType.VALUE_FIELD)
+            .anyMatch(node -> node.payload() instanceof FactNodePayload.FieldAccessPayload field
+                && field.fieldName().equals(call.methodName())
+                && field.rootExpressionKind().equals("CONSTRUCTOR_PARAMETER:" + declaringType));
+        if (mappedConstructorField) return call.methodName();
+        return null;
+    }
+
+    private String uniqueSchemaAccessorProperty(FactNodePayload.MethodCallPayload call) {
+        if (call.argumentCount() != 0) return null;
+        Set<String> jsonNames = new HashSet<>();
+        nodes.values().stream()
+            .filter(node -> node.payload() instanceof FactNodePayload.SchemaFieldPayload schema
+                && schema.javaName().equals(call.methodName()))
+            .map(node -> ((FactNodePayload.SchemaFieldPayload) node.payload()).jsonName())
+            .forEach(jsonNames::add);
+        return jsonNames.size() == 1 ? jsonNames.iterator().next() : null;
     }
 
     private String append(String base, String property) {

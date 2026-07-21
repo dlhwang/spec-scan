@@ -64,8 +64,7 @@ class RealEstateGoldenRegressionTest {
             });
             assertThat(output.excludedBusinessRules()).allSatisfy(rule -> {
                 assertThat(rule.ruleId()).isIn("SPRING_DATA_FIND_BY_ID_OR_ELSE_THROW",
-                    "JDK_OPTIONAL_LOOKUP_FAILURE", "SPRING_SECURITY_PASSWORD_MATCH_FAILURE",
-                    "JAVA_AUTHORIZATION_GUARD_CALL");
+                    "JDK_OPTIONAL_LOOKUP_FAILURE", "SPRING_SECURITY_PASSWORD_MATCH_FAILURE");
                 assertThat(rule.evidence()).extracting(EvidenceRef::role)
                     .contains(EvidenceRole.PREDICATE, EvidenceRole.FAILURE_OUTCOME);
             });

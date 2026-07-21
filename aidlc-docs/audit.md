@@ -1244,3 +1244,12 @@ D:\workspace\auto-oas\.agents\unified-aidlc-kit\core-workflow.md를 읽고 역�
 **Context**: INCEPTION - Requirements Analysis Refresh Awaiting Answers
 
 ---
+
+## Reverse Engineering Re-generation
+**Timestamp**: 2026-07-21T16:16:00+09:00
+**User Input**: "코드가 많이 바뀌었으니까, D:\workspace\auto-oas\.agents\unified-aidlc-kit\core-workflow.md 를 읽고, 다시한번 역공학을 해봐바, 기존 역공학 문서는 삭제해버렸어. 역공학 문서를 세세히 작성해야해 특히, 코드그래프를 만드는 로직, 그리고 이것 코드 그래프를 바탕으로 어떻게 아웃풋이 생성되는지에 대하여가 주요 코드 설계이니까 이 부분은 잘표현되어야해"
+**AI Response**: "`core-workflow.md` 및 `inception/reverse-engineering.md` 절차에 따라 현행 자바 소스코드(Gradle, JavaParser 3.25.7, FactCodeGraph, Semantic Classifiers, Rule Engine, OpenAPI 3.0 Assembly)를 정밀 분석하여 `aidlc-docs/inception/reverse-engineering/` 아래에 9개 정식 역공학 산출물을 새로 작성했다. 특히 (1) CodeGraph/FactGraph 생성 파이프라인과 (2) Graph 기반 OpenAPI/Spec 아웃풋 조립 파이프라인 알고리즘 및 시퀀스를 세세하게 문서화했다."
+**Context**: INCEPTION - Reverse Engineering Re-generation Complete
+
+---
+

@@ -85,6 +85,24 @@ class CandidateToOutputAdapterTest {
             .containsExactly("EXCLUDED_RULE_EVIDENCE_INCOMPLETE");
     }
 
+    @Test void exposesExternalStateRequirementSeparatelyWithoutBreakingExcludedRules() {
+        BusinessRuleCandidate lookup = candidate("SPRING_DATA_FIND_BY_ID_OR_ELSE_THROW",
+            BusinessRuleCategory.EXISTENCE, RuleEffect.BUSINESS_RESTRICTION,
+            SemanticStatus.RESOLVED, TargetResolutionStatus.RESOLVED,
+            new NormalizedConstraint(ConstraintKind.CONTROL_FLOW_ONLY, "$.Authorization", "EXISTS",
+                List.of(), "lookup-call"), List.of(), true);
+
+        EndpointRuleOutput output = adapter.adapt(endpoint(), List.of(lookup));
+
+        assertThat(output.externalStatePrerequisites()).singleElement().satisfies(rule -> {
+            assertThat(rule.reasonCode()).isEqualTo("EXTERNAL_STATE_REQUIRED");
+            assertThat(rule.targetPath()).isEqualTo("$.Authorization");
+        });
+        assertThat(output.excludedBusinessRules()).containsExactlyElementsOf(
+            output.externalStatePrerequisites());
+        assertThat(output.requestPreconditions()).isEmpty();
+    }
+
     private BusinessRuleCandidate candidate(String id, BusinessRuleCategory category, SemanticStatus semantic,
                                             TargetResolutionStatus target, NormalizedConstraint constraint,
                                             List<CandidateDiagnostic> diagnostics) {

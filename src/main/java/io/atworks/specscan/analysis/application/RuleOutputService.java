@@ -40,6 +40,11 @@ public final class RuleOutputService {
     private final RequestBindingConditionAdapter requestBindingAdapter = new RequestBindingConditionAdapter();
     private final ResponseInvariantAdapter responseInvariantAdapter = new ResponseInvariantAdapter();
 
+    public Map<String, EndpointRuleOutput> generate(ScanAnalysisContext context) {
+        return generate(context.scanResult(), context.factGraphs(),
+            context.validationResult().directConditions());
+    }
+
     public Map<String, EndpointRuleOutput> generate(StaticScanResult scan, FactGraphBuildResult build,
                                                     List<ApiConditionDraft> annotationConditions) {
         Map<String, EndpointRuleOutput> outputs = new LinkedHashMap<>();
@@ -107,7 +112,7 @@ public final class RuleOutputService {
                 output = responseInvariantAdapter.augment(endpoint, output, graph, allCandidates);
             }
 
-            outputs.put(operationKey, responseMetadataAdapter.augment(endpoint, output));
+            outputs.put(operationKey, responseMetadataAdapter.augment(endpoint, output, graph));
         }
         return outputs;
     }
@@ -124,7 +129,8 @@ public final class RuleOutputService {
                 null
             )));
         return new EndpointRuleOutput(output.endpointPath(), output.requestPreconditions(),
-            output.responseAssertions(), output.excludedBusinessRules(), merged);
+            output.responseAssertions(), output.externalStatePrerequisites(),
+            output.excludedBusinessRules(), merged);
     }
 
     private boolean belongsTo(ApiEndpoint endpoint, FactGraphDiagnostic diagnostic) {

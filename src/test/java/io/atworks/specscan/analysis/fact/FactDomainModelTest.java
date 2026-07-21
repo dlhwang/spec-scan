@@ -22,7 +22,7 @@ class FactDomainModelTest {
 
     @Test void payloadAndBudgetInvariantsAreEnforced() {
         assertThatThrownBy(() -> new FactNode("x", FactNodeType.CONDITION, range, "x", TypeResolution.notApplicable(), new FactNodePayload.MethodPayload("A", "m()", false))).isInstanceOf(IllegalArgumentException.class);
-        assertThat(FactGraphTraversalBudget.defaults()).isEqualTo(new FactGraphTraversalBudget(8, 100, 2000));
+        assertThat(FactGraphTraversalBudget.defaults()).isEqualTo(new FactGraphTraversalBudget(15, 500, 10_000));
         assertThatThrownBy(() -> new FactGraphTraversalBudget(0, 1, 1)).isInstanceOf(IllegalArgumentException.class);
     }
 

@@ -1,36 +1,49 @@
-# 의존성
+# Dependencies Analysis
 
-## 내부 의존성
+## Internal Package Dependencies
+
+Auto-OAS (SpecScan) 분석 엔진의 모듈 및 계층 간 내부 의존성 다이어그램입니다.
 
 ```mermaid
-flowchart LR
-    Entry["Entry Points"] --> Ingestion["Ingestion"]
-    Entry --> Application["Analysis Application"]
-    Application --> Domain["Analysis Domain"]
-    Application --> Support["Analysis Support"]
-    Support --> Domain
-    Support --> Rule["Candidate, Fact, Rule"]
-    Rule --> Output["Output and Evaluation"]
+graph TD
+    Ingestion[Ingestion Layer: repo ingestion & workspace] -->|workspace path| StaticScan[Static Scan Layer: controllers & DTOs]
+    StaticScan -->|ApiEndpoints| FactGraph[Fact CodeGraph Builder: JavaParser AST & FactGraph]
+    FactGraph -->|FactCodeGraph| SemanticEngine[Semantic Classifiers & Rule Engine]
+    SemanticEngine -->|ApiConditions & Candidates| Assembly[Assembly & Output Exporters]
+    Assembly -->|Generate| Artifacts[openapi.yaml / api-spec-analysis.json / api-execution-model.json]
 ```
 
-텍스트 대안: 진입점은 ingestion과 application을 호출하고 application/support는 domain 계약에 의존한다. fact/rule 결과는 output/evaluation으로 전달된다.
+### Module Boundary Principles
+1. **Ingestion -> Static Scan**: Ingestion 계층은 외부 소스를 가져와 로컬 워크스페이스를 격리 생성하고, Static Scan 계층은 유효한 소스 루트만을 수신합니다.
+2. **Static Scan -> Fact Graph**: Static Scan은 Spring 어노테이션 기반으로 API 엔드포인트를 빠르게 식별한 후, Fact Graph 빌더로 AST 및 파라미터 타입을 넘깁니다.
+3. **Fact Graph -> Rule Engine**: Fact Graph 빌더가 만든 다차원 `FactCodeGraph`는 불변(Immutable) 객체로서 `FactGraphIndex`를 거쳐 시맨틱 분류기 및 규칙 엔진에 전달됩니다.
+4. **Rule Engine -> Output Assembly**: 정규화된 비즈니스 규칙과 검증 사양은 독립된 Exporter 클래스들을 통해 최종 사양 아티팩트로 조립됩니다.
 
-## 외부 의존성
+---
 
-| 의존성 | 버전 | 용도 | 라이선스 계열 |
-|---|---:|---|---|
-| Eclipse JGit | 6.8.0 | Git clone/checkout | EPL 2.0 |
-| Jackson Databind/YAML | 2.15.2 | JSON/YAML | Apache 2.0 |
-| JavaParser Core/Symbol Solver | 3.25.7 | AST/타입 해석 | Apache 2.0/LGPL 선택형 |
-| SLF4J Simple | 1.7.36 | 로깅 | MIT |
-| JUnit Jupiter | 5.9.3 | 테스트 | EPL 2.0 |
-| AssertJ Core | 3.24.2 | assertion | Apache 2.0 |
-| jqwik | 1.7.4 | 속성 테스트 | EPL 2.0 |
+## External Library Dependencies (`build.gradle`)
 
-라이선스는 일반 공개 라이선스 기준이며 배포 전 공식 NOTICE 검증이 필요하다.
+```groovy
+dependencies {
+    // JavaParser Core & Symbol Solver
+    implementation 'com.github.javaparser:javaparser-core:3.25.7'
+    implementation 'com.github.javaparser:javaparser-symbol-solver-core:3.25.7'
 
-## 런타임 경계
+    // Jackson Databind & YAML format
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.17.0'
 
-- 분석 대상 저장소 코드를 빌드하거나 실행하지 않는다.
-- GitHub 외 URL과 SSH URL은 수집 정책에서 거부한다.
-- 임시 작업공간은 성공/실패와 무관하게 정리한다.
+    // Testing & Assertion Frameworks
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+    testImplementation 'org.assertj:assertj-core:3.25.3'
+
+    // Property-Based Testing
+    testImplementation 'net.jqwik:jqwik:1.9.2'
+}
+```
+
+### Dependency Rationale
+- **JavaParser 3.25.7**: 백엔드 소스 코드를 바이트코드가 아닌 AST 원본 수준에서 완벽히 파싱하고 심볼을 추적하기 위한 핵심 의존성.
+- **Jackson YAML & Databind**: JSON 스펙 아웃풋 및 표준 OpenAPI 3.0 YAML 문서의 직렬화를 담당.
+- **JUnit 5 / AssertJ / Jqwik**: 결정론적 그래프 구조 및 정규화 결과의 무결성을 검증하기 위한 테스트 스위트.

@@ -212,8 +212,9 @@ class OpenApiPipelineRegressionTest {
             package io.atworks.dddstart2;
 
             public class ShippingService {
+                private OrderRepository orderRepository;
                 public void startShipping(String orderNo, long version) {
-                    Order order = new Order();
+                    Order order = orderRepository.findById(orderNo).orElseThrow();
                     if (version != order.getRequestedVersion()) {
                         throw new VersionConflictException();
                     }
@@ -225,9 +226,10 @@ class OpenApiPipelineRegressionTest {
 
             public class CancelService {
                 private CancelPolicy cancelPolicy;
+                private OrderRepository orderRepository;
 
                 public void cancel(String orderNo, User currentUser) {
-                    Order order = new Order();
+                    Order order = orderRepository.findById(orderNo).orElseThrow();
                     if (!cancelPolicy.hasPermission(order, currentUser)) {
                         throw new NoCancellablePermission();
                     }
@@ -235,6 +237,24 @@ class OpenApiPipelineRegressionTest {
                         throw new AlreadyShippedException();
                     }
                 }
+            }
+        """);
+        Files.writeString(packageDir.resolve("OrderRepository.java"), """
+            package io.atworks.dddstart2;
+
+            import java.util.Optional;
+            import org.springframework.data.repository.Repository;
+
+            public interface OrderRepository extends Repository<Order, String> {
+                Optional<Order> findById(String orderNo);
+            }
+        """);
+        Path springDataDir = srcRoot.resolve("org/springframework/data/repository");
+        Files.createDirectories(springDataDir);
+        Files.writeString(springDataDir.resolve("Repository.java"), """
+            package org.springframework.data.repository;
+
+            public interface Repository<T, ID> {
             }
         """);
         Files.writeString(packageDir.resolve("Order.java"), """
@@ -323,16 +343,30 @@ class OpenApiPipelineRegressionTest {
             .contains("$.shippingInfo.receiver.name");
         assertThat(shipping.at("/requestPreconditions").toString())
             .doesNotContain("OPTIMISTIC_LOCK_MATCH");
-        assertThat(shipping.at("/responseAssertions")).isEmpty();
         assertThat(shipping.at("/excludedBusinessRules").toString())
             .contains("OPTIMISTIC_LOCK_MATCH");
         assertThat(cancel.at("/requestPreconditions").toString())
             .doesNotContain("HAS_CANCELLATION_PERMISSION")
             .doesNotContain("STATE_IN");
-        assertThat(cancel.at("/responseAssertions")).isEmpty();
         assertThat(cancel.at("/excludedBusinessRules").toString())
-            .contains("HAS_CANCELLATION_PERMISSION")
+            .doesNotContain("HAS_CANCELLATION_PERMISSION")
             .contains("STATE_IN");
+        assertThat(List.of(orderConfirm, order, shipping, cancel))
+            .allSatisfy(operation -> {
+                assertThat(operation.at("/responseAssertions")).isNotEmpty();
+                assertThat(operation.at("/conditionDiagnostics").toString())
+                    .doesNotContain("RESPONSE_METADATA_UNRESOLVED");
+            });
+        assertThat(List.of(shipping, cancel)).allSatisfy(operation ->
+            assertThat(operation.at("/excludedBusinessRules").toString())
+                .contains("SPRING_DATA_FIND_BY_ID_OR_ELSE_THROW")
+                .contains("orderNo"));
+        assertThat(List.of(orderConfirm, order, shipping, cancel)).allSatisfy(operation ->
+            assertThat(operation.at("/conditionDiagnostics").toString())
+                .doesNotContain("SEMANTIC_UNRESOLVED")
+                .doesNotContain("EXCLUDED_RULE_NOT_ALLOWLISTED"));
+        assertDistinctStateEvidence(cancel, "PAYMENT_WAITING");
+        assertDistinctStateEvidence(cancel, "PREPARING");
         assertThat(executionJson.at("/warningCount").asInt()).isGreaterThanOrEqualTo(0);
         if (executionJson.at("/warningCount").asInt() > 0) {
             assertThat(executionJson.at("/warnings/0/code").asText()).isEqualTo("SERVICE_HINT_REJECTED");
@@ -352,6 +386,21 @@ class OpenApiPipelineRegressionTest {
             }
         }
         throw new AssertionError("Operation not found: " + path);
+    }
+
+    private void assertDistinctStateEvidence(JsonNode operation, String state) {
+        for (JsonNode rule : operation.path("excludedBusinessRules")) {
+            if (!rule.toString().contains(state)) continue;
+            List<String> provenance = new java.util.ArrayList<>();
+            rule.path("evidence").forEach(evidence -> provenance.add(
+                evidence.path("filePath").asText() + "|" + evidence.path("startLine").asInt()
+                    + "|" + evidence.path("startColumn").asInt() + "|" + evidence.path("role").asText()
+                    + "|" + evidence.path("snippet").asText()));
+            assertThat(provenance).withFailMessage("state=%s rule=%s", state, rule)
+                .doesNotHaveDuplicates();
+            return;
+        }
+        throw new AssertionError("State rule not found: " + state);
     }
 
     private RepositorySource buildRepositorySource(Path tempDir) {

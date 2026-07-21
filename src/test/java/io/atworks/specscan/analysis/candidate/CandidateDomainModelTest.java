@@ -83,4 +83,17 @@ class CandidateDomainModelTest {
 
         assertThat(first.candidateId()).isNotEqualTo(second.candidateId());
     }
+
+    @Test
+    void candidateEvidenceIsDeduplicatedBySourceProvenanceRatherThanNodeId() {
+        EvidenceRef duplicate = new EvidenceRef("another-node", evidence.filePath(), evidence.startLine(),
+            evidence.startColumn(), evidence.endLine(), evidence.endColumn(), evidence.role(), evidence.snippet());
+
+        BusinessRuleCandidate candidate = new BusinessRuleCandidateFactory().create(
+            "predicate-1", "state.rule", BusinessRuleCategory.STATE_PRECONDITION,
+            ExtractionStatus.EXTRACTED, SemanticStatus.RESOLVED, TargetResolutionStatus.NOT_APPLICABLE,
+            null, 0.9, List.of(evidence, duplicate), List.of());
+
+        assertThat(candidate.evidence()).containsExactly(evidence);
+    }
 }

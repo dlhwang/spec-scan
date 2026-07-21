@@ -5,3 +5,6 @@
 /auto-oas.jar
 /.gjc/
 /.local-tools/
+/application-local.yml
+/src/main/resources/application-local.yml
+/build/api-intelligence-runs/

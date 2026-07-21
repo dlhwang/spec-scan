@@ -75,12 +75,12 @@ class InitialRulePackTest {
     @Test void initialPacksHaveStableUniqueRuleIds() {
         assertThat(new RulePackRegistry(InitialRulePacks.all()).rules()).extracting(GraphRule::id)
             .containsExactlyInAnyOrder(EnumAllowedValueGuardRule.ID, InputDomainMismatchGuardRule.ID,
-                NullRejectionGuardRule.ID, EmptyRejectionGuardRule.ID, DelegatedGuardRule.ID, AuthorizationGuardCallRule.ID,
+                NullRejectionGuardRule.ID, EmptyRejectionGuardRule.ID, DelegatedGuardRule.ID,
                 OptionalLookupFailureRule.ID, PasswordEncoderMatchFailureRule.ID,
                 SpringDataFindByIdOrElseThrowRule.ID);
         assertThat(InitialRuleCatalog.descriptors()).extracting(RuleDescriptor::ruleId)
             .containsExactlyInAnyOrder(EnumAllowedValueGuardRule.ID, InputDomainMismatchGuardRule.ID,
-                NullRejectionGuardRule.ID, EmptyRejectionGuardRule.ID, DelegatedGuardRule.ID, AuthorizationGuardCallRule.ID,
+                NullRejectionGuardRule.ID, EmptyRejectionGuardRule.ID, DelegatedGuardRule.ID,
                 OptionalLookupFailureRule.ID, PasswordEncoderMatchFailureRule.ID,
                 SpringDataFindByIdOrElseThrowRule.ID);
     }
@@ -113,7 +113,7 @@ class InitialRulePackTest {
             .isEqualTo(BusinessRuleCategory.AUTHENTICATION);
     }
 
-    @Test void springDataRefinementHasExplicitPrecedenceIndependentOfPackOrder() {
+    @Test void springDataSemanticDispatchSelectsOnlySpecificLookupIndependentOfPackOrder() {
         FactNode root = root();
         FactNode terminal = new FactNode("terminal", FactNodeType.METHOD_CALL, range(), "lookup.orElseThrow()",
             TypeResolution.resolvedSignature("java.util.Optional.orElseThrow()"),
@@ -129,11 +129,66 @@ class InitialRulePackTest {
             .evaluate(graph, new MethodScope(graph.graphId(), Set.of(root.id())));
 
         assertThat(result.candidates().businessRules()).extracting(BusinessRuleCandidate::ruleId)
-            .contains(OptionalLookupFailureRule.ID, SpringDataFindByIdOrElseThrowRule.ID);
-        assertThat(result.candidates().businessRules()).filteredOn(candidate ->
-            candidate.ruleId().equals(OptionalLookupFailureRule.ID)).singleElement()
-            .satisfies(candidate -> assertThat(candidate.diagnostics()).extracting(CandidateDiagnostic::code)
-                .contains("LOWER_PRECEDENCE_MATCH"));
+            .containsExactly(SpringDataFindByIdOrElseThrowRule.ID);
+        assertThat(result.report().executedRules()).isEqualTo(7);
+        assertThat(result.report().ruleMetrics()).extracting(RuleExecutionMetric::ruleId)
+            .contains(SpringDataFindByIdOrElseThrowRule.ID)
+            .doesNotContain(OptionalLookupFailureRule.ID);
+    }
+
+    @Test void authorizationHeuristicHardcodesCancellationForAnyCanMethod() {
+        FactNode root = root();
+        FactNode condition = condition("authorization-condition", "MethodCallExpr", "canEdit(document)");
+        FactNode call = new FactNode("authorization-call", FactNodeType.METHOD_CALL, range(),
+            "canEdit(document)", TypeResolution.resolvedSignature("sample.Policy.canEdit(sample.Document)"),
+            new FactNodePayload.MethodCallPayload("canEdit", 1, false));
+        FactNode argument = field("authorization-argument", "document");
+        FactNode failure = outcome();
+        FactCodeGraph graph = new FactCodeGraph("authorization-graph", root.id(),
+            List.of(root, condition, call, argument, failure), List.of(
+            edge("authorization-control", root, condition, FactEdgeType.CONTROLS, -1, "IF"),
+            edge("authorization-call-operand", condition, call, FactEdgeType.OPERAND_OF, 0, "CALL"),
+            edge("authorization-argument-edge", call, argument, FactEdgeType.OPERAND_OF, 0, "ARGUMENT"),
+            edge("authorization-failure", condition, failure, FactEdgeType.THEN_OUTCOME, -1, "THROW")));
+
+        assertThat(new AuthorizationGuardCallRule().match(graph,
+            predicate(graph, condition, PredicateType.BOOLEAN_CALL, failure))).singleElement()
+            .satisfies(candidate -> {
+                assertThat(candidate.constraint().targetPath()).isEqualTo("currentUser");
+                assertThat(candidate.constraint().operator()).isEqualTo("HAS_CANCELLATION_PERMISSION");
+            });
+    }
+
+    @Test void engineEvaluatesEveryRegisteredRuleForEachPredicate() {
+        Fixture fixture = comparison("==", FactNodeType.NULL_LITERAL, false, true);
+        GraphRuleEngineResult result = new DefaultGraphRuleEngine(
+            (graph, scope) -> List.of(fixture.predicate), InitialRulePacks.all())
+            .evaluate(fixture.graph, new MethodScope(fixture.graph.graphId(), Set.of("root")));
+
+        assertThat(result.report().registeredRules()).isEqualTo(8);
+        assertThat(result.report().evaluatedPredicates()).isEqualTo(1);
+        assertThat(result.report().executedRules()).isEqualTo(8);
+        assertThat(result.report().ruleMetrics()).hasSize(8)
+            .allSatisfy(metric -> assertThat(metric.evaluationCount()).isEqualTo(1));
+    }
+
+    @Test void requestNullSemanticDispatchSkipsLegacyInvocation() {
+        Fixture fixture = comparison("==", FactNodeType.NULL_LITERAL, true, true);
+        GraphRule failingLegacy = new GraphRule() {
+            public String id() { return NullRejectionGuardRule.ID; }
+            public RuleLayer layer() { return RuleLayer.JAVA_LANGUAGE; }
+            public List<BusinessRuleCandidate> match(FactCodeGraph graph, PredicateCandidate predicate) {
+                throw new IllegalStateException("legacy rule should be suppressed");
+            }
+        };
+        GraphRuleEngineResult result = new DefaultGraphRuleEngine(
+            (graph, scope) -> List.of(fixture.predicate),
+            List.of(new RulePack("semantic-null", true, List.of(failingLegacy), RulePrecedence.none())))
+            .evaluate(fixture.graph, new MethodScope(fixture.graph.graphId(), Set.of("root")));
+
+        assertThat(result.report().failedRuleExecutions()).isZero();
+        assertThat(result.candidates().businessRules()).singleElement()
+            .extracting(BusinessRuleCandidate::ruleId).isEqualTo(NullRejectionGuardRule.ID);
     }
 
     private PasswordFixture passwordFixture(boolean inputOrigin, String signature) {

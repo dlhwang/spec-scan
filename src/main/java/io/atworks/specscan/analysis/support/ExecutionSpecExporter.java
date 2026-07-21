@@ -47,7 +47,7 @@ public class ExecutionSpecExporter {
             RequestSpec base = buildRequest(endpoint, typeResolver, output);
             RequestSpec projected = new RequestSpec(base.request(), mapExecutable(output.requestPreconditions()),
                 mapExecutable(output.responseAssertions()), mapExcluded(output.excludedBusinessRules()), Set.of());
-            Map<String, Object> operation = buildOperation(endpoint, projected, typeResolver);
+            Map<String, Object> operation = buildOperation(endpoint, projected, typeResolver, output);
             if (!output.diagnostics().isEmpty()) operation.put("conditionDiagnostics", mapDiagnostics(output.diagnostics()));
             operations.add(operation);
         }
@@ -74,7 +74,8 @@ public class ExecutionSpecExporter {
     private Map<String, Object> buildOperation(
         ApiEndpoint endpoint,
         RequestSpec requestSpec,
-        TypeResolver typeResolver
+        TypeResolver typeResolver,
+        EndpointRuleOutput output
     ) {
         Map<String, Object> operation = new LinkedHashMap<>();
         operation.put("operationId", endpoint.controllerMethod());
@@ -82,10 +83,11 @@ public class ExecutionSpecExporter {
         operation.put("path", endpoint.path());
         operation.put("controllerClass", endpoint.controllerClass());
         operation.put("request", requestSpec.request());
-        operation.put("response200", buildResponse(endpoint, typeResolver));
+        operation.put("response200", buildResponse(endpoint, typeResolver, output.responseAssertions()));
         operation.put("requestPreconditions", requestSpec.requestPreconditions());
         operation.put("responseAssertions", requestSpec.responseAssertions());
         operation.put("excludedBusinessRules", requestSpec.excludedBusinessRules());
+        operation.put("externalStatePrerequisites", mapExcluded(output.externalStatePrerequisites()));
         return operation;
     }
 
@@ -135,7 +137,8 @@ public class ExecutionSpecExporter {
             mapExecutable(output.responseAssertions()), mapExcluded(output.excludedBusinessRules()), Set.of());
     }
 
-    private Map<String, Object> buildResponse(ApiEndpoint endpoint, TypeResolver typeResolver) {
+    private Map<String, Object> buildResponse(ApiEndpoint endpoint, TypeResolver typeResolver,
+                                               List<ExecutableCondition> assertions) {
         Map<String, Object> response = new LinkedHashMap<>();
         String responseType = endpoint.responseBinding().type();
         if (responseType == null
@@ -152,8 +155,38 @@ public class ExecutionSpecExporter {
             : typeResolver.resolveExpandedSchema(responseType, List.of(), List.of());
         response.put("contentType", resolveResponseContentType(responseType));
         response.put("schema", schema);
-        response.put("example", buildExample(schema));
+        Object example = buildExample(schema);
+        applyResponseConstants(example, assertions);
+        response.put("example", example);
         return response;
+    }
+
+    @SuppressWarnings("unchecked")
+    private void applyResponseConstants(Object example, List<ExecutableCondition> assertions) {
+        if (!(example instanceof Map<?, ?>)) return;
+        for (ExecutableCondition assertion : assertions) {
+            if (!"BODY".equals(assertion.targetLocation()) || !"EQ".equals(assertion.operator())
+                    || assertion.expectedValues().size() != 1 || assertion.targetPath() == null
+                    || !assertion.targetPath().startsWith("$.")) continue;
+            String[] path = assertion.targetPath().substring(2).split("\\.");
+            Map<String, Object> current = (Map<String, Object>) example;
+            for (int index = 0; index < path.length - 1; index++) {
+                Object nested = current.get(path[index]);
+                if (!(nested instanceof Map<?, ?>)) { current = null; break; }
+                current = (Map<String, Object>) nested;
+            }
+            if (current != null && current.containsKey(path[path.length - 1])) {
+                current.put(path[path.length - 1], scalar(assertion.expectedValues().get(0)));
+            }
+        }
+    }
+
+    private Object scalar(String value) {
+        if ("null".equals(value)) return null;
+        if ("true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value))
+            return Boolean.valueOf(value);
+        try { return Long.valueOf(value); }
+        catch (NumberFormatException ignored) { return value; }
     }
 
     private boolean isPrimitiveResponseType(String responseType) {

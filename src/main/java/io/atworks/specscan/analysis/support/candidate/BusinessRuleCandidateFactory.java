@@ -1,7 +1,7 @@
 package io.atworks.specscan.analysis.support.candidate;
 
 import io.atworks.specscan.analysis.domain.candidate.*;
-import java.util.List;
+import java.util.*;
 
 public final class BusinessRuleCandidateFactory {
     private final DeterministicCandidateIdGenerator ids;
@@ -27,6 +27,7 @@ public final class BusinessRuleCandidateFactory {
             BusinessRuleCategory category, RuleEffect effect, ExtractionStatus extractionStatus,
             SemanticStatus semanticStatus, TargetResolutionStatus targetStatus, NormalizedConstraint constraint,
             double confidence, List<EvidenceRef> evidence, List<CandidateDiagnostic> diagnostics) {
+        evidence = distinctEvidence(evidence);
         BusinessRuleCandidate candidate = new BusinessRuleCandidate(
             ids.forBusinessRule(predicateCandidateId, ruleId, semanticStatus), predicateCandidateId, ruleId,
             category, effect, extractionStatus, semanticStatus, targetStatus, constraint, confidence, evidence, diagnostics);
@@ -48,11 +49,23 @@ public final class BusinessRuleCandidateFactory {
             SemanticStatus semanticStatus, TargetResolutionStatus targetStatus, NormalizedConstraint constraint,
             double confidence, List<EvidenceRef> evidence, List<CandidateDiagnostic> diagnostics,
             String evidenceFingerprint) {
+        evidence = distinctEvidence(evidence);
         BusinessRuleCandidate candidate = new BusinessRuleCandidate(
             ids.forBusinessRule(predicateCandidateId, ruleId, semanticStatus, evidenceFingerprint),
             predicateCandidateId, ruleId, category, effect, extractionStatus, semanticStatus, targetStatus,
             constraint, confidence, evidence, diagnostics);
         validator.validate(candidate);
         return candidate;
+    }
+
+    private List<EvidenceRef> distinctEvidence(List<EvidenceRef> evidence) {
+        Map<String, EvidenceRef> result = new LinkedHashMap<>();
+        for (EvidenceRef value : evidence) {
+            String key = value.filePath() + "|" + value.startLine() + "|" + value.startColumn()
+                + "|" + value.endLine() + "|" + value.endColumn() + "|" + value.role()
+                + "|" + value.snippet();
+            result.putIfAbsent(key, value);
+        }
+        return List.copyOf(result.values());
     }
 }
