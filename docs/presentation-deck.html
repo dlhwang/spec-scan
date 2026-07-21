@@ -184,9 +184,9 @@
   .split-head.easy { color: var(--green); }
   .split-head.hard { color: var(--red); }
   .rows { display: flex; flex-direction: column; gap: 9px; }
-  .rows li { list-style: none; display:flex; gap:10px; align-items:flex-start; font-size: clamp(13.5px,1.35vw,16px); line-height:1.4; }
+  .rows li { list-style: none; position: relative; padding-left: 17px; font-size: clamp(13.5px,1.35vw,16px); line-height: 1.4; word-break: keep-all; }
   .rows.dense li { font-size: clamp(13px,1.25vw,15px); }
-  .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; margin-top: .55em; }
+  .dot { position: absolute; left: 0; top: .5em; width: 7px; height: 7px; border-radius: 50%; }
   .dot.g { background: var(--green); } .dot.r { background: var(--red); } .dot.a { background: var(--amber); } .dot.b { background: var(--accent); } .dot.c { background: var(--cyan); }
   ul { margin: 0; padding: 0; }
 
@@ -665,6 +665,46 @@ semantic output 동등성 검증
         </div>
       </div>
       <div class="note"><span class="lbl">note</span><span>현재 기본 실행 경로는 built-in <code>InitialRulePacks.all()</code>. YAML composer는 독립 PoC · 테스트 수준으로 남아 있다.</span></div>
+    </div>
+  </section>
+
+  <!-- A3 · APPENDIX yaml roadmap -->
+  <section class="slide" data-sec="부록" data-appx="1">
+    <div class="eyebrow"><span class="appx-badge">Appendix D</span> Q&amp;A 대비 — 룰 전체를 YAML로 관리할 수 있나?</div>
+    <h2 class="head" style="max-width:none;">층위가 다르다 — 데이터는 빼고, 알고리즘은 남긴다</h2>
+    <div class="body">
+      <div class="cols" style="grid-template-columns:repeat(3,1fr); gap:14px; align-items:start;">
+        <div class="card">
+          <div class="split-head" style="color:var(--green)">▚ A · 지금 가능 — 목록(데이터)</div>
+          <ul class="rows dense">
+            <li><span class="dot g"></span>표준 guard 대응표 같은 순수 목록 — <code>requireNonNull → NOT_NULL</code></li>
+            <li><span class="dot g"></span>rule pack on/off · traversal budget 수치</li>
+            <li><span class="dot g"></span>기존 YAML 로더(PoC) 재사용 — 엔진 동작 불변, 리스크 최소</li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:var(--accent);">
+          <div class="split-head" style="color:var(--accent)">▚ B · 핵심 — 서식 + 빈칸 채우기</div>
+          <ul class="rows dense">
+            <li><span class="dot b"></span>탐색 · polarity · origin 알고리즘은 Java <b>템플릿(kind)</b>으로 유지</li>
+            <li><span class="dot b"></span>YAML은 kind 선택 + 파라미터(ownerType · method · role)만 선언</li>
+            <li><span class="dot b"></span>커스텀 비밀번호 검증도 YAML 한 블록으로 등록 — <code>isMatchPassword</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="split-head" style="color:var(--red)">▚ C · 금지 — 알고리즘</div>
+          <ul class="rows dense">
+            <li><span class="dot r"></span>그래프 생성 · 탐색 · polarity 대수 · origin 역추적</li>
+            <li><span class="dot r"></span>dispatch 우선순위 · suppression 체인</li>
+            <li><span class="dot r"></span>YAML로 빼는 순간 그래프 질의 DSL — <b>새 언어를 발명</b>하게 된다</li>
+          </ul>
+        </div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; margin-top:18px; font-family:var(--mono); flex-wrap:wrap; font-size:clamp(11px,1.1vw,13px);">
+        <span class="lnode hot">1 목록을 파일로 — 설정 수준</span><span style="color:var(--faint);">→</span>
+        <span class="lnode">2 서식+빈칸 — classifier 템플릿 × YAML 인스턴스</span><span style="color:var(--faint);">→</span>
+        <span class="lnode">3 탐지 seed 일부 개방 — 선택 · 신중</span>
+      </div>
+      <div class="note"><span class="lbl">gate</span><span>모든 YAML 변경은 <b>golden corpus 회귀</b>를 통과해야 반영한다. 스키마 검증(unknown field · 중복 ID)은 PoC에 이미 구현되어 있다.</span></div>
     </div>
   </section>
 
