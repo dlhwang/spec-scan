@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fact Code Graph 기반 API 테스트 조건 추출 — 발표</title>
+<style>
+  :root {
+    --bg: #eef0f5;
+    --surface: #ffffff;
+    --surface-2: #f6f7fb;
+    --ink: #131720;
+    --muted: #5a6478;
+    --faint: #8b93a4;
+    --line: #d9dee8;
+    --line-strong: #c3cad8;
+    --accent: #3a52e6;
+    --accent-soft: #e5e9ff;
+    --cyan: #0c8ea3;
+    --green: #1f9550;
+    --green-soft: #e2f3e8;
+    --amber: #b26f11;
+    --amber-soft: #f6ecd7;
+    --red: #cf3f37;
+    --red-soft: #f8e4e2;
+    --code-bg: #14181f;
+    --code-ink: #d7dce6;
+    --code-cmt: #6b7688;
+    --code-hl: #8fd0ff;
+    --code-str: #b6d99a;
+    --sans: "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", system-ui, sans-serif;
+    --mono: "SF Mono", "JetBrains Mono", ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    --shadow: 0 1px 2px rgba(19,23,32,.04), 0 8px 30px rgba(19,23,32,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0c0f16;
+      --surface: #141926;
+      --surface-2: #10141e;
+      --ink: #e7ebf3;
+      --muted: #98a2b6;
+      --faint: #6b7488;
+      --line: #262d3d;
+      --line-strong: #333c50;
+      --accent: #7a8dff;
+      --accent-soft: #1c2340;
+      --cyan: #45c6d8;
+      --green: #46c47f;
+      --green-soft: #14281d;
+      --amber: #d8a860;
+      --amber-soft: #2a2313;
+      --red: #f3746b;
+      --red-soft: #2c1917;
+      --code-bg: #0a0d13;
+      --code-ink: #d7dce6;
+      --code-cmt: #5c6678;
+      --code-hl: #8fd0ff;
+      --code-str: #b6d99a;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 40px rgba(0,0,0,.4);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c0f16; --surface: #141926; --surface-2: #10141e; --ink: #e7ebf3;
+    --muted: #98a2b6; --faint: #6b7488; --line: #262d3d; --line-strong: #333c50;
+    --accent: #7a8dff; --accent-soft: #1c2340; --cyan: #45c6d8;
+    --green: #46c47f; --green-soft: #14281d; --amber: #d8a860; --amber-soft: #2a2313;
+    --red: #f3746b; --red-soft: #2c1917;
+    --code-bg: #0a0d13; --code-ink: #d7dce6; --code-cmt: #5c6678; --code-hl: #8fd0ff; --code-str: #b6d99a;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 40px rgba(0,0,0,.4);
+  }
+  :root[data-theme="light"] {
+    --bg: #eef0f5; --surface: #ffffff; --surface-2: #f6f7fb; --ink: #131720;
+    --muted: #5a6478; --faint: #8b93a4; --line: #d9dee8; --line-strong: #c3cad8;
+    --accent: #3a52e6; --accent-soft: #e5e9ff; --cyan: #0c8ea3;
+    --green: #1f9550; --green-soft: #e2f3e8; --amber: #b26f11; --amber-soft: #f6ecd7;
+    --red: #cf3f37; --red-soft: #f8e4e2;
+    --code-bg: #14181f; --code-ink: #d7dce6; --code-cmt: #6b7688; --code-hl: #8fd0ff; --code-str: #b6d99a;
+    --shadow: 0 1px 2px rgba(19,23,32,.04), 0 8px 30px rgba(19,23,32,.06);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ---------- deck frame ---------- */
+  .deck { position: fixed; inset: 0; }
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    padding: clamp(28px, 5vh, 64px) clamp(28px, 6vw, 110px);
+    opacity: 0;
+  }
+  .slide.active { display: flex; animation: rise .45s cubic-bezier(.2,.7,.3,1) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .slide.active { animation: none; opacity: 1; }
+  }
+
+  /* ---------- shared type ---------- */
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: clamp(11px, 1.15vw, 13px);
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 0 clamp(14px, 2.4vh, 26px);
+  }
+  .eyebrow .num {
+    font-variant-numeric: tabular-nums;
+    color: var(--faint);
+  }
+  .eyebrow .tag {
+    margin-left: auto;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px; letter-spacing: .1em;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  h1.title {
+    font-size: clamp(28px, 4.4vw, 58px);
+    line-height: 1.04; font-weight: 680;
+    letter-spacing: -.02em; text-wrap: balance;
+    margin: 0;
+  }
+  h2.head {
+    font-size: clamp(23px, 3.1vw, 40px);
+    line-height: 1.1; font-weight: 660;
+    letter-spacing: -.015em; text-wrap: balance;
+    margin: 0 0 clamp(16px, 2.6vh, 30px);
+    max-width: 20ch;
+  }
+  .lede { font-size: clamp(15px, 1.5vw, 19px); color: var(--muted); line-height: 1.55; max-width: 62ch; }
+  .body { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+
+  /* ---------- code ---------- */
+  code, pre, .mono { font-family: var(--mono); }
+  pre.code {
+    background: var(--code-bg); color: var(--code-ink);
+    border-radius: 12px; padding: clamp(16px,2vw,22px) clamp(18px,2.2vw,26px);
+    margin: 0; overflow-x: auto;
+    font-size: clamp(12.5px, 1.15vw, 15px); line-height: 1.62;
+    border: 1px solid rgba(255,255,255,.06);
+    box-shadow: var(--shadow);
+  }
+  pre.code .k { color: #c99bf0; }
+  pre.code .hl { color: var(--code-hl); font-weight: 600; }
+  pre.code .s { color: var(--code-str); }
+  pre.code .c { color: var(--code-cmt); font-style: italic; }
+  pre.code .t { color: #7fd6c4; }
+
+  /* ---------- why callout ---------- */
+  .why {
+    margin-top: clamp(16px, 2.6vh, 26px);
+    border-left: 3px solid var(--accent);
+    background: var(--accent-soft);
+    padding: 12px 18px; border-radius: 0 10px 10px 0;
+    font-size: clamp(13.5px, 1.35vw, 16px); line-height: 1.5;
+    color: var(--ink);
+  }
+  .why b { color: var(--accent); font-family: var(--mono); font-size: .82em; letter-spacing: .08em; text-transform: uppercase; display:block; margin-bottom: 3px; }
+
+  /* ---------- generic cards / grids ---------- */
+  .cols { display: grid; gap: clamp(16px, 2vw, 28px); }
+  .cols.two { grid-template-columns: 1fr 1fr; }
+  .cols.stack { align-content: center; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: clamp(16px,1.8vw,24px);
+    box-shadow: var(--shadow);
+  }
+  .card h3 { margin: 0 0 4px; font-size: clamp(14px,1.35vw,17px); font-weight: 640; letter-spacing:-.01em; }
+  .card .k { font-family: var(--mono); font-size: 12.5px; letter-spacing: .02em; }
+
+  .split-head { display:flex; align-items:baseline; gap:10px; font-family: var(--mono); font-size: clamp(12px,1.2vw,14px); letter-spacing:.04em; margin-bottom: 12px; }
+  .split-head.easy { color: var(--green); }
+  .split-head.hard { color: var(--red); }
+  .rows { display: flex; flex-direction: column; gap: 9px; }
+  .rows li { list-style: none; display:flex; gap:10px; align-items:flex-start; font-size: clamp(13.5px,1.35vw,16px); line-height:1.4; }
+  .rows.dense li { font-size: clamp(13px,1.25vw,15px); }
+  .dot { flex: none; width: 7px; height: 7px; border-radius: 50%; margin-top: .55em; }
+  .dot.g { background: var(--green); } .dot.r { background: var(--red); } .dot.a { background: var(--amber); } .dot.b { background: var(--accent); } .dot.c { background: var(--cyan); }
+  ul { margin: 0; padding: 0; }
+
+  /* outputs strip */
+  .outs { display:grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-top: 18px; }
+  .out { border:1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--surface); }
+  .out .name { font-family: var(--mono); font-size: 12.5px; font-weight:600; margin-bottom:6px; }
+  .out .desc { font-size: 12.5px; color: var(--muted); line-height:1.4; }
+  .out.req { border-top: 3px solid var(--green); } .out.req .name { color: var(--green); }
+  .out.res { border-top: 3px solid var(--cyan); } .out.res .name { color: var(--cyan); }
+  .out.exc { border-top: 3px solid var(--amber); } .out.exc .name { color: var(--amber); }
+  .out.diag { border-top: 3px solid var(--faint); } .out.diag .name { color: var(--faint); }
+
+  /* questions */
+  .qlist { counter-reset: q; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 30px; margin-top: 18px; }
+  .qlist li { list-style:none; counter-increment: q; display:flex; gap:14px; align-items:flex-start; font-size: clamp(13.5px,1.4vw,16.5px); line-height:1.4; padding: 6px 0; }
+  .qlist li::before {
+    content: counter(q); flex:none;
+    width: 27px; height: 27px; border-radius: 8px;
+    display:grid; place-items:center;
+    font-family: var(--mono); font-size: 13px; font-weight: 600;
+    background: var(--accent-soft); color: var(--accent);
+  }
+  .qlist li .tag { font-family: var(--mono); font-size: 11.5px; color: var(--faint); }
+
+  /* pipeline diagram */
+  .pipe { display:flex; flex-direction:column; align-items:center; gap: 8px; font-family: var(--mono); }
+  .pnode { background: var(--surface); border:1px solid var(--line-strong); border-radius: 10px; padding: 11px 20px; font-size: clamp(13px,1.3vw,15.5px); box-shadow: var(--shadow); text-align:center; }
+  .pnode.hero { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight:600; }
+  .parrow { color: var(--faint); font-size: 15px; }
+  .pfork { display:flex; gap: 16px; }
+  .pfork .pnode.det { border-color: var(--green); }
+  .pfork .pnode.llm { border-color: var(--cyan); border-style: dashed; }
+
+  /* proof tree */
+  .tree { font-family: var(--mono); font-size: clamp(13px,1.3vw,16px); line-height: 1.85; background: var(--surface-2); border:1px solid var(--line); border-radius: 14px; padding: clamp(18px,2vw,26px); box-shadow: var(--shadow); }
+  .tree .to-diag { color: var(--faint); }
+  .tree .to-req { color: var(--green); font-weight:600; }
+  .tree .to-res { color: var(--cyan); font-weight:600; }
+  .tree .to-exc { color: var(--amber); font-weight:600; }
+  .tree .arm { color: var(--faint); }
+
+  /* boundary table */
+  table.bt { width:100%; border-collapse: collapse; font-size: clamp(12.5px,1.3vw,15.5px); }
+  table.bt th { text-align:left; font-family: var(--mono); font-weight:600; font-size: 12.5px; letter-spacing:.04em; padding: 0 14px 12px; }
+  table.bt th.keep { color: var(--accent); } table.bt th.ext { color: var(--cyan); }
+  table.bt td { padding: 9px 14px; border-top: 1px solid var(--line); line-height:1.35; vertical-align: top; }
+  table.bt td.keep { color: var(--ink); } table.bt td.ext { color: var(--muted); }
+
+  /* decisions */
+  .decisions { display:grid; gap: 14px; margin-top: 8px; }
+  .decision { display:flex; gap:16px; align-items:flex-start; background: var(--surface); border:1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .decision .n { font-family: var(--mono); color: var(--accent); font-weight:600; font-size: clamp(15px,1.5vw,19px); }
+  .decision .q { font-size: clamp(14px,1.45vw,17.5px); line-height:1.4; }
+
+  .spine {
+    font-family: var(--sans); font-weight: 600;
+    font-size: clamp(19px, 2.4vw, 33px); line-height: 1.32;
+    letter-spacing: -.015em; text-wrap: balance; max-width: 24ch;
+  }
+  .spine .em { color: var(--accent); }
+  .cover-meta { margin-top: auto; font-family: var(--mono); font-size: clamp(12px,1.2vw,14px); color: var(--faint); letter-spacing:.04em; display:flex; gap: 22px; flex-wrap: wrap; }
+  .cover-meta b { color: var(--muted); font-weight: 500; }
+
+  .warn { margin-top: 16px; border:1px solid var(--red); background: var(--red-soft); border-radius: 10px; padding: 13px 18px; font-size: clamp(12.5px,1.3vw,15px); line-height:1.5; }
+  .warn .no { color: var(--red); font-weight:600; }
+  .warn .yes { color: var(--green); font-weight:600; }
+
+  .note { font-size: clamp(12.5px,1.25vw,14.5px); color: var(--muted); line-height:1.5; margin-top: 14px; display:flex; gap:10px; align-items:flex-start; }
+  .note .lbl { font-family: var(--mono); font-size: 11px; letter-spacing:.08em; text-transform:uppercase; color: var(--faint); flex:none; margin-top:3px; }
+
+  /* ---------- architecture map ---------- */
+  .arch { display:flex; flex-direction:column; gap:4px; font-family:var(--mono); }
+  .alayer { display:flex; align-items:center; gap:12px; border:1px solid var(--line); border-radius:11px; padding:7px 13px; background:var(--surface); box-shadow:var(--shadow); }
+  .alayer .lname { flex:none; width:112px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); line-height:1.35; }
+  .lnodes { display:flex; flex-wrap:wrap; gap:5px 6px; align-items:center; font-size:clamp(10.5px,1.05vw,12.5px); }
+  .lnode { border:1px solid var(--line-strong); border-radius:7px; padding:3px 9px; background:var(--surface-2); white-space:nowrap; display:inline-flex; align-items:center; gap:4px; }
+  .lnode.hot { border-color:var(--accent); background:var(--accent-soft); color:var(--accent); font-weight:600; }
+  .lnode.hero { border-color:var(--accent); background:var(--accent); color:var(--surface); font-weight:600; }
+  .lnodes .sep { color:var(--faint); }
+  .aarrow { text-align:center; color:var(--faint); font-size:11px; line-height:1; }
+  .exn { display:inline-grid; place-items:center; min-width:16px; height:16px; border-radius:50%; font-size:10px; font-weight:700; font-family:var(--mono); }
+  .exn.n1 { background:var(--green-soft); color:var(--green); }
+  .exn.n2 { background:var(--amber-soft); color:var(--amber); }
+  .exn.n3 { background:var(--amber-soft); color:var(--amber); }
+  .exn.neutral { background:var(--accent-soft); color:var(--accent); }
+  .exlegend { display:flex; gap:6px 22px; flex-wrap:wrap; margin-top:10px; font-family:var(--mono); font-size:clamp(10.5px,1.05vw,12px); color:var(--muted); align-items:center; }
+  .exlegend > span { display:inline-flex; align-items:center; gap:6px; }
+  .exhead { display:flex; align-items:center; gap:8px; margin-bottom:6px; font-family:var(--mono); font-size:12px; color:var(--muted); }
+
+  /* ---------- question × example answers ---------- */
+  table.qa { width:100%; border-collapse:collapse; font-size:clamp(11px,1.12vw,13.5px); line-height:1.35; margin-top:8px; }
+  table.qa th { text-align:left; font-family:var(--mono); font-size:clamp(10.5px,1.05vw,12.5px); font-weight:600; color:var(--muted); padding:6px 10px 8px; border-bottom:2px solid var(--line-strong); white-space:nowrap; }
+  table.qa td { padding:7px 10px; border-top:1px solid var(--line); vertical-align:top; }
+  table.qa td.q { font-weight:600; }
+  table.qa td code { font-size:.92em; }
+
+  /* ---------- chrome (progress + nav) ---------- */
+  .chrome { position: fixed; left: 0; right: 0; bottom: 0; height: 46px; display:flex; align-items:center; gap: 16px; padding: 0 clamp(20px,4vw,44px); z-index: 20; pointer-events:none; }
+  .progress { flex:1; display:flex; gap: 6px; align-items:center; }
+  .pdot { height: 4px; border-radius: 2px; background: var(--line-strong); flex: 1; transition: background .3s, transform .3s; transform-origin:left; pointer-events:auto; cursor:pointer; }
+  .pdot.done { background: var(--muted); }
+  .pdot.now { background: var(--accent); }
+  .pdot.appx { max-width: 22px; opacity: .7; }
+  .counter { font-family: var(--mono); font-size: 12.5px; color: var(--faint); font-variant-numeric: tabular-nums; letter-spacing:.05em; pointer-events:auto; }
+  .counter .sec { color: var(--muted); }
+  .brand { position: fixed; top: clamp(20px,4vh,34px); right: clamp(24px,5vw,54px); font-family: var(--mono); font-size: 11.5px; letter-spacing:.14em; text-transform:uppercase; color: var(--faint); z-index: 15; }
+  .hint { position: fixed; bottom: 52px; right: clamp(20px,4vw,44px); font-family: var(--mono); font-size: 11px; color: var(--faint); opacity: .8; z-index: 20; animation: fade 5s ease 4s forwards; }
+  @keyframes fade { to { opacity: 0; } }
+  .themebtn { position: fixed; top: clamp(16px,3.4vh,30px); left: clamp(20px,4vw,44px); z-index: 25; pointer-events:auto; background: var(--surface); border:1px solid var(--line); color: var(--muted); border-radius: 8px; width: 34px; height: 34px; cursor:pointer; font-size: 15px; display:grid; place-items:center; box-shadow: var(--shadow); }
+  .themebtn:hover { border-color: var(--line-strong); color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+  .appx-badge { font-family: var(--mono); font-size: 11px; letter-spacing:.14em; color: var(--amber); text-transform: uppercase; }
+
+  @media (max-width: 760px) {
+    .cols.two, .qlist, .outs { grid-template-columns: 1fr; }
+    .outs { grid-template-columns: 1fr 1fr; }
+    h2.head { max-width: none; }
+    .brand { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<button class="themebtn" id="themebtn" aria-label="테마 전환" title="테마 전환">◐</button>
+<div class="brand">auto-oas · spec-scan</div>
+
+<div class="deck" id="deck">
+
+  <!-- 0 · COVER -->
+  <section class="slide" data-sec="Cover">
+    <div class="eyebrow"><span class="num">00</span> Progressive Externalization</div>
+    <h1 class="title">코드 실행 경로에서<br>테스트 가능한 조건을 추출한다</h1>
+    <p class="lede" style="margin-top:22px;">Spring 소스코드 → Fact Code Graph → 테스트 계약.<br>오늘 이야기의 중심은 <em>무엇을 만들었나</em>가 아니라 <em>왜 이 구조가 되었나</em>입니다.</p>
+    <div class="why" style="margin-top:28px; max-width: 74ch;">
+      <b>이 발표를 관통하는 한 문장</b>
+      어려운 문제는 “조건을 <span style="color:var(--accent);font-weight:600;">어떤 포맷</span>으로 적느냐”가 아니라,
+      “코드 속 조건이 <span style="color:var(--accent);font-weight:600;">어떤 API 입력에서 왔고 무엇을 의미하는지 증명</span>하는 것”이었다.
+      <div style="margin-top:10px; padding-top:10px; border-top:1px dashed var(--line-strong); color:var(--muted); font-size:.93em;">
+        쉽게 말해 — 코드는 “비밀번호가 틀리면 거절한다”고 말합니다. 이걸 테스트로 쓰려면 그 ‘비밀번호’가 <span style="color:var(--ink);font-weight:600;">요청서의 어느 칸</span>(BODY의 <code>$.password</code>)에서 온 값인지까지 기계가 스스로 증명해야 합니다.
+        지금은 이 <span style="color:var(--ink);font-weight:600;">증명(증적)이 아직 완전하지 않습니다.</span> 증명 못 한 조건을 활용(YAML 외부화)부터 하는 건 순서가 뒤바뀐 것 — 그래서 <span style="color:var(--accent);font-weight:600;">코드 단계의 정합성 개선이 먼저</span>입니다.
+      </div>
+    </div>
+    <div class="cover-meta">
+      <span><b>대상</b> Spring REST API</span>
+      <span><b>출력</b> preconditions · assertions · business rules · diagnostics</span>
+      <span><b>시간</b> 약 10분</span>
+    </div>
+  </section>
+
+  <!-- 2 · WHY 1 -->
+  <section class="slide" data-sec="Why ①">
+    <div class="eyebrow"><span class="num">01</span> 어노테이션은 절반만 알려준다 <span class="tag">WHY ①</span></div>
+    <h2 class="head">쉬운 절반은 이미 된다. 문제는 나머지 절반.</h2>
+    <div class="body">
+      <div class="cols two">
+        <div class="card">
+          <div class="split-head easy">▚ 어노테이션으로 얻는다 — 쉬움</div>
+          <ul class="rows dense">
+            <li><span class="dot g"></span>HTTP method / path</li>
+            <li><span class="dot g"></span>PATH · QUERY · HEADER · BODY 바인딩</li>
+            <li><span class="dot g"></span>request / response DTO 스키마</li>
+            <li><span class="dot g"></span>Bean Validation (<code>@NotNull</code> 등)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <div class="split-head hard">▚ 실행 경로에만 있다 — 어려움</div>
+          <ul class="rows dense">
+            <li><span class="dot r"></span>비밀번호 일치 여부</li>
+            <li><span class="dot r"></span>리소스 존재 여부 (Optional lookup)</li>
+            <li><span class="dot r"></span>권한 · 상태 전이 조건</li>
+            <li><span class="dot r"></span>낙관적 락, 도메인 불변식</li>
+          </ul>
+        </div>
+      </div>
+      <div class="outs">
+        <div class="out req"><div class="name">requestPreconditions <span style="opacity:.75;font-weight:500;">(요청 사전조건)</span></div><div class="desc">요청 값이 충족해야 할 조건 → negative test</div></div>
+        <div class="out res"><div class="name">responseAssertions <span style="opacity:.75;font-weight:500;">(응답 보장 조건)</span></div><div class="desc">정상 응답이 보장하는 것 → status·body 검증</div></div>
+        <div class="out exc"><div class="name">excludedBusinessRules <span style="opacity:.75;font-weight:500;">(제외된 비즈니스 규칙)</span></div><div class="desc">요청 값만으론 못 만드는 외부 상태 → 사전 데이터</div></div>
+        <div class="out diag"><div class="name">diagnostics <span style="opacity:.75;font-weight:500;">(진단)</span></div><div class="desc">끝까지 증명 못 한 후보 → 품질·사람 검토</div></div>
+      </div>
+      <div class="why"><b>이 슬라이드의 Why</b>왜 실행 경로까지 파고드나? — 어노테이션 <em>밖</em>에 진짜 테스트 조건이 있으니까.</div>
+    </div>
+  </section>
+
+  <!-- 3 · WHY 2 -->
+  <section class="slide" data-sec="Why ②">
+    <div class="eyebrow"><span class="num">02</span> YAML을 먼저 해봤다, 그런데 <span class="tag">WHY ②</span></div>
+    <h2 class="head">YAML PoC — 문제는 포맷이 아니었다</h2>
+    <div class="body">
+      <div class="cols two" style="align-items:start;">
+        <pre class="code"><span class="c">- id: DOCUMENT_EDIT_PERMISSION</span>
+  match:
+    predicateType: BOOLEAN_CALL
+    methodName: <span class="hl">canEdit</span>    <span class="c"># ← 이름 매칭</span>
+    failureOutcome: THEN
+  output:
+    category: AUTHORIZATION
+    constraint: { kind: <span class="s">CONTROL_FLOW_ONLY</span> }</pre>
+        <ul class="rows">
+          <li><span class="dot a"></span><code>canEdit</code>는 매칭했다 — <b style="color:var(--ink)">그래서 이 조건이 어떤 API 입력에서 온 거지?</b> YAML은 답을 못 한다.</li>
+          <li><span class="dot a"></span><code>CONTROL_FLOW_ONLY</code>로 찾긴 했는데 — 요청 값 제약인지 외부 권한 상태인지 구분이 안 된다.</li>
+          <li><span class="dot a"></span>이 판단까지 전부 YAML에 넣으면 — YAML이 또 하나의 <b style="color:var(--ink)">프로그래밍 언어</b>가 된다.</li>
+        </ul>
+      </div>
+      <div class="warn">
+        <span class="no">✕ 잘못된 표현:</span> “YAML 룰 엔진은 아직 구현 안 됐다.”
+        <span class="yes">✓ 정확한 표현:</span> 실행 가능성은 PoC로 검증하고자 했고, 그 덕분에 <em>무엇을 외부화하면 안 되는지</em>가 드러났다.
+      </div>
+      <div class="why"><b>이 슬라이드의 Why</b>왜 YAML로 아직 못하나? — 해봤더니 포맷화 단계 이전에 <em>의미 해석</em>이 진짜 문제였으니까.</div>
+    </div>
+  </section>
+
+  <!-- 1 · PROBLEM -->
+  <section class="slide" data-sec="문제">
+    <div class="eyebrow"><span class="num">03</span> 문제를 피부로</div>
+    <h2 class="head"><code style="font-family:var(--mono);font-size:.82em;">if (...) throw ...</code> — 이 한 줄을 어떻게 테스트로 만드나</h2>
+    <div class="body">
+      <div class="cols" style="gap:12px;">
+        <div>
+          <div class="exhead"><span class="exn neutral">1</span> 비밀번호 검증 — Service</div>
+          <pre class="code"><span class="k">if</span> (!passwordEncoder.<span class="hl">matches</span>(request.password(), member.password()))
+    <span class="k">throw new</span> <span class="t">InvalidPasswordException</span>();</pre>
+        </div>
+        <div>
+          <div class="exhead"><span class="exn neutral">2</span> 리소스 존재 — Repository</div>
+          <pre class="code"><span class="t">Order</span> order = orderRepository.<span class="hl">findById</span>(orderNo)
+    .<span class="hl">orElseThrow</span>(<span class="t">OrderNotFoundException</span>::<span class="k">new</span>);</pre>
+        </div>
+        <div>
+          <div class="exhead"><span class="exn neutral">3</span> 도메인 상태 전이 — Domain</div>
+          <pre class="code"><span class="k">if</span> (!order.<span class="hl">isShippingChangeable</span>())
+    <span class="k">throw new</span> <span class="t">IllegalStateException</span>();</pre>
+        </div>
+      </div>
+      <p class="lede" style="margin-top:20px;">테스트에 필요한 조건은 Controller의 어노테이션이 아니라, Service·Domain <em>실행 경로 깊숙이</em> 숨어 있다. 오늘 이야기는 이 세 줄을 실행 가능한 테스트 조건으로 바꾸는 과정에 있어서 <em>어려움</em>을 보여주고자 한다. 이 <span style="font-family:var(--mono);font-weight:600;">1 · 2 · 3</span>이 분석 파이프라인의 어디를 지나가는지도 곧 전체 지도로 확인한다.</p>
+    </div>
+  </section>
+
+  <!-- 4 · TURNING POINT -->
+  <section class="slide" data-sec="전환점">
+    <div class="eyebrow"><span class="num">04</span> 진짜 질문은 여섯 개였다 <span class="tag">전환점</span></div>
+    <h2 class="head" style="max-width:none;">호출 하나를 테스트 조건으로 바꾸려면</h2>
+    <div class="body">
+      <pre class="code" style="line-height:1.95;"><span style="color:var(--code-str);font-weight:700;">1</span>  <span class="k">if</span> (!passwordEncoder.<span class="hl">matches</span>(request.password(), member.password())) <span class="k">throw</span> ...
+<span style="color:#e8c07a;font-weight:700;">2</span>  orderRepository.<span class="hl">findById</span>(orderNo).<span class="hl">orElseThrow</span>(<span class="t">OrderNotFoundException</span>::<span class="k">new</span>)
+<span style="color:#e8c07a;font-weight:700;">3</span>  <span class="k">if</span> (!order.<span class="hl">isShippingChangeable</span>()) <span class="k">throw</span> ...</pre>
+      <div class="exhead" style="margin-top:16px;">같은 여섯 질문 — 세 예시의 답은 전혀 다르다</div>
+      <table class="qa">
+        <thead>
+          <tr>
+            <th style="width:32%;">질문</th>
+            <th><span class="exn n1">1</span> matches</th>
+            <th><span class="exn n2">2</span> orElseThrow</th>
+            <th><span class="exn n3">3</span> isShippingChangeable</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="q">1. 실패 분기는 <code>then</code>인가 <code>else</code>인가?</td><td><code>then</code>에서 throw</td><td>분기 없음 — 빈 결과면 throw</td><td><code>then</code>에서 throw</td></tr>
+          <tr><td class="q">2. <code>!</code>·위임 메서드로 polarity가 뒤집히나?</td><td><code>!</code> 1회 — false가 실패</td><td>반전 없음 — 부재 자체가 실패</td><td><code>!</code> 1회 — false가 실패</td></tr>
+          <tr><td class="q">3. 값은 Controller의 어느 인자에서 왔나?</td><td>BODY DTO의 password</td><td>PATH 인자 orderNo</td><td>요청 값 아님 — DB에서 온 도메인 상태</td></tr>
+          <tr><td class="q">4. 실제 HTTP wire name은?</td><td><code>password</code></td><td><code>{orderNo}</code></td><td>해당 없음</td></tr>
+          <tr><td class="q">5. BODY라면 정확한 JSONPath는?</td><td><code>$.password</code></td><td>해당 없음 (PATH)</td><td>해당 없음</td></tr>
+          <tr><td class="q">6. 요청 값 제약인가, 외부 선행조건인가?</td><td>요청 값 제약 → <span style="color:var(--green);font-weight:600;">requestPreconditions</span></td><td>외부 리소스 존재 → <span style="color:var(--amber);font-weight:600;">excludedBusinessRules</span></td><td>외부 선행조건 → <span style="color:var(--amber);font-weight:600;">excludedBusinessRules</span></td></tr>
+        </tbody>
+      </table>
+      <div class="why"><b>이 슬라이드의 Why</b>여섯 질문은 전부 <em>데이터 흐름과 그래프 탐색</em> 문제다. 이름 매칭은 1번에도 답 못 한다. 그리고 <span style="color:var(--red);font-weight:600;">지금도 이 여섯 질문에 끝까지 답하지 못해 diagnostics로 남는 후보가 있다</span> — 활용(YAML)으로 넘어가기 전에, 코드 단계의 증명부터 단단해져야 한다.</div>
+    </div>
+  </section>
+
+  <!-- 6 · MAP -->
+  <section class="slide" data-sec="전체 지도">
+    <div class="eyebrow"><span class="num">05</span> 예시 세 줄이 파이프라인을 지나가는 길 <span class="tag">MAP</span></div>
+    <h2 class="head" style="max-width:none;">세 줄은 특별한 예가 아니다 — 모든 컴포넌트에 포진해 있다</h2>
+    <div class="body">
+      <div class="arch">
+        <div class="alayer"><div class="lname">Ingestion</div><div class="lnodes"><span class="lnode">CLI / WebServer</span><span class="sep">→</span><span class="lnode">RepositoryIngestion</span><span class="sep">→</span><span class="lnode">Workspace &amp; SourceRoots</span></div></div>
+        <div class="aarrow">↓</div>
+        <div class="alayer"><div class="lname">Static Scan</div><div class="lnodes"><span class="lnode">SpringStaticScan</span><span class="sep">→</span><span class="lnode">EndpointExtractor</span><span class="sep">→</span><span class="lnode">Endpoints &amp; Bindings</span></div></div>
+        <div class="aarrow">↓</div>
+        <div class="alayer"><div class="lname">Code Graph</div><div class="lnodes"><span class="lnode">FactCodeGraphBuilder</span><span class="lnode">MethodVisitor</span><span class="lnode hot">ExpressionVisitor <span class="exn n1">1</span><span class="exn n2">2</span><span class="exn n3">3</span></span><span class="lnode">DtoSchemaBuilder</span><span class="lnode">ExceptionScanner</span><span class="sep">→</span><span class="lnode hero">FactCodeGraph</span></div></div>
+        <div class="aarrow">↓</div>
+        <div class="alayer"><div class="lname">Semantic &amp; Rule</div><div class="lnodes"><span class="lnode">GraphIndex &amp; Context</span><span class="lnode">SemanticDispatcher</span><span class="lnode hot">PasswordEncoder <span class="exn n1">1</span></span><span class="lnode hot">OptionalLookup <span class="exn n2">2</span></span><span class="lnode hot">BooleanGuard <span class="exn n3">3</span></span><span class="lnode">RuleEngine &amp; Packs</span><span class="sep">→</span><span class="lnode">ValidationExtraction</span></div></div>
+        <div class="aarrow">↓</div>
+        <div class="alayer"><div class="lname">Output</div><div class="lnodes"><span class="lnode hot">RuleOutputService <span class="exn n1">1</span><span class="exn n2">2</span><span class="exn n3">3</span></span><span class="sep">→</span><span class="lnode">OpenApiAssembly</span><span class="sep">→</span><span class="lnode">openapi.yaml · analysis.json · execution.json · evidence.json</span></div></div>
+      </div>
+      <div class="exlegend">
+        <span><span class="exn n1">1</span> matches → <span style="color:var(--green);font-weight:600;">requestPreconditions</span> ($.password)</span>
+        <span><span class="exn n2">2</span> orElseThrow → <span style="color:var(--amber);font-weight:600;">excludedBusinessRules</span> (외부 리소스 존재)</span>
+        <span><span class="exn n3">3</span> isShippingChangeable → <span style="color:var(--amber);font-weight:600;">excludedBusinessRules</span> (도메인 상태)</span>
+      </div>
+      <div class="cols two" style="margin-top:14px; gap:14px;">
+        <div class="note" style="margin-top:0;"><span class="lbl">포진</span><span>세 줄은 대표 사례일 뿐이다. 같은 성격의 케이스가 <b>모든 컴포넌트에 다양한 형태로</b> 존재하고, 어느 단계에서든 증명이 끊기면 그 후보는 diagnostics로 남는다.</span></div>
+        <div class="warn" style="margin-top:0;">
+          <span class="no">현재 상황:</span> 코드 단계에서도 증명이 끊기는 후보가 남아 있다. 증명 못 한 조건은 활용할 수 없다 — <b>YAML 외부화(활용)보다 코드 단계의 정합성 개선이 먼저다.</b>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6b · CLAIM -->
+  <section class="slide" data-sec="주장">
+    <div class="eyebrow"><span class="num">06</span> 여기까지의 결론 — 오늘의 주된 주장 <span class="tag">주장</span></div>
+    <h2 class="head" style="max-width:none;">증명하지 못한 조건은, 활용할 수 없다</h2>
+    <div class="body">
+      <div class="spine" style="max-width:none; margin-bottom:24px;">그래서 <span class="em">활용(YAML 외부화)</span>보다<br><span class="em">코드 단계의 정합성 — 증명 — 개선</span>이 먼저다.</div>
+      <ul class="rows">
+        <li><span class="dot b"></span>어노테이션은 절반만 알려준다 — 진짜 조건은 Service·Domain 실행 경로에 있다</li>
+        <li><span class="dot b"></span>YAML PoC — 벽은 포맷이 아니라 <b>의미의 증명</b>이었다</li>
+        <li><span class="dot b"></span>예시 세 줄 같은 케이스가 <b>모든 컴포넌트에 다양한 형태로</b> 포진해 있다</li>
+        <li><span class="dot r"></span>그리고 지금도 증명이 끊겨 <b>diagnostics로 남는 후보</b>가 있다</li>
+      </ul>
+      <div style="display:flex; gap:8px; align-items:center; margin-top:22px; font-family:var(--mono); flex-wrap:wrap; font-size:clamp(11px,1.1vw,13px);">
+        <span class="lnode hot">1 코드 단계 정합성 증명 — 지금 여기</span><span style="color:var(--faint);">→</span>
+        <span class="lnode">2 검증된 의미만 YAML 사전으로</span><span style="color:var(--faint);">→</span>
+        <span class="lnode">3 미등록 long-tail은 LLM fallback</span>
+      </div>
+      <div class="why" style="margin-top:20px;"><b>한 번 더, 기획 언어로</b>기계가 “이 조건이 요청서의 어느 칸에서 온 값인지”를 스스로 증명하지 못하면, 그 조건으로 테스트를 만들 수 없다. 증명이 완전해진 뒤에 활용(YAML·LLM)을 넓히는 것이 순서다. 이어지는 Appendix의 구조 이야기는 전부 <em>이 증명을 가능하게 만드는 장치</em>다.</div>
+    </div>
+  </section>
+
+  <!-- 6c · APPENDIX DIVIDER -->
+  <section class="slide" data-sec="Appendix">
+    <div class="body" style="align-items:center; justify-content:center;">
+      <div style="font-family:var(--mono); font-size:clamp(44px,7vw,100px); font-weight:700; letter-spacing:-.02em;">Appendix</div>
+    </div>
+  </section>
+
+  <!-- 5 · WHAT 1 -->
+  <section class="slide" data-sec="What ①">
+    <div class="eyebrow"><span class="num">07</span> 그래서 Fact Code Graph 하나로 <span class="tag">WHAT ①</span></div>
+    <h2 class="head">왜 하나의 그래프인가 — 공정한 비교를 위해</h2>
+    <div class="body">
+      <div class="cols two" style="align-items:center; gap: clamp(20px,3vw,48px);">
+        <div class="pipe">
+          <div class="pnode">Spring Source</div>
+          <div class="parrow">↓</div>
+          <div class="pnode hero">Canonical Fact Code Graph</div>
+          <div class="parrow">↓</div>
+          <div class="pnode">Predicate Candidate + Evidence</div>
+          <div class="parrow">↓</div>
+          <div class="pfork">
+            <div class="pnode det">Deterministic Rule</div>
+            <div class="pnode llm">LLM Interpretation</div>
+          </div>
+        </div>
+        <div>
+          <p class="lede">예전엔 endpoint · validation · output 분석이 <em>서로 다른 중간 모델</em>을 봤다. 같은 사실이 중복되고 변환 중 손실됐다. 이제 호출 관계·조건·데이터 흐름·DTO 스키마를 <em>하나의 사실</em>로 기록한다.</p>
+          <div class="note"><span class="lbl">budget</span><span>전부 넣지 않는다. 내부 비즈니스 메서드는 본문까지, JDK·Spring·라이브러리는 호출 사실만. 못 푸는 건 조용히 버리지 않고 <b style="color:var(--amber)">diagnostic</b>으로 남긴다.</span></div>
+        </div>
+      </div>
+      <div class="why"><b>이 슬라이드의 Why</b>왜 그래프를 통합했나? — Rule과 LLM을 <em>같은 잣대</em>로 비교하려면 같은 사실·같은 evidence를 봐야 하니까. 그래야 정확도·재현성·비용을 공정하게 잰다.</div>
+    </div>
+  </section>
+
+  <!-- 7 · WHAT 2 -->
+  <section class="slide" data-sec="What ②">
+    <div class="eyebrow"><span class="num">08</span> 그래서 “증명 수준”으로 출력 <span class="tag">WHAT ②</span></div>
+    <h2 class="head">왜 함부로 내보내지 않는가</h2>
+    <div class="body">
+      <div class="cols two" style="align-items:center; gap: clamp(20px,3vw,48px);">
+        <pre class="tree">Candidate
+├─ 구조 미지원        <span class="arm">→</span> <span class="to-diag">diagnostics</span>
+├─ 의미 미해결        <span class="arm">→</span> <span class="to-diag">diagnostics</span>
+└─ 의미 해결
+   ├─ REQUEST_REQUIREMENT  <span class="arm">→</span> <span class="to-req">requestPreconditions</span>
+   ├─ RESPONSE_GUARANTEE   <span class="arm">→</span> <span class="to-res">responseAssertions</span>
+   └─ BUSINESS_RESTRICTION <span class="arm">→</span> <span class="to-exc">excludedBusinessRules</span></pre>
+        <div>
+          <p class="lede">출력은 ‘찾았다/못 찾았다’가 아니라 <em>어디까지 증명했나</em>로 갈린다. 의미까지 증명된 것만 실행 가능한 계약으로 나간다.</p>
+          <div class="note"><span class="lbl">신뢰</span><span>coverage 숫자를 올리려고 추측을 실행 가능한 테스트 조건으로 내보내는 순간 도구는 신뢰를 잃는다. 못 푼 건 정직하게 남기는 게 낫다.</span></div>
+          <div class="note"><span class="lbl">계층</span><span>이걸 가능하게 하려고 책임을 나눴다: 사실 기록 · 후보 수집 · 의미 분류 · target 연결 · 출력 귀속.</span></div>
+        </div>
+      </div>
+      <div class="why"><b>이 슬라이드의 Why</b>왜 증명 수준으로 나누나? — 도구의 신뢰는 <em>“정직하게 모른다고 말하는 것”</em>에서 나오니까.</div>
+    </div>
+  </section>
+
+  <!-- 7 · WHERE -->
+  <section class="slide" data-sec="Where">
+    <div class="eyebrow"><span class="num">09</span> 그래서 이렇게 나눈다 <span class="tag">WHERE</span></div>
+    <h2 class="head">YAML은 그래프 탐색 언어가 아니라 “프로젝트 의미 사전”</h2>
+    <div class="body">
+      <div class="cols two" style="align-items:start; gap: clamp(20px,3vw,44px);">
+        <table class="bt">
+          <thead><tr><th class="keep">엔진(코드)에 남긴다</th><th class="ext">YAML로 외부화한다</th></tr></thead>
+          <tbody>
+            <tr><td class="keep">AST · Fact Graph 생성</td><td class="ext">method / signature alias</td></tr>
+            <tr><td class="keep">data-flow · origin 역추적</td><td class="ext">argument의 semantic role</td></tr>
+            <tr><td class="keep">polarity · outcome 분석</td><td class="ext">category / effect / operator</td></tr>
+            <tr><td class="keep">wire name · JSONPath 계산</td><td class="ext">프로젝트별 vocabulary</td></tr>
+            <tr><td class="keep">dedup · diagnostic lifecycle</td><td class="ext">exception → 도메인 의미</td></tr>
+          </tbody>
+        </table>
+        <pre class="code"><span class="c">- id: PASSWORD_MUST_MATCH</span>
+  match:
+    ownerType: <span class="t">...security.crypto.PasswordEncoder</span>
+    method: <span class="hl">matches</span>
+    arguments: [ {role: <span class="s">rawValue</span>}, {role: <span class="s">encodedValue</span>} ]
+    failure: { negated: true, throws: <span class="s">"*InvalidPasswordException"</span> }
+  output:
+    category: AUTHENTICATION
+    effect: REQUEST_REQUIREMENT
+    targetFromArgumentRole: <span class="s">rawValue</span>
+    <span class="c"># 엔진이 origin 역추적 → $.password 계산</span></pre>
+      </div>
+      <div class="why"><b>원칙</b>Java 엔진은 <span style="color:var(--accent);font-weight:600;">“무슨 일이 일어났는가”</span>를 구조적으로 증명하고, YAML은 <span style="color:var(--accent);font-weight:600;">“이 구조가 이 프로젝트에서 무슨 의미인가”</span>를 선언한다. 검증된 것만 점진적으로 외부화한다.</div>
+    </div>
+  </section>
+
+  <!-- 8 · CLOSING -->
+  <section class="slide" data-sec="닫기 · 결정">
+    <div class="eyebrow"><span class="num">10</span> 핵심 산출물, 그리고 결정 요청</div>
+    <h2 class="head">규칙 목록이 아니라 “사실 → 계약” 파이프라인</h2>
+    <div class="body">
+      <p class="lede" style="margin-bottom:6px;">핵심 산출물은 거대한 규칙 목록도 YAML 문법도 아니다. 소스코드를 <em>공통 사실(Fact Code Graph)</em>로 바꾸고, 그 사실을 <em>테스트 계약</em>으로 번역하는 의미 파이프라인이다. Rule · YAML · LLM은 경쟁이 아니라 역할이 다르다. 순서도 분명하다 — <em>코드 단계의 증명 정합성을 먼저</em> 끌어올리고, 검증된 의미부터 YAML로 활용한다.</p>
+      <div style="font-family:var(--mono); font-size:clamp(12px,1.2vw,14px); color:var(--muted); margin: 6px 0 18px; letter-spacing:.02em;">
+        <span style="color:var(--green)">Java</span> 공통·증명 가능한 구조　·　<span style="color:var(--cyan)">YAML</span> 프로젝트별 vocabulary　·　<span style="color:var(--accent)">LLM</span> 미등록 long-tail　→　검증된 LLM 해석은 Rule로 승격
+      </div>
+      <div class="decisions">
+        <div class="decision"><span class="n">Q1</span><span class="q">YAML을 <b>프로젝트별 의미 매핑</b>으로 제한할 것인가?</span></div>
+        <div class="decision"><span class="n">Q2</span><span class="q"><b>요청 값 조건 vs 외부 상태 조건</b>을 출력 계약에서 분리할 것인가?</span></div>
+        <div class="decision"><span class="n">Q3</span><span class="q"><b>precision과 recall</b> 중 무엇을 우선할 것인가?</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- A1 · APPENDIX corpus -->
+  <section class="slide" data-sec="부록" data-appx="1">
+    <div class="eyebrow"><span class="appx-badge">Appendix A</span> 실제 corpus에서 확인한 것</div>
+    <h2 class="head">병목은 endpoint 탐지가 아니었다</h2>
+    <div class="body">
+      <ul class="rows">
+        <li><span class="dot g"></span>endpoint · binding 탐지는 안정적. DTO 구조 · response status · evidence 품질이 강점.</li>
+        <li><span class="dot r"></span>진짜 병목: wire-name identity, repository Optional 의미, delegated authentication, response wrapper / factory 해석.</li>
+      </ul>
+      <div class="warn" style="border-color:var(--amber); background:var(--amber-soft);">
+        <span style="color:var(--amber);font-weight:600;">주의 · 숫자를 섞지 말 것:</span>
+        endpoint 수는 corpus마다 다르다. <code>ddd-start2</code> PoC = <b>12개 API</b>, cross-analyzer 개선 문서 = HyunSolution_BE <b>17개 endpoint</b>. <code>45→64→72</code> 점수는 재검증 전까지 사용하지 않는다.
+      </div>
+    </div>
+  </section>
+
+  <!-- A2 · APPENDIX patterns + process -->
+  <section class="slide" data-sec="부록" data-appx="1">
+    <div class="eyebrow"><span class="appx-badge">Appendix B · C</span> 해결한 패턴 · 개발 방식</div>
+    <h2 class="head">이름 매칭에서 구조·의미 분류로</h2>
+    <div class="body">
+      <div class="cols two" style="align-items:start; gap: clamp(20px,3vw,44px);">
+        <div>
+          <div class="split-head" style="color:var(--green)">▚ 실제로 해결한 의미 패턴</div>
+          <ul class="rows dense">
+            <li><span class="dot g"></span>direct binary constraint</li>
+            <li><span class="dot g"></span>표준 null / empty guard</li>
+            <li><span class="dot g"></span><code>Optional.orElseThrow</code> repository lookup</li>
+            <li><span class="dot g"></span><code>PasswordEncoder.matches</code></li>
+            <li><span class="dot g"></span>delegated composite validation</li>
+            <li><span class="dot g"></span>optimistic lock</li>
+            <li><span class="dot g"></span>response wrapper · factory constant · <code>@JsonIgnore</code></li>
+          </ul>
+        </div>
+        <div>
+          <div class="split-head" style="color:var(--accent)">▚ 안전하게 cutover 하는 방식</div>
+          <pre class="code" style="font-size:12.5px;">실제 실패 수집
+   ↓
+작은 fixture로 재현
+   ↓
+shadow classifier 구현
+   ↓
+semantic output 동등성 검증
+   ↓
+기존 Rule 억제 / 제거
+   ↓
+전체 corpus 회귀</pre>
+        </div>
+      </div>
+      <div class="note"><span class="lbl">note</span><span>현재 기본 실행 경로는 built-in <code>InitialRulePacks.all()</code>. YAML composer는 독립 PoC · 테스트 수준으로 남아 있다.</span></div>
+    </div>
+  </section>
+
+</div>
+
+<div class="hint">← → 또는 Space 로 이동 · F 전체화면</div>
+
+<div class="chrome">
+  <div class="progress" id="progress"></div>
+  <div class="counter"><span id="cur">01</span> / <span id="tot">10</span> <span class="sec" id="sec"></span></div>
+</div>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var progress = document.getElementById('progress');
+  var curEl = document.getElementById('cur');
+  var totEl = document.getElementById('tot');
+  var secEl = document.getElementById('sec');
+  var i = 0;
+
+  totEl.textContent = String(slides.length).padStart(2, '0');
+
+  // build progress dots
+  slides.forEach(function (s, idx) {
+    var d = document.createElement('button');
+    d.className = 'pdot' + (s.dataset.appx ? ' appx' : '');
+    d.setAttribute('aria-label', '슬라이드 ' + (idx + 1));
+    d.addEventListener('click', function () { go(idx); });
+    progress.appendChild(d);
+  });
+  var dots = Array.prototype.slice.call(progress.children);
+
+  function render() {
+    slides.forEach(function (s, idx) { s.classList.toggle('active', idx === i); });
+    dots.forEach(function (d, idx) {
+      d.classList.toggle('now', idx === i);
+      d.classList.toggle('done', idx < i);
+    });
+    curEl.textContent = String(i + 1).padStart(2, '0');
+    secEl.textContent = slides[i].dataset.sec ? '· ' + slides[i].dataset.sec : '';
+    try { history.replaceState(null, '', '#' + (i + 1)); } catch (e) {}
+  }
+  function go(n) { i = Math.max(0, Math.min(slides.length - 1, n)); render(); }
+  function next() { go(i + 1); }
+  function prev() { go(i - 1); }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); next(); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') { go(0); }
+    else if (e.key === 'End') { go(slides.length - 1); }
+    else if (e.key === 'f' || e.key === 'F') {
+      if (!document.fullscreenElement) { document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
+      else { document.exitFullscreen && document.exitFullscreen(); }
+    }
+  });
+
+  // click zones: right half = next, left quarter = prev
+  document.getElementById('deck').addEventListener('click', function (e) {
+    if (e.target.closest('a,button')) return;
+    var x = e.clientX / window.innerWidth;
+    if (x > 0.5) next(); else if (x < 0.25) prev();
+  });
+
+  // theme toggle
+  var tb = document.getElementById('themebtn');
+  tb.addEventListener('click', function () {
+    var root = document.documentElement;
+    var cur = root.getAttribute('data-theme');
+    var isDark = cur ? cur === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+    root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  });
+
+  // deep-link
+  var start = parseInt((location.hash || '').replace('#', ''), 10);
+  if (start >= 1 && start <= slides.length) i = start - 1;
+  render();
+})();
+</script>
+</body>
+</html>
