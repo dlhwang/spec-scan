@@ -17,9 +17,9 @@ class FactNodeIdGeneratorProperties {
     }
 
     @Property(tries = 500)
-    void roleChangesIdentity(@ForAll("ranges") SourceRange range, @ForAll("roles") String role) {
-        assertThat(generator.generate(FactNodeType.CONDITION, "demo.Service.check()", range, role + "-other"))
-            .isNotEqualTo(generator.generate(FactNodeType.CONDITION, "demo.Service.check()", range, role));
+    void discriminatorChangesIdentity(@ForAll("ranges") SourceRange range, @ForAll("roles") String discriminator) {
+        assertThat(generator.generate(FactNodeType.CONDITION, "demo.Service.check()", range, discriminator + "-other"))
+            .isNotEqualTo(generator.generate(FactNodeType.CONDITION, "demo.Service.check()", range, discriminator));
     }
 
     @Property(tries = 200)

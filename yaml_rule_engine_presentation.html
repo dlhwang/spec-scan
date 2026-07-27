@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YAML Rule Engine PoC — 구체적 변환 및 파이프라인 발표 덱</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-card: rgba(22, 27, 34, 0.85);
+      --bg-card-border: rgba(255, 255, 255, 0.12);
+      --text-main: #f0f6fc;
+      --text-muted: #8b949e;
+      --text-faint: #484f58;
+      
+      --accent-cyan: #38bdf8;
+      --accent-purple: #c084fc;
+      --accent-green: #4ade80;
+      --accent-red: #f87171;
+      --accent-amber: #fbbf24;
+      
+      --font-heading: 'Outfit', 'Inter', sans-serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-code: 'Fira Code', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Ambient Background Glow */
+    .ambient-glow {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, rgba(192, 132, 252, 0.05) 50%, transparent 70%);
+      top: -200px;
+      right: -100px;
+      pointer-events: none;
+      z-index: 0;
+    }
+    
+    .ambient-glow-bottom {
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(74, 222, 128, 0.08) 0%, transparent 70%);
+      bottom: -150px;
+      left: -100px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Header Bar */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 36px;
+      background: rgba(13, 17, 23, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--bg-card-border);
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .badge-poc {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+      color: #000;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .slide-progress-info {
+      font-family: var(--font-code);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Presentation Main Container */
+    main {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    .slide {
+      position: absolute;
+      width: 92%;
+      max-width: 1380px;
+      height: 86%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      opacity: 0;
+      transform: translateY(20px) scale(0.98);
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+
+    .slide.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    /* Slide Components */
+    .slide-header {
+      margin-bottom: 14px;
+    }
+
+    .slide-tag {
+      display: inline-block;
+      font-family: var(--font-code);
+      font-size: 0.78rem;
+      color: var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      margin-bottom: 6px;
+    }
+
+    .slide-title {
+      font-family: var(--font-heading);
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.2;
+      background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-subtitle {
+      font-size: 0.98rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .slide-body {
+      flex: 1;
+      display: flex;
+      gap: 20px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    /* Card System */
+    .card {
+      background: var(--bg-card);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 12px;
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-header {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title-icon {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      width: 100%;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      width: 100%;
+    }
+
+    /* Lists */
+    ul.stylish-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    ul.stylish-list li {
+      position: relative;
+      padding-left: 22px;
+      line-height: 1.45;
+      font-size: 0.92rem;
+      color: #e2e8f0;
+    }
+
+    ul.stylish-list li::before {
+      content: "•";
+      position: absolute;
+      left: 6px;
+      color: var(--accent-cyan);
+      font-size: 1.2rem;
+      line-height: 1;
+    }
+
+    /* Code & Tab Viewer */
+    .code-tab-wrapper {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      background: #0d1117;
+      border-radius: 10px;
+      border: 1px solid var(--bg-card-border);
+      overflow: hidden;
+    }
+
+    .code-tabs {
+      display: flex;
+      background: #161b22;
+      border-bottom: 1px solid var(--bg-card-border);
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      padding: 10px 16px;
+      font-family: var(--font-code);
+      font-size: 0.82rem;
+      background: transparent;
+      color: var(--text-muted);
+      border: none;
+      cursor: pointer;
+      border-right: 1px solid var(--bg-card-border);
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .tab-btn.active {
+      color: var(--accent-cyan);
+      background: #0d1117;
+      border-bottom: 2px solid var(--accent-cyan);
+      font-weight: 600;
+    }
+
+    .code-content {
+      padding: 16px 20px;
+      font-family: var(--font-code);
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #c9d1d9;
+      overflow-x: auto;
+      overflow-y: auto;
+      flex: 1;
+      white-space: pre;
+    }
+
+    /* Flow Step Pipeline Visualizer */
+    .pipeline-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: rgba(13, 17, 23, 0.6);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+
+    .pipeline-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(22, 27, 34, 0.8);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+
+    .pipeline-step-badge {
+      font-family: var(--font-code);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      white-space: nowrap;
+    }
+
+    .syn-kw { color: #ff7b72; font-weight: bold; }
+    .syn-str { color: #a5d6ff; }
+    .syn-num { color: #79c0ff; }
+    .syn-comment { color: #8b949e; font-style: italic; }
+    .syn-anno { color: #d2a8ff; }
+    .syn-key { color: #7ee787; font-weight: 600; }
+    .syn-type { color: #ffa657; }
+
+    .highlight-box {
+      background: rgba(56, 189, 248, 0.08);
+      border-left: 4px solid var(--accent-cyan);
+      padding: 12px 16px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .comp-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+
+    .comp-table th, .comp-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--bg-card-border);
+    }
+
+    .comp-table th {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-family: var(--font-heading);
+      font-weight: 600;
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 36px;
+      background: rgba(13, 17, 23, 0.9);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--bg-card-border);
+      z-index: 10;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+      border: 1px solid var(--bg-card-border);
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: var(--accent-cyan);
+      color: #000;
+      border-color: var(--accent-cyan);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .slide-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .dot.active {
+      background: var(--accent-cyan);
+      width: 24px;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="ambient-glow"></div>
+  <div class="ambient-glow-bottom"></div>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <span>Auto-OAS Spec Scan</span>
+      <span class="badge-poc">YAML Rule Engine PoC</span>
+    </div>
+    <div class="slide-progress-info" id="progressText">Slide 1 of 7</div>
+  </header>
+
+  <!-- Main Slide Container -->
+  <main>
+    
+    <!-- Slide 1: Cover -->
+    <div class="slide active" id="slide-1">
+      <div class="slide-header" style="text-align: center; margin-top: 30px;">
+        <span class="slide-tag">Executive Technical Presentation</span>
+        <h1 class="slide-title" style="font-size: 2.8rem; margin-top: 8px;">YAML Rule Engine PoC 발표 덱</h1>
+        <p class="slide-subtitle" style="font-size: 1.15rem; margin-top: 10px;">
+          Spring MVC CodeGraph 기반 구체적 자바 파이프라인 & 제네릭 YAML 레시피 변환 구조
+        </p>
+      </div>
+
+      <div class="slide-body" style="justify-content: center; align-items: center;">
+        <div class="grid-3" style="max-width: 1150px;">
+          <div class="card" style="border-top: 3px solid var(--accent-cyan);">
+            <div class="card-header"><div class="card-title-icon" style="background:var(--accent-cyan)"></div> 1. 문제 제기</div>
+            <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.5;">
+              하드코딩된 Java 시멘틱 로직의 배포 종속성을 지우고, 메서드명이 아닌 메타 룰을 외부화하는 이유.
+            </p>
+          </div>
+
+          <div class="card" style="border-top: 3px solid var(--accent-purple);">
+            <div class="card-header"><div class="card-title-icon" style="background:var(--accent-purple)"></div> 2. 구체적 자바 & YAML 데모</div>
+            <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.5;">
+              Java Engine <code>SemanticPrimitive</code>가 Recipe YAML <code>steps</code>를 어떻게 바인딩하고 Executing하는지 구체적 시연.
+            </p>
+          </div>
+
+          <div class="card" style="border-top: 3px solid var(--accent-green);">
+            <div class="card-header"><div class="card-title-icon" style="background:var(--accent-green)"></div> 3. 리스크 & 승인 요청</div>
+            <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.5;">
+              Turing-complete Scripting 배제, Golden Corpus 회귀 검증 및 룰엔진+AI 하이브리드 추진 승인 요청.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 2: Problem Statement -->
+    <div class="slide" id="slide-2">
+      <div class="slide-header">
+        <span class="slide-tag">1. 문제 제기 (1~2분)</span>
+        <h2 class="slide-title">왜 제네릭 YAML 룰 엔진을 도입하려 하는가?</h2>
+        <p class="slide-subtitle">하드코딩된 Java 엔진의 한계 극복 및 시멘틱 메타 룰의 외부화</p>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header" style="color:var(--accent-red)">
+              <div class="card-title-icon" style="background:var(--accent-red)"></div> 현재 한계 (As-Is: Java Hardcoding)
+            </div>
+            <ul class="stylish-list">
+              <li><b>배포 종속성</b>: 새로운 검출 로직이나 프레임워크 패턴 추가 시 엔진 재빌드 및 v2/v3 배포 필수</li>
+              <li><b>경계 모호성</b>: 저장소 특정 업무 룰(<code>quantity < 0</code>)과 공통 시멘틱 구조가 자바 코드에 엉킴</li>
+              <li><b>관리 버든 폭발</b>: 수천 개 메서드 이름을 자바 코드로 일일이 예외 처리 시 유지보수 불가능</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-header" style="color:var(--accent-green)">
+              <div class="card-title-icon" style="background:var(--accent-green)"></div> 목표 상태 (To-Be: Generic YAML Engine)
+            </div>
+            <ul class="stylish-list">
+              <li><b>제네릭 Classifier 외부화</b>: <code>if-throw</code>, Null Guard, Enum 등 공통 메타 룰만 YAML로 선언</li>
+              <li><b>코드 수정 0건</b>: 새로운 룰 패키지 추가 시 엔진 배포 없이 즉시 로딩 및 검증</li>
+              <li><b>Runtime Dynamic Binding</b>: 실제 DTO 필드명, 상수값은 CodeGraph에서 동적으로 바인딩</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 3: Detailed Live Demo & Conversion Breakdown -->
+    <div class="slide" id="slide-3">
+      <div class="slide-header">
+        <span class="slide-tag">2. 구체적 데모 & 자바/YAML 실행 파이프라인 (5~7분)</span>
+        <h2 class="slide-title">구체적 자바 코드 엔진과 YAML Recipe의 바인딩 과정</h2>
+        <p class="slide-subtitle">Target Code → CodeGraph → Java Engine Primitives → YAML Recipe → Dynamic Output</p>
+      </div>
+
+      <div class="slide-body" style="flex-direction: column;">
+        <div class="code-tab-wrapper">
+          <div class="code-tabs">
+            <button class="tab-btn active" onclick="switchTab(0)">1. Target Java Source</button>
+            <button class="tab-btn" onclick="switchTab(1)">2. CodeGraph AST/Edge Representation</button>
+            <button class="tab-btn" onclick="switchTab(2)">3. Real Java Engine (`SemanticPrimitive` Implementation)</button>
+            <button class="tab-btn" onclick="switchTab(3)">4. Full Concrete `semantic-recipes.yaml` Spec</button>
+            <button class="tab-btn" onclick="switchTab(4)">5. Execution Pipeline Output (JSON)</button>
+          </div>
+
+          <!-- Panel 0: Java Target Code -->
+          <div class="code-content" id="code-panel-0">
+<span class="syn-anno">@RestController</span>
+<span class="syn-kw">public class</span> OrderController {
+
+    <span class="syn-anno">@PostMapping</span>(<span class="syn-str">"/orders"</span>)
+    <span class="syn-kw">public</span> ResponseEntity&lt;Void&gt; createOrder(<span class="syn-anno">@RequestBody</span> OrderRequest request) {
+        
+        <span class="syn-comment">// Pattern 1: if-throw Binary Comparison Guard</span>
+        <span class="syn-kw">if</span> (request.getQuantity() &lt;= <span class="syn-num">0</span>) {
+            <span class="syn-kw">throw new</span> IllegalArgumentException(<span class="syn-str">"Order quantity must be positive"</span>);
+        }
+
+        <span class="syn-comment">// Pattern 2: Library Guard Signature</span>
+        Objects.requireNonNull(request.getShippingAddress(), <span class="syn-str">"Address required"</span>);
+
+        orderService.process(request);
+        <span class="syn-kw">return</span> ResponseEntity.ok().build();
+    }
+}
+          </div>
+
+          <!-- Panel 1: CodeGraph AST -->
+          <div class="code-content" id="code-panel-1" style="display:none;">
+<span class="syn-comment">// Java FactCodeGraph Builder가 메모리에 생성한 AST / Graph 구조체</span>
+MethodNode: OrderController.createOrder(OrderRequest)
+ ├── ParameterNode: request (Type: OrderRequest, Annotation: @RequestBody)
+ ├── ConditionNode(ID: N101): `request.getQuantity() <= 0`
+ │    ├── BinaryExpr: LHS=GetterCall(request.getQuantity), Op=LE (<=), RHS=Literal(0)
+ │    └── OutcomeEdge(TrueBranch) → ThrowNode(ID: N102): IllegalArgumentException
+ └── CallNode(ID: N103): Objects.requireNonNull(request.getShippingAddress(), ...)
+      └── DataFlowEdge: request.shippingAddress → Arg(0)
+          </div>
+
+          <!-- Panel 2: Real Java Engine Code -->
+          <div class="code-content" id="code-panel-2" style="display:none;">
+<span class="syn-comment">// 자바 엔진의 유한하고 Typed된 Primitive 구현체 예시 (SemanticPrimitive.java)</span>
+<span class="syn-kw">public class</span> MatchBinaryComparisonPrimitive <span class="syn-kw">implements</span> SemanticPrimitive {
+
+    <span class="syn-anno">@Override</span>
+    <span class="syn-kw">public</span> PrimitiveOutcome execute(RecipeEvaluationContext ctx, 
+                                    BindingEnvironment env, 
+                                    PrimitiveInvocation inv) {
+        <span class="syn-type">ConditionNode</span> failureNode = env.get(inv.inputBinding(<span class="syn-str">"failure"</span>), ConditionNode.class);
+        
+        <span class="syn-kw">if</span> (failureNode.getExpression() <span class="syn-kw">instanceof</span> BinaryExpr binaryExpr) {
+            <span class="syn-comment">// 이항 연산자(<=, <, ==, !=) 추출 및 환경 변수에 바인딩</span>
+            env.bind(inv.outputBinding(<span class="syn-str">"comparison"</span>), <span class="syn-kw">new</span> BinaryComparisonBinding(
+                binaryExpr.getOperator(), <span class="syn-comment">// LE (<=)</span>
+                binaryExpr.getLhs(),      <span class="syn-comment">// request.getQuantity()</span>
+                binaryExpr.getRhs()       <span class="syn-comment">// 0</span>
+            ));
+            <span class="syn-kw">return</span> PrimitiveOutcome.success();
+        }
+        <span class="syn-kw">return</span> PrimitiveOutcome.unmatched();
+    }
+}
+          </div>
+
+          <!-- Panel 3: Concrete Recipe YAML -->
+          <div class="code-content" id="code-panel-3" style="display:none;">
+<span class="syn-comment"># D:/workspace/auto-oas/yaml-recipes/semantic-recipes.yaml</span>
+<span class="syn-key">schema_version</span>: 1
+<span class="syn-key">recipes</span>:
+  - <span class="syn-key">id</span>: JAVA_BINARY_FAILURE_GUARD
+    <span class="syn-key">family</span>: binary_failure_guard
+    <span class="syn-key">description</span>: "if-throw 조건문에서 이항 비교 기반 수치/상태 Constraint 정규화"
+    <span class="syn-key">steps</span>:
+      - <span class="syn-key">op</span>: match.failure_condition         <span class="syn-comment"># 1. ConditionNode 중 Throw/Return 예외 분기 매칭</span>
+        <span class="syn-key">out</span>: failure
+      - <span class="syn-key">op</span>: match.binary_comparison        <span class="syn-comment"># 2. BinaryExpr(<=, <, ==, !=) 및 LHS/RHS 바인딩</span>
+        <span class="syn-key">in</span>: failure
+        <span class="syn-key">out</span>: comparison
+      - <span class="syn-key">op</span>: resolve.request_input_path      <span class="syn-comment"># 3. LHS의 Getter 호출에서 @RequestBody DTO 필드 경로 역추적</span>
+        <span class="syn-key">in</span>: comparison
+        <span class="syn-key">out</span>: target
+      - <span class="syn-key">op</span>: bind.literal_operand            <span class="syn-comment"># 4. RHS 리터럴 값(0) 바인딩</span>
+        <span class="syn-key">in</span>: comparison
+        <span class="syn-key">out</span>: expected
+      - <span class="syn-key">op</span>: normalize.comparison_by_failure_polarity <span class="syn-comment"># 5. 실패 극성(<= 0)을 반전하여 정상 조건(GT, > 0) 도출</span>
+        <span class="syn-key">in</span>: [comparison, failure]
+        <span class="syn-key">out</span>: operator
+      - <span class="syn-key">op</span>: emit.normalized_constraint      <span class="syn-comment"># 6. 최종 Constraint 결과 구조체 생성</span>
+        <span class="syn-key">in</span>: [target, operator, expected]
+          </div>
+
+          <!-- Panel 4: Output JSON -->
+          <div class="code-content" id="code-panel-4" style="display:none;">
+{
+  <span class="syn-key">"recipe_id"</span>: <span class="syn-str">"JAVA_BINARY_FAILURE_GUARD"</span>,
+  <span class="syn-key">"status"</span>: <span class="syn-str">"RESOLVED"</span>,
+  <span class="syn-key">"normalized_constraint"</span>: {
+    <span class="syn-key">"endpoint"</span>: <span class="syn-str">"POST /orders"</span>,
+    <span class="syn-key">"target_path"</span>: <span class="syn-str">"request.quantity"</span>,
+    <span class="syn-key">"operator"</span>: <span class="syn-str">"GT"</span>,
+    <span class="syn-key">"expected_value"</span>: <span class="syn-num">0</span>,
+    <span class="syn-key">"semantics"</span>: <span class="syn-str">"VALUE_RANGE_CONSTRAINT"</span>
+  },
+  <span class="syn-key">"evidence"</span>: {
+    <span class="syn-key">"source_file"</span>: <span class="syn-str">"OrderController.java"</span>,
+    <span class="syn-key">"line_number"</span>: <span class="syn-num">7</span>,
+    <span class="syn-key">"matched_code"</span>: <span class="syn-str">"if (request.getQuantity() <= 0)"</span>
+  }
+}
+          </div>
+        </div>
+
+        <!-- Step-by-Step Visualizer -->
+        <div class="pipeline-container" style="margin-top: 14px;">
+          <div style="font-family:var(--font-heading); font-size:0.9rem; font-weight:600; color:var(--accent-cyan);">
+            ⚙️ 자바 엔진의 Recipe Step 실행 과정 (Step-by-Step Flow)
+          </div>
+          <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:10px;">
+            <div class="pipeline-step" style="flex-direction:column; align-items:flex-start;">
+              <span class="pipeline-step-badge">Step 1. Match</span>
+              <span style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">`if (x <= 0) throw` 탐지</span>
+            </div>
+            <div class="pipeline-step" style="flex-direction:column; align-items:flex-start;">
+              <span class="pipeline-step-badge">Step 2. Binary</span>
+              <span style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">`LHS: quantity, Op: <=, RHS: 0`</span>
+            </div>
+            <div class="pipeline-step" style="flex-direction:column; align-items:flex-start;">
+              <span class="pipeline-step-badge">Step 3. Resolve</span>
+              <span style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">Origin `request.quantity` 바인딩</span>
+            </div>
+            <div class="pipeline-step" style="flex-direction:column; align-items:flex-start;">
+              <span class="pipeline-step-badge">Step 4. Normalize</span>
+              <span style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">`<= 0` (실패) → `GT 0` (정상)</span>
+            </div>
+            <div class="pipeline-step" style="flex-direction:column; align-items:flex-start;">
+              <span class="pipeline-step-badge" style="background:rgba(74,222,128,0.15); color:var(--accent-green); border-color:rgba(74,222,128,0.3);">Step 5. Emit</span>
+              <span style="font-size:0.78rem; color:var(--text-muted); margin-top:4px;">`GT 0` Constraint 출력</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Slide 4: Boundaries -->
+    <div class="slide" id="slide-4">
+      <div class="slide-header">
+        <span class="slide-tag">3. 정직한 경계 긋기 (2~3분)</span>
+        <h2 class="slide-title">이번 PoC에서 하지 않는 것 (Non-Goals)</h2>
+        <p class="slide-subtitle">과도한 튜링 완전 DSL 발명의 덫을 피하는 명확한 스코프 제한</p>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-3">
+          <div class="card" style="border-top: 3px solid var(--accent-red);">
+            <div class="card-header" style="color:var(--accent-red)">
+              🚫 튜링 완전 Script 금지
+            </div>
+            <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.5;">
+              YAML 내에 <code>if/else</code>, 자바 람다, 임의의 스크립트 표현식을 넣는 복잡한 언어를 만들지 않습니다. 오직 유한한 Primitive연산자 조합만 허용합니다.
+            </p>
+          </div>
+
+          <div class="card" style="border-top: 3px solid var(--accent-amber);">
+            <div class="card-header" style="color:var(--accent-amber)">
+              🚫 Fact Generation 외부화 금지
+            </div>
+            <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.5;">
+              소스코드를 AST/CodeGraph 노드로 파싱하고 그래프를 생성하는 최하위 백엔드 엔진 알고리즘은 자바 고성능 엔진에 남겨둡니다.
+            </p>
+          </div>
+
+          <div class="card" style="border-top: 3px solid var(--accent-cyan);">
+            <div class="card-header" style="color:var(--accent-cyan)">
+              🚫 업무 의미 억지 추측 금지
+            </div>
+            <p style="font-size:0.88rem; color:var(--text-muted); line-height:1.5;">
+              CodeGraph 상에 근거(Evidence)가 없는 의미를 룰로 추측하지 않습니다. Graph가 끊기면 <code>PARTIAL_ANALYSIS</code>로 명시적 보고합니다.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5: Risk & Guardrails -->
+    <div class="slide" id="slide-5">
+      <div class="slide-header">
+        <span class="slide-tag">4. 리스크 및 안전장치 (2~3분)</span>
+        <h2 class="slide-title">오버 엔지니어링 점검 및 AI 하이브리드 전략</h2>
+        <p class="slide-subtitle">룰기반(YAML)과 AI기반(CodeGraph+LLM)의 효율적인 역할 분담</p>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">추출 방식별 비교 분석 데이터</div>
+            <table class="comp-table">
+              <thead>
+                <tr>
+                  <th>구분</th>
+                  <th>룰기반 (YAML Engine)</th>
+                  <th>AI기반 (Graph + LLM)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><b>정확도</b></td>
+                  <td><span style="color:var(--accent-green)">100% 결정론적 (오탐 0)</span></td>
+                  <td>비결정적 (환각 가능성)</td>
+                </tr>
+                <tr>
+                  <td><b>관리 버든</b></td>
+                  <td>Recipe 10~20개로 통제</td>
+                  <td>프롬프트/토큰 관리</td>
+                </tr>
+                <tr>
+                  <td><b>속도/비용</b></td>
+                  <td>수 ms / 비용 0원</td>
+                  <td>수 초 / API 비용 발생</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <div class="card-header" style="color:var(--accent-cyan)">안전장치: Golden Corpus Gate</div>
+            <div class="highlight-box">
+              YAML 룰 수정 시 미리 확보된 표준 Spring MVC 테스트용 저장소(Golden Corpus)에 대해 <b>자동 회귀 검증</b>을 거친 후 승인된 룰만 런타임에 동적 반영합니다.
+            </div>
+            <div class="highlight-box" style="margin-top:10px; border-color:var(--accent-purple); background:rgba(192, 132, 252, 0.08);">
+              <b>하이브리드 전략</b>: 정밀 구문 정규화는 <b>YAML 엔진</b>이 담당하고, 정규화된 데이터 기반 문장 요약은 <b>AI</b>가 담당하여 효율 극대화.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 6: Decision Request -->
+    <div class="slide" id="slide-6">
+      <div class="slide-header">
+        <span class="slide-tag">5. 결정 요청 (2분)</span>
+        <h2 class="slide-title">오늘 회의에서의 승인 요청 항목</h2>
+        <p class="slide-subtitle">PoC 진행 및 다음 단계 이행을 위한 핵심 의사결정 요청</p>
+      </div>
+
+      <div class="slide-body" style="align-items:center; justify-content:center;">
+        <div class="card" style="max-width: 900px; padding: 32px; border-left: 6px solid var(--accent-cyan);">
+          <ul class="stylish-list" style="gap: 18px;">
+            <li style="font-size: 1.05rem;">
+              <b style="color:var(--accent-cyan)">1. PoC 요구사항 v2 진행 승인</b><br>
+              <span style="color:var(--text-muted); font-size:0.92rem;">
+                특정 업무 룰 외부화가 아닌, Spring MVC 시멘틱 Classifier 레시피 5종 및 Engine Configuration 외부화 PoC 추진 승인
+              </span>
+            </li>
+            <li style="font-size: 1.05rem;">
+              <b style="color:var(--accent-purple)">2. Golden Corpus 회귀 검증 & AI 하이브리드 전략 승인</b><br>
+              <span style="color:var(--text-muted); font-size:0.92rem;">
+                Golden Corpus 회귀 테스트를 통과한 룰만 동적 로딩하고, 1차 정규화(YAML) + 2차 문장 요약(AI) 구조 추진 승인
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 7: Appendix TO-DO -->
+    <div class="slide" id="slide-7">
+      <div class="slide-header">
+        <span class="slide-tag">Appendix</span>
+        <h2 class="slide-title">TO-DO 4가지 항목 Q&A 대응 요약</h2>
+        <p class="slide-subtitle">회의 후속 질문에 대한 구체적 대응 요약</p>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header" style="font-size:1rem; color:var(--accent-cyan)">1. 검출 로직 실무 테스트</div>
+            <p style="font-size:0.86rem; color:var(--text-muted);">
+              PoC v2 스펙 기반 <code>JAVA_BINARY_FAILURE_GUARD</code> integration test 셋을 오늘 구동하여 매칭 및 정규화 정확도 검증 완료 예정.
+            </p>
+
+            <div class="card-header" style="font-size:1rem; color:var(--accent-purple); margin-top:10px;">2. 추출 방식별 비교 데이터</div>
+            <p style="font-size:0.86rem; color:var(--text-muted);">
+              결정론적 정확도/속도는 YAML 룰엔진 승, 문장 요약은 AI 승. 하이브리드 구조로 결합하여 관리 버든 극복.
+            </p>
+          </div>
+
+          <div class="card">
+            <div class="card-header" style="font-size:1rem; color:var(--accent-green)">3. YAML 규칙 추상화 방안</div>
+            <p style="font-size:0.86rem; color:var(--text-muted);">
+              <code>Semantic Recipe</code> 연산자(Primitive) 조합으로 <code>if-throw</code> 패턴을 제네릭화하여 메서드명 등록 없이 자동 감지.
+            </p>
+
+            <div class="card-header" style="font-size:1rem; color:var(--accent-amber); margin-top:10px;">4. 오버 엔지니어링 검토</div>
+            <p style="font-size:0.86rem; color:var(--text-muted);">
+              Turing-complete 스크립팅을 배제하고 유한한 5종 레시피로 슬림화하여 자바 코드 하드코딩보다 복잡도 감소함.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer Navigation -->
+  <footer>
+    <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)" disabled>
+      ← 이전 (Prev)
+    </button>
+
+    <div class="slide-dots" id="dotContainer">
+      <!-- Dots injected dynamically -->
+    </div>
+
+    <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">
+      다음 (Next) →
+    </button>
+  </footer>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 7;
+
+    const progressText = document.getElementById('progressText');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const dotContainer = document.getElementById('dotContainer');
+
+    // Init Dots
+    for (let i = 1; i <= totalSlides; i++) {
+      const dot = document.createElement('div');
+      dot.className = `dot ${i === 1 ? 'active' : ''}`;
+      dot.onclick = () => goToSlide(i);
+      dotContainer.appendChild(dot);
+    }
+
+    function updateSlideUI() {
+      // Hide all slides
+      document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+      // Show current slide
+      document.getElementById(`slide-${currentSlide}`).classList.add('active');
+
+      // Update progress
+      progressText.innerText = `Slide ${currentSlide} of ${totalSlides}`;
+
+      // Update buttons
+      prevBtn.disabled = currentSlide === 1;
+      nextBtn.disabled = currentSlide === totalSlides;
+
+      // Update dots
+      const dots = dotContainer.children;
+      for (let i = 0; i < dots.length; i++) {
+        dots[i].className = `dot ${i + 1 === currentSlide ? 'active' : ''}`;
+      }
+    }
+
+    function changeSlide(direction) {
+      currentSlide += direction;
+      if (currentSlide < 1) currentSlide = 1;
+      if (currentSlide > totalSlides) currentSlide = totalSlides;
+      updateSlideUI();
+    }
+
+    function goToSlide(slideNum) {
+      currentSlide = slideNum;
+      updateSlideUI();
+    }
+
+    function switchTab(tabIndex) {
+      const tabs = document.querySelectorAll('.tab-btn');
+      tabs.forEach((t, idx) => {
+        if (idx === tabIndex) {
+          t.classList.add('active');
+        } else {
+          t.classList.remove('active');
+        }
+      });
+
+      for (let i = 0; i < 5; i++) {
+        const panel = document.getElementById(`code-panel-${i}`);
+        if (panel) {
+          panel.style.display = i === tabIndex ? 'block' : 'none';
+        }
+      }
+    }
+
+    // Keyboard Navigation
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'Space') {
+        if (currentSlide < totalSlides) changeSlide(1);
+      } else if (e.key === 'ArrowLeft') {
+        if (currentSlide > 1) changeSlide(-1);
+      }
+    });
+  </script>
+</body>
+</html>

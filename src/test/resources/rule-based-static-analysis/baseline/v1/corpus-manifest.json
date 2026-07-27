@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "manifestId": "spring-mvc-generalization-corpus",
+  "version": "u01-corpus-v1",
+  "createdAt": "2026-07-22T03:48:35.073Z",
+  "corpora": [
+    {
+      "corpusId": "catalog",
+      "displayName": "Catalog API",
+      "sourceKind": "CHECKED_IN_FIXTURE",
+      "locator": "corpora/catalog",
+      "required": true,
+      "contentDigest": "b1f5f036058bc7554b39a5b331db1eab163359e89b4997a0ee4767afc408f848",
+      "commitRef": null,
+      "sourceRoots": ["src/main/java"],
+      "expectedEndpointScope": {"minimumExpectedCount": 6, "expectedOperations": [], "allowedExclusions": []},
+      "tags": ["catalog", "optional-lookup", "string-guard"]
+    },
+    {
+      "corpusId": "registry",
+      "displayName": "Registry API",
+      "sourceKind": "CHECKED_IN_FIXTURE",
+      "locator": "corpora/registry",
+      "required": true,
+      "contentDigest": "b75daca5c5ef4868d6a6a5ac2d56d57140cca5247d31bbbb2674996ebc667623",
+      "commitRef": null,
+      "sourceRoots": ["src/main/java"],
+      "expectedEndpointScope": {"minimumExpectedCount": 6, "expectedOperations": [], "allowedExclusions": []},
+      "tags": ["registry", "optional-lookup", "null-guard"]
+    },
+    {
+      "corpusId": "billing",
+      "displayName": "Billing API",
+      "sourceKind": "CHECKED_IN_FIXTURE",
+      "locator": "corpora/billing",
+      "required": true,
+      "contentDigest": "9b159a15286bf7d28f8219cb3d0f0dd1265a56317575f572dd909407cc4699da",
+      "commitRef": null,
+      "sourceRoots": ["src/main/java"],
+      "expectedEndpointScope": {"minimumExpectedCount": 6, "expectedOperations": [], "allowedExclusions": []},
+      "tags": ["billing", "numeric-guard", "optional-lookup"]
+    },
+    {
+      "corpusId": "membership",
+      "displayName": "Membership API",
+      "sourceKind": "CHECKED_IN_FIXTURE",
+      "locator": "corpora/membership",
+      "required": true,
+      "contentDigest": "4120ff318bb71036b08e5f14ea7bec9a82f45bb400dd0c215040a4e614a8bf8e",
+      "commitRef": null,
+      "sourceRoots": ["src/main/java"],
+      "expectedEndpointScope": {"minimumExpectedCount": 6, "expectedOperations": [], "allowedExclusions": []},
+      "tags": ["membership", "composite-guard", "optional-lookup"]
+    },
+    {
+      "corpusId": "shipping",
+      "displayName": "Shipping API",
+      "sourceKind": "CHECKED_IN_FIXTURE",
+      "locator": "corpora/shipping",
+      "required": true,
+      "contentDigest": "86754c0c3e5d8bd246f1b582f50335416ba8beadd4a232349d0d3586045e4cfc",
+      "commitRef": null,
+      "sourceRoots": ["src/main/java"],
+      "expectedEndpointScope": {"minimumExpectedCount": 6, "expectedOperations": [], "allowedExclusions": []},
+      "tags": ["shipping", "range-guard", "optional-lookup"]
+    },
+    {
+      "corpusId": "catalog-renamed-holdout",
+      "displayName": "Catalog Rename Holdout",
+      "sourceKind": "CHECKED_IN_FIXTURE",
+      "locator": "holdout/catalog-renamed",
+      "required": true,
+      "contentDigest": "10a1cd35207d374502d8a0b8280531bec602525f917f79c39d45b979d808f103",
+      "commitRef": null,
+      "sourceRoots": ["src/main/java"],
+      "expectedEndpointScope": {"minimumExpectedCount": 6, "expectedOperations": [], "allowedExclusions": []},
+      "tags": ["holdout", "rename", "mutation"]
+    },
+    {
+      "corpusId": "realestate-optional",
+      "displayName": "RealEstate Local Snapshot",
+      "sourceKind": "LOCAL_SNAPSHOT",
+      "locator": "optional/realestate",
+      "required": false,
+      "contentDigest": "0000000000000000000000000000000000000000000000000000000000000000",
+      "commitRef": null,
+      "sourceRoots": ["src/main/java"],
+      "expectedEndpointScope": {"minimumExpectedCount": 6, "expectedOperations": [], "allowedExclusions": []},
+      "tags": ["optional", "real-repository"]
+    }
+  ],
+  "scenarios": [
+    {
+      "scenarioId": "catalog-archive-rename",
+      "baseCorpusId": "catalog",
+      "variantCorpusIds": ["catalog-renamed-holdout"],
+      "roles": [
+        {
+          "semanticRole": "required-lookup",
+          "occurrenceKey": "primary",
+          "expectedTargetTransform": "sku -> token",
+          "expectedSemanticShape": "SPRING_DATA_FIND_BY_ID_OR_ELSE_THROW",
+          "operationKeysByCorpus": {
+            "catalog": "GET /api/catalog/{sku}",
+            "catalog-renamed-holdout": "GET /archive/assets/{token}"
+          }
+        }
+      ],
+      "expectedTransformations": ["package/type/method/field/parameter rename", "orElseThrow -> isEmpty/throw/get"]
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import io.atworks.specscan.analysis.domain.fact.FactGraphTraversalBudget;
 import io.atworks.specscan.analysis.domain.output.EndpointRuleOutput;
 import io.atworks.specscan.analysis.support.ExecutionSpecExporter;
 import io.atworks.specscan.analysis.support.OpenApiGenerator;
+import io.atworks.specscan.analysis.support.PipelineVisualizationArtifactExporter;
 import io.atworks.specscan.analysis.support.StructuredSpecExporter;
 import io.atworks.specscan.analysis.support.fact.DefaultFactCodeGraphBuilder;
 import io.atworks.specscan.ingestion.domain.IngestionErrorCode;
@@ -120,6 +121,9 @@ public class OpenApiAssemblyService {
             Files.writeString(resolveStructuredOutputPath(outputPath), structuredJson);
             Files.writeString(resolveExecutionOutputPath(outputPath), executionJson);
             Files.writeString(resolveGraphOutputPath(outputPath), graphJson);
+            Path artifactDirectory = outputPath.getParent() == null ? Path.of(".") : outputPath.getParent();
+            new PipelineVisualizationArtifactExporter().export(artifactDirectory, scanResult, extractResult,
+                factGraphs, ruleOutputs, source, executionJson);
         } catch (IOException e) {
             throw new IngestionException(
                 IngestionErrorCode.STATIC_ANALYSIS_POLICY_VIOLATION,

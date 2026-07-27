@@ -1211,6 +1211,194 @@ Risk: 낮음"
 
 ---
 
+## YAML Rule Engine PoC — New Workstream Request
+**Timestamp**: 2026-07-22T09:01:49.2116315+09:00
+**User Input**: "# Files mentioned by the user:
+
+## yaml_rule_engine_poc_roadmap.md: C:/Users/Administrator/.gemini/antigravity/brain/5c50ba27-5e34-4f75-a609-1db609985657/yaml_rule_engine_poc_roadmap.md
+
+## My request for Codex:
+```
+  <!-- A3 · APPENDIX yaml roadmap -->
+  <section class=\"slide\" data-sec=\"부록\" data-appx=\"1\">
+    <div class=\"eyebrow\"><span class=\"appx-badge\">Appendix D</span> Q&amp;A 대비 — 룰 전체를 YAML로 관리할 수 있나?</div>
+    <h2 class=\"head\" style=\"max-width:none;\">층위가 다르다 — 데이터는 빼고, 알고리즘은 남긴다</h2>
+    <div class=\"body\">
+      <div class=\"cols\" style=\"grid-template-columns:repeat(3,1fr); gap:14px; align-items:start;\">
+        <div class=\"card\">
+          <div class=\"split-head\" style=\"color:var(--green)\">▚ A · 지금 가능 — 목록(데이터)</div>
+          <ul class=\"rows dense\">
+            <li><span class=\"dot g\"></span>표준 guard 대응표 같은 순수 목록 — <code>requireNonNull → NOT_NULL</code></li>
+            <li><span class=\"dot g\"></span>rule pack on/off · traversal budget 수치</li>
+            <li><span class=\"dot g\"></span>기존 YAML 로더(PoC) 재사용 — 엔진 동작 불변, 리스크 최소</li>
+          </ul>
+        </div>
+        <div class=\"card\" style=\"border-color:var(--accent);\">
+          <div class=\"split-head\" style=\"color:var(--accent)\">▚ B · 핵심 — 서식 + 빈칸 채우기</div>
+          <ul class=\"rows dense\">
+            <li><span class=\"dot b\"></span>탐색 · polarity · origin 알고리즘은 Java <b>템플릿(kind)</b>으로 유지</li>
+            <li><span class=\"dot b\"></span>YAML은 kind 선택 + 파라미터(ownerType · method · role)만 선언</li>
+            <li><span class=\"dot b\"></span>커스텀 비밀번호 검증도 YAML 한 블록으로 등록 — <code>isMatchPassword</code></li>
+          </ul>
+        </div>
+        <div class=\"card\">
+          <div class=\"split-head\" style=\"color:var(--red)\">▚ C · 금지 — 알고리즘</div>
+          <ul class=\"rows dense\">
+            <li><span class=\"dot r\"></span>그래프 생성 · 탐색 · polarity 대수 · origin 역추적</li>
+            <li><span class=\"dot r\"></span>dispatch 우선순위 · suppression 체인</li>
+            <li><span class=\"dot r\"></span>YAML로 빼는 순간 그래프 질의 DSL — <b>새 언어를 발명</b>하게 된다</li>
+          </ul>
+        </div>
+      </div>
+      <div style=\"display:flex; gap:8px; align-items:center; margin-top:18px; font-family:var(--mono); flex-wrap:wrap; font-size:clamp(11px,1.1vw,13px);\">
+        <span class=\"lnode hot\">1 목록을 파일로 — 설정 수준</span><span style=\"color:var(--faint);\">→</span>
+        <span class=\"lnode\">2 서식+빈칸 — classifier 템플릿 × YAML 인스턴스</span><span style=\"color:var(--faint);\">→</span>
+        <span class=\"lnode\">3 탐지 seed 일부 개방 — 선택 · 신중</span>
+      </div>
+      <div class=\"note\"><span class=\"lbl\">gate</span><span>모든 YAML 변경은 <b>golden corpus 회귀</b>를 통과해야 반영한다. 스키마 검증(unknown field · 중복 ID)은 PoC에 이미 구현되어 있다.</span></div>
+    </div>
+  </section>
+```
+
+---
+
+위 내용처럼
+이 프로젝트의 어떤, 코드그래프를 만드는 룰은 차치하더라도, 시멘틱룰과 코드 그래패 탐색 룰을 제네릭하게 YAML로 관리하고자 하는 PoC를 하고 싶어
+
+지금 수준의 YAML은 특정한 MethodName가 코드그래프에 있을 경우 처리를 하는 거이지만, 그것말고 좀더 추상화한 YAML로 하고 싶어
+단적으로 이야기를 한다면, `Semantic Analysis & Rule Engine Layer`의 모든 컴포넌트의 알고리즘을 코드로 관리하는 것이 아니라 YAML로 관리를 하여서 추가, 수정, 개선, 삭제 등을 손쉽게하여 변경에 용이 할 수 있게 하는 것을 하고 싶어. 가령, `Semantic Analysis & Rule Engine Layer`의 개선이나 추가가 필요하면 v2, v3 버전의 배포가 필요하니까 YAML로 외부화를 한다면 관리에 있어서 용이하니까 이 부분의 가능성을 PoC를 하고 싶어
+
+그래서 구체적으로 개발을 진행하지말고, 먼저, 어떻게 어떤 스탭 바이 스탭으로 변화할 수 있는 과정 그리고 그에 따른 체감할 수 있는 예시를 보여주면서 설명하는 MD파일을 만들어봐
+
+---
+
+`yaml_rule_engine_poc_roadmap.md` 이 파일 로드맵을 만들엇어
+
+---
+
+# YAML Rule Engine PoC — 실현가능성 평가 & Unit of Work 계획
+
+> 상위 문서: `yaml_rule_engine_poc_roadmap.md` (Step 1~4 개념 로드맵)
+> 본 문서는 그 로드맵을 **실제로 착수 가능한 작업 단위(UoW)**로 분해한다.
+
+---
+
+## 1. 실현가능성 평가 요약
+
+| 항목 | 평가 | 근거 |
+|---|---|---|
+| Step 1 (목록 외부화) | ✅ 즉시 가능 | 이미 PoC 존재, 리스크 거의 없음 |
+| Step 2 (Kind 템플릿) | ✅ 가능 | CodeQL / Semgrep의 source-sink 템플릿 패턴과 동일 |
+| Step 3 (프리미티브 조합 DSL) | ⚠️ 조건부 가능 | 프리미티브 세트의 표현력이 실제 룰 커버리지를 만족해야 함 — **사전 증명 불가, 이관 실습으로 검증 필요** |
+| Step 4 (Hot-reload/버저닝) | ✅ 가능하나 후순위 | Step 3 안정화 이후에만 의미 있음 |
+
+**가장 큰 리스크는 기술이 아니라 \"규율\"이다.** 표현력이 부족할 때 `custom_expression` 같은 탈출구를 여는 순간, DSL이 아니라 튜링 완전 언어를 재발명하게 된다(문서의 C 구역 경고). 따라서 계획의 핵심은:
+
+1. **프리미티브 세트를 먼저 고정하지 않는다** — 실제 룰 3~5개를 이관해보며 \"필요한 프리미티브\"를 역산한다.
+2. **탈출구가 필요해지는 순간을 신호로 취급한다** — 탈출구를 열지 말고, 그 케이스를 새로운 프리미티브(또는 신규 `kind`)로 승격시킬지 논의한다.
+3. **Golden Corpus를 Phase 0에서 먼저 확보한다** — 이게 없으면 이후 모든 단계에서 \"회귀 없음\"을 주장할 근거가 없다.
+
+---
+
+## 2. Phase 구조 개요
+
+```
+Phase 0: 안전망 구축 (Golden Corpus, 스키마 검증)
+Phase 1: 프리미티브 최소셋 설계 + 엔진 Core
+Phase 2: 실제 룰 3~5개 이관 (표현력 검증 — 여기서 Go/No-Go 결정)
+Phase 3: 프리미티브 확장 + 디버깅/트레이싱 도구
+Phase 4: 버저닝 & Hot-reload (선택적, Step 4)
+```
+
+Phase 2가 끝나는 시점이 **의사결정 게이트**다 — 여기서 \"프리미티브 조합만으로 룰이 충분히 표현됐는가\"를 판단하고 계속할지, 범위를 Step 2 수준으로 줄일지 결정한다.
+
+---
+
+## 3. Unit of Work 상세
+
+### Phase 0. 안전망 구축 (착수 전 필수)
+
+| UoW | 작업 내용 | Definition of Done | 의존성 |
+|---|---|---|---|
+| 0-1 | Golden Corpus 후보 코드베이스 5~10개 선정 (기존 룰이 True/False Positive를 실제로 낸 이력이 있는 저장소 우선) | 저장소 목록 + 각 저장소의 \"기대 탐지 결과 스냅샷\"(현재 엔진 기준) 확보 | - |
+| 0-2 | 회귀 비교 러너 구현 (v(N) 결과 vs v(N-1) 결과 diff 출력) | CLI로 두 룰팩 버전 입력 시 diff 리포트(신규 탐지/소실 탐지) 출력 | 0-1 |
+| 0-3 | YAML 스키마 검증기 (unknown field, 중복 rule_id, 필수 필드) | 잘못된 YAML 투입 시 명확한 에러 위치 리포트 | - |
+
+**게이트**: 0-1~0-3 없이는 Phase 2 이후 착수 금지 (안전망 없이 룰을 흔드는 것은 신뢰 상실로 직결).
+
+---
+
+### Phase 1. 프리미티브 최소셋 & 엔진 Core
+
+| UoW | 작업 내용 | DoD | 의존성 |
+|---|---|---|---|
+| 1-1 | `match` 프리미티브 구현 (node type, method signature, annotation 매칭) | 단위 테스트로 5종 이상 매칭 케이스 통과 | - |
+| 1-2 | `follow` 프리미티브 구현 (DATA_FLOW, CONTROL_FLOW, CALL, ALIAS 엣지 추적, BACKWARD/FORWARD 방향) | max_depth 제한이 실제 그래프 순회에서 pruning으로 동작함을 벤치마크로 증명 | 1-1 |
+| 1-3 | `polarity`(상태 대수) 프리미티브 구현 (`accumulate_state`, `transitions`) | 상태 전이 3종 이상 시나리오 테스트 통과 | 1-2 |
+| 1-4 | `evaluation`(all_of/any_of/not) 조합 연산자 구현 | 중첩 조합 3단계까지 정상 평가 | 1-1~1-3 |
+| 1-5 | Step 2 YAML(`kind: TaintFlowAnalysis` 등 템플릿) 파서 + 실행기 | 기존 하드코딩 룰 1개를 Step 2 YAML로 이관, 결과 동일함을 Golden Corpus로 증명 | 0-2, 1-1~1-4 |
+
+**산출물 체크**: 이 단계가 끝나면 \"새 Sanitizer 함수 추가 = YAML 한 줄 추가\"가 실제로 동작해야 한다.
+
+---
+
+### Phase 2. 실제 룰 이관 실습 (핵심 검증 단계)
+
+> 이 Phase의 목적은 \"된다\"를 증명하는 게 아니라 **\"프리미티브가 부족한 지점을 찾는 것\"**이다.
+
+| UoW | 작업 내용 | DoD | 의존성 |
+|---|---|---|---|
+| 2-1 | 이관 대상 룰 3~5개 선정 (난이도 다양하게: 단순 매핑형 1개, 상태추적형 2개, 다중 경로형 1~2개) | 선정 근거 문서화 | - |
+| 2-2 | 룰 1건씩 Step 3 YAML(`engine_algorithm`)로 이관 | 각 건마다: (a) Golden Corpus 결과 동일 (b) 이관 중 막힌 지점과 임시 우회 방법 기록 | 1-1~1-5, 2-1 |
+| 2-3 | 이관 중 발견된 \"표현 불가 케이스\" 목록화 및 분류 | 각 케이스를 \"신규 프리미티브 필요\" vs \"설계상 YAML로 불가능(코드 유지 필요)\"로 분류 | 2-2 |
+| 2-4 | **Go/No-Go 리뷰**: 커버리지 %(전체 룰 중 YAML로 표현 가능한 비율), 탈출구 요구 빈도 검토 | 의사결정 문서: Step 3 계속 진행 / 범위를 Step 2로 축소 / 특정 룰 카테고리만 Step 3 적용 | 2-3 |
+
+**중요**: 2-3에서 \"표현 불가 케이스\"가 나올 때마다 즉시 탈출구를 만들지 말고 백로그에 쌓아둔다. 2-4에서 패턴이 반복되는 것만 신규 프리미티브로 승격한다.
+
+---
+
+### Phase 3. 확장 및 운영성 (Phase 2 Go 판정 시에만 진행)
+
+| UoW | 작업 내용 | DoD | 의존성 |
+|---|---|---|---|
+| 3-1 | Phase 2에서 승격된 신규 프리미티브 구현 | 각 프리미티브별 단위 테스트 + Golden Corpus 재검증 | 2-4 |
+| 3-2 | 룰 실행 트레이서 (어떤 YAML 노드에서 어떤 상태로 진행/중단됐는지 시각화) | 임의 룰 실행 시 노드별 상태 전이 로그 출력 | 1-1~1-5 |
+| 3-3 | 룰 작성 가이드 + 예제 카탈로그 문서화 | 신규 룰 작성자가 트레이서 없이도 기본 룰 1개를 작성 가능함을 온보딩 테스트로 확인 | 3-2 |
+| 3-4 | 나머지 하드코딩 룰 순차 이관 | 이관률 목표치 도달 (예: 70% 이상) | 3-1 |
+
+---
+
+### Phase 4. 버저닝 & Hot-Reload (선택, Step 4)
+
+| UoW | 작업 내용 | DoD | 의존성 |
+|---|---|---|---|
+| 4-1 | Rule Registry 설계 (v1/v2/v3 동시 보유) | 버전별 룰팩 독립 로딩 확인 | Phase 3 |
+| 4-2 | Golden Corpus Gate CI 파이프라인 연동 | PR 머지 조건에 회귀 테스트 포함 | 0-2, 4-1 |
+| 4-3 | Hot-reload 메커니즘 (엔진 재시작 없이 룰팩 교체) | 무중단 룰 교체 데모 | 4-1 |
+
+---
+
+## 4. 권장 착수 순서 (요약)
+
+1. **지금 바로 시작 가능**: Phase 0 (Golden Corpus, 스키마 검증) — 이게 전체 PoC의 신뢰성 기반
+2. **Phase 0 완료 후**: Phase 1 (프리미티브 Core) — 이 시점까지는 실현가능성 100%
+3. **가장 중요한 검증 지점**: Phase 2 — 여기서 실제로 \"얼마나 YAML로 표현되는가\"가 드러남. **PoC 보고서의 핵심 결론은 Phase 2-4 결과로 작성한다.**
+4. Phase 3~4는 Phase 2 Go 판정 이후에만 리소스 투입
+
+## 5. 성공/실패 판단 기준 제안
+
+- **성공 기준(예시)**: 대표 룰 5개 중 4개 이상이 탈출구 없이 Step 3 YAML로 표현되고, Golden Corpus 회귀에서 차이 0건
+- **부분 성공**: 룰 카테고리별로 차이 — 예를 들어 단순 taint-flow류는 Step 3 적용, 복잡한 다중 조건 룰은 Step 2 수준에 머무름 (이것도 유의미한 결과)
+- **실패 신호**: Phase 2에서 이관 시도마다 탈출구(custom expression)가 필요해짐 → DSL 재발명 함정에 빠진 것이므로 즉시 범위 축소
+
+---
+
+`D:\workspace\auto-oas\.agents\unified-aidlc-kit\core-workflow.md` 를 숙지하고 진행을 해볼래"
+**AI Response**: "Unified AI-DLC 공통 규칙과 확장 opt-in 안내를 로드하고, 기존 완료 상태와 최신 Reverse Engineering 산출물을 복원했다. 현재 YAML 로더가 methodName/resolvedSignatureContains와 failureOutcome 기반 CONTROL_FLOW_ONLY 룰만 지원하고, SemanticRuleDispatcher가 classifier 우선순위와 suppression을 코드로 관리함을 확인했다. 신규 YAML Rule Engine PoC workstream을 생성하고 종합 깊이 Requirements Analysis 질문 문서를 작성했다. 구현은 승인하지 않았으며 사용자 답변을 기다린다."
+**Context**: INCEPTION - YAML Rule Engine PoC Workspace Detection Complete, Requirements Analysis Awaiting Answers
+
+---
+
 ## Reverse Engineering Rerun Request
 **Timestamp**: 2026-07-15T00:00:00+09:00
 **User Input**: "D:\workspace\auto-oas\aidlc-docs에 부족한 인셉션문서이나 설계문서가 부족할 수 있으니
@@ -1253,3 +1441,346 @@ D:\workspace\auto-oas\.agents\unified-aidlc-kit\core-workflow.md를 읽고 역�
 
 ---
 
+## YAML Rule Engine PoC — Requirements Questions Prompt
+**Timestamp**: 2026-07-22T09:01:49.2116315+09:00
+**User Input**: "N/A — 동일 상호작용의 사용자 입력 원문은 `YAML Rule Engine PoC — New Workstream Request` 항목에 전체 기록됨"
+**AI Response**: "`aidlc-docs/inception/requirements/yaml-rule-engine-poc/requirement-verification-questions.md`의 8개 질문에 `[Answer]:`로 답변하도록 요청하고 Requirements Analysis 게이트에서 정지한다."
+**Context**: INCEPTION - YAML Rule Engine PoC Requirements Analysis Awaiting Answers
+
+---
+
+## YAML Rule Engine PoC — Requirements Answers
+**Timestamp**: 2026-07-22T09:34:39.2724648+09:00
+**User Input**: "답변했어"
+**AI Response**: "질문 문서의 8개 답변을 검증했다. 답변은 A, A, A, A, A, C, B, C이며 누락, 잘못된 선택지 또는 상호 모순이 없다. Security Baseline과 Property-Based Testing은 이번 PoC에서 비활성화하므로 확장 전체 규칙은 로드하지 않았다."
+**Context**: INCEPTION - YAML Rule Engine PoC Requirements Answers Validated
+
+---
+
+## YAML Rule Engine PoC — Requirements Analysis Completion Prompt
+**Timestamp**: 2026-07-22T09:34:39.2724648+09:00
+**User Input**: "답변했어"
+**AI Response**: "확정 요구사항, Acceptance Criteria, Verification Expectations와 영속 Hard Constraints를 작성했다. `requirements-approval.md`에 Requirements Analysis 승인 선택지를 생성하고 Workflow Planning 전에 정지한다."
+**Context**: INCEPTION - YAML Rule Engine PoC Requirements Analysis Complete Pending Approval
+
+---
+
+## YAML Rule Engine PoC — Requirements Revision 2 Request
+**Timestamp**: 2026-07-22T10:22:36.2801573+09:00
+**User Input**: "이것을 바탕으로 다시 요구사항부터 해보자"
+**AI Response**: "Spring MVC 지원 envelope, Controller-root reachable subgraph, traversal configuration 외부화, generic semantic recipe와 runtime binding 원칙을 기준으로 Requirements Analysis Revision 2를 작성하기 시작했다. 기존 v1 문서와 영속 사양은 이력으로 보존한다."
+**Context**: INCEPTION - YAML Rule Engine PoC Requirements Analysis Revision 2
+
+---
+
+## YAML Rule Engine PoC — Requirements Revision 2 Completion Prompt
+**Timestamp**: 2026-07-22T10:22:36.2801573+09:00
+**User Input**: "이것을 바탕으로 다시 요구사항부터 해보자"
+**AI Response**: "generic classifier family, engine/recipe/catalog 분리, runtime binding, optional framework pack, DelegatedGuard 교정, cross-repository 일반화와 disposition별 회귀 기준을 포함한 requirements-v2.md와 신규 영속 사양을 작성했다. Revision 2 명시적 승인 전 Workflow Planning으로 진행하지 않는다."
+**Context**: INCEPTION - YAML Rule Engine PoC Requirements Analysis Revision 2 Complete Pending Approval
+
+---
+
+## YAML Rule Engine PoC — Requirements Revision 2 Approval
+**Timestamp**: 2026-07-22T10:57:53.7251661+09:00
+**User Input**: "승인"
+**AI Response**: "명확한 승인 응답을 Requirements Revision 2 승인 문서의 Option B로 기록하고 Workflow Planning으로 전환했다."
+**Context**: INCEPTION - YAML Rule Engine PoC Requirements Analysis Revision 2 Approved
+
+---
+
+## YAML Rule Engine PoC — Workflow Planning Completion Prompt
+**Timestamp**: 2026-07-22T10:57:53.7251661+09:00
+**User Input**: "승인"
+**AI Response**: "영향 범위, 단계 실행/생략, 6개 예비 Unit, package sequence, 요구사항 10건의 검증 증거와 quality gate를 포함한 실행 계획을 작성했다. Workflow Planning 승인 전 Application Design으로 진행하지 않는다."
+**Context**: INCEPTION - YAML Rule Engine PoC Workflow Planning Complete Pending Approval
+
+---
+
+## YAML Rule Engine PoC — Workflow Planning Approval
+**Timestamp**: 2026-07-22T11:04:04.4555255+09:00
+**User Input**: "승인"
+**AI Response**: "명확한 승인 응답을 Workflow Planning 승인 문서의 Option C로 기록하고 Application Design으로 전환했다."
+**Context**: INCEPTION - YAML Rule Engine PoC Workflow Planning Approved
+
+---
+
+## YAML Rule Engine PoC — Application Design Questions
+**Timestamp**: 2026-07-22T11:04:04.4555255+09:00
+**User Input**: "승인"
+**AI Response**: "package 경계, compile 방식, Java/YAML 실행 권위, YAML 파일 구성, diagnostic 출력과 DelegatedGuard 처리에 관한 6개 trade-off 질문을 Application Design plan에 작성했다. 답변 검증 전 설계 산출물을 생성하지 않는다."
+**Context**: INCEPTION - YAML Rule Engine PoC Application Design Awaiting Answers
+
+---
+
+## YAML Rule Engine PoC — Application Design Answers Validation
+**Timestamp**: 2026-07-22T11:12:59.8177200+09:00
+**User Input**: "답변완료"
+**AI Response**: "6개 답변(A, A, C, A, A, A)의 누락과 선택값을 검증했다. Q3의 YAML primary 실행 권위와 Q5의 production output 무변경은 동일 정상 scan 경로에서 양립하지 않으므로, 적용 경계를 확정하는 후속 질문 Q7을 Application Design plan에 추가하고 설계 산출물 생성을 보류했다."
+**Context**: INCEPTION - YAML Rule Engine PoC Application Design Awaiting Follow-up Answer
+
+---
+
+## YAML Rule Engine PoC — Application Design Follow-up Answer
+**Timestamp**: 2026-07-22T11:17:10.8635022+09:00
+**User Input**: "A로 답변할게"
+**AI Response**: "Q7을 Option A로 기록했다. 정상 scan은 기존 Java authoritative output을 유지하고, 격리된 PoC evaluation에서만 YAML primary와 명시적 Java fallback을 적용하는 것으로 Q3/Q5의 적용 경계를 확정했다."
+**Context**: INCEPTION - YAML Rule Engine PoC Application Design Decisions Complete
+
+---
+
+## YAML Rule Engine PoC — Application Design Completion Prompt
+**Timestamp**: 2026-07-22T11:17:10.8635022+09:00
+**User Input**: "A로 답변할게"
+**AI Response**: "Application Design 산출물 5종을 `aidlc-docs/inception/application-design/yaml-rule-engine-poc/`에 작성하고 완전성 및 일관성을 검증했다. 검토 후 `yaml-rule-engine-poc-application-design-approval.md`에서 Option A 변경 요청, Option B 승인 및 Units Generation 계속, Option C 승인하되 중지 중 하나를 선택하도록 요청한다. 명시적 승인 전 Units Generation이나 구현으로 진행하지 않는다."
+**Context**: INCEPTION - YAML Rule Engine PoC Application Design Complete Pending Approval
+
+---
+
+## YAML Rule Engine PoC — Application Design Isolation Correction
+**Timestamp**: 2026-07-22T11:30:13.0572736+09:00
+**User Input**: "오게 진행해 그리고 승인할게"
+**AI Response**: "정상 scan이 YAML bootstrap/CompiledRecipePlan에 의존하는 것처럼 읽히던 모순을 정정했다. 정상 scan은 YAML을 읽지 않고 default-budget graph와 기존 Java authoritative output을 사용한다. 명시적 PoC evaluation만 세 YAML을 bootstrap하고 YAML-derived budget으로 별도 evaluation graph를 생성한다. bootstrap/compile/evaluation graph 실패는 evaluation만 중단하며 정상 scan에는 영향을 주지 않는다. 관련 설계 문서 5종, Requirements v2의 범위 명확화, 승인 요약과 상태 추적을 함께 동기화하고 재승인 게이트에서 정지한다."
+**Context**: INCEPTION - YAML Rule Engine PoC Application Design Corrected Pending Re-approval
+
+---
+
+## YAML Rule Engine PoC — Application Design Approval
+**Timestamp**: 2026-07-22T11:40:11.0676797+09:00
+**User Input**: "승인"
+**AI Response**: "정정된 Application Design을 Option B로 승인 기록하고 Units Generation Part 1 Planning으로 전환했다."
+**Context**: INCEPTION - YAML Rule Engine PoC Application Design Approved
+
+---
+
+## YAML Rule Engine PoC — Units Generation Planning Questions
+**Timestamp**: 2026-07-22T11:40:11.0676797+09:00
+**User Input**: "승인"
+**AI Response**: "승인된 6개 예비 Unit을 실제 Unit으로 확정하기 전에 Unit 경계, 의존 게이트, 요구사항 기반 story map 대체, 팀 정렬, 배포/module 경계와 분해 축을 결정하는 질문을 `yaml-rule-engine-poc-unit-of-work-plan.md`에 작성했다. 모든 답변과 계획 승인을 받기 전 Unit 산출물을 생성하지 않는다."
+**Context**: INCEPTION - YAML Rule Engine PoC Units Generation Planning Awaiting Answers
+
+---
+
+## YAML Rule Engine PoC — Units Generation Planning Answers
+**Timestamp**: 2026-07-22T11:44:39.0324108+09:00
+**User Input**: "그래 전부 A로 답변"
+**AI Response**: "6개 답변을 모두 A로 기록하고 누락·모순·모호성을 검증했다. 6개 논리 Unit, hard evidence gate, Requirements/Acceptance Criteria mapping, 단일 팀 순차 ownership, 단일 Gradle module과 기술 capability 분해가 서로 일관된다."
+**Context**: INCEPTION - YAML Rule Engine PoC Units Generation Planning Answers Validated
+
+---
+
+## YAML Rule Engine PoC — Unit Plan Approval Prompt
+**Timestamp**: 2026-07-22T11:44:39.0324108+09:00
+**User Input**: "그래 전부 A로 답변"
+**AI Response**: "Unit of work plan complete. Review the plan in `aidlc-docs/inception/plans/yaml-rule-engine-poc-unit-of-work-plan.md`. Ready to proceed to generation? `yaml-rule-engine-poc-unit-of-work-plan-approval.md`에서 Option A 변경 요청, Option B 계획 승인 및 Unit 산출물 생성, Option C 계획 승인하되 중지 중 하나를 선택해 달라고 요청한다."
+**Context**: INCEPTION - YAML Rule Engine PoC Unit Plan Complete Pending Approval
+
+---
+
+## YAML Rule Engine PoC — Unit Plan Approval
+**Timestamp**: 2026-07-22T11:49:53.0834804+09:00
+**User Input**: "승인"
+**AI Response**: "Unit of Work 계획을 Option B로 승인 기록하고 Units Generation Part 2로 전환했다. 승인된 계획에 따라 Unit 산출물 3종을 생성한다."
+**Context**: INCEPTION - YAML Rule Engine PoC Unit Plan Approved, Generation Started
+
+---
+
+## YAML Rule Engine PoC — Units Generation Completion Prompt
+**Timestamp**: 2026-07-22T11:55:15.9300227+09:00
+**User Input**: "승인"
+**AI Response**: "승인된 Unit 계획에 따라 `unit-of-work.md`, `unit-of-work-dependency.md`, `unit-of-work-story-map.md`를 생성했다. U01~U06 6개 Unit, Functional Requirement 10개, NFR 9개의 배정과 dependency DAG를 검증했으며 미배정 requirement와 cycle은 0건이다. 정상 scan의 YAML/bootstrap 비의존성과 U01→U06 hard gate를 보존했다. `yaml-rule-engine-poc-units-generation-approval.md`에서 Option A 변경 요청, Option B 승인 및 Construction 계속, Option C 승인하되 중지 중 하나를 선택하도록 요청한다."
+**Context**: INCEPTION - YAML Rule Engine PoC Units Generation Complete Pending Approval
+
+---
+
+## YAML Rule Engine PoC — Units Generation Approval
+**Timestamp**: 2026-07-22T11:59:50.4038482+09:00
+**User Input**: "승인"
+**AI Response**: "Units Generation을 Option B로 승인 기록하고 Construction Phase의 U01 Generalization Baseline Functional Design Planning으로 전환했다."
+**Context**: CONSTRUCTION - U01 Functional Design Planning Started
+
+---
+
+## YAML Rule Engine PoC — U01 Functional Design Questions
+**Timestamp**: 2026-07-22T11:59:50.4038482+09:00
+**User Input**: "승인"
+**AI Response**: "U01의 baseline source of truth, candidate identity, disposition governance, corpus persistence, evaluation runner integration, missing corpus 처리와 re-baseline policy를 확정하는 7개 Functional Design 질문을 작성했다. 모든 답변을 검증하기 전 Functional Design 산출물을 생성하지 않는다."
+**Context**: CONSTRUCTION - U01 Functional Design Awaiting Answers
+
+---
+
+## YAML Rule Engine PoC — U01 Functional Design Answers
+**Timestamp**: 2026-07-22T12:04:21.6550429+09:00
+**User Input**: "전부 A로 할게"
+**AI Response**: "7개 답변을 모두 A로 기록하고 누락·모순·모호성을 검증했다. Java observation/approved baseline 분리, exact/scenario identity, explicit disposition, hybrid corpus, evaluation-only runner, required corpus hard failure와 no-auto-rebaseline 결정이 서로 일관된다."
+**Context**: CONSTRUCTION - U01 Functional Design Answers Validated
+
+---
+
+## YAML Rule Engine PoC — U01 Functional Design Completion Prompt
+**Timestamp**: 2026-07-22T12:08:16.2847730+09:00
+**User Input**: "전부 A로 할게"
+**AI Response**: "U01 Functional Design 산출물 `business-logic-model.md`, `business-rules.md`, `domain-entities.md`를 생성하고 identity, disposition, corpus failure, coverage와 re-baseline 계약의 일관성을 검증했다. `u01-generalization-baseline-functional-design-approval.md`에서 Option A 변경 요청, Option B 승인 및 NFR Requirements 계속, Option C 승인하되 중지 중 하나를 선택하도록 요청한다."
+**Context**: CONSTRUCTION - U01 Functional Design Complete Pending Approval
+
+---
+
+## YAML Rule Engine PoC — U01 Functional Design Approval
+**Timestamp**: 2026-07-22T12:10:21.7419141+09:00
+**User Input**: "승인"
+**AI Response**: "U01 Functional Design을 Option B로 승인 기록하고 U01 NFR Requirements Planning으로 전환했다."
+**Context**: CONSTRUCTION - U01 NFR Requirements Planning Started
+
+---
+
+## YAML Rule Engine PoC — U01 NFR Requirements Questions
+**Timestamp**: 2026-07-22T12:10:21.7419141+09:00
+**User Input**: "승인"
+**AI Response**: "U01의 scalability, performance, availability, security, tech stack, reliability, maintainability와 usability를 확정하는 8개 NFR 질문을 작성했다. 답변 검증 전 NFR Requirements 산출물을 생성하지 않는다."
+**Context**: CONSTRUCTION - U01 NFR Requirements Awaiting Answers
+
+---
+
+## YAML Rule Engine PoC — U01 NFR Requirements Answers
+**Timestamp**: 2026-07-22T12:13:32.2843853+09:00
+**User Input**: "전부 A로 답변할게"
+**AI Response**: "8개 답변을 모두 A로 기록하고 누락·모순·모호성을 검증했다. bounded batch, performance observation/finite timeout, offline fail-fast, untrusted source isolation, existing Java stack, three-run determinism, explicit schema version과 JSON/Markdown output 결정이 서로 일관된다."
+**Context**: CONSTRUCTION - U01 NFR Requirements Answers Validated
+
+---
+
+## YAML Rule Engine PoC — U01 NFR Requirements Completion Prompt
+**Timestamp**: 2026-07-22T12:16:00.0084275+09:00
+**User Input**: "전부 A로 답변할게"
+**AI Response**: "U01 `nfr-requirements.md`와 `tech-stack-decisions.md`를 생성하고 Functional/NFR trace와 acceptance evidence를 검증했다. `u01-generalization-baseline-nfr-requirements-approval.md`에서 Option A 변경 요청, Option B 승인 및 NFR Design 계속, Option C 승인하되 중지 중 하나를 선택하도록 요청한다."
+**Context**: CONSTRUCTION - U01 NFR Requirements Complete Pending Approval
+
+---
+
+## YAML Rule Engine PoC — U01 NFR Requirements Approval
+**Timestamp**: 2026-07-22T12:17:52.6399435+09:00
+**User Input**: "ㄱㄱ"
+**AI Response**: "문맥상 명확한 계속 진행 승인으로 해석하여 U01 NFR Requirements를 Option B로 기록하고 U01 NFR Design Planning으로 전환했다."
+**Context**: CONSTRUCTION - U01 NFR Design Planning Started
+
+---
+
+## YAML Rule Engine PoC — U01 NFR Design Questions
+**Timestamp**: 2026-07-22T12:17:52.6399435+09:00
+**User Input**: "ㄱㄱ"
+**AI Response**: "U01 resilience, scalability/execution, timeout, security, determinism, artifact publication, schema migration과 metrics logical component를 확정하는 8개 NFR Design 질문을 작성했다. 답변 검증 전 NFR Design 산출물을 생성하지 않는다."
+**Context**: CONSTRUCTION - U01 NFR Design Awaiting Answers
+
+---
+
+## YAML Rule Engine PoC — U01 NFR Design Answers
+**Timestamp**: 2026-07-22T12:20:51.0723141+09:00
+**User Input**: "전부 A로 답변할게"
+**AI Response**: "8개 답변을 모두 A로 기록하고 누락·모순·모호성을 검증했다. fail-fast preflight, sequential reference execution, cooperative deadline, centralized path guard, canonicalization/three-run verifier, completion bundle, strict version migration과 best-effort metrics 결정이 서로 일관된다."
+**Context**: CONSTRUCTION - U01 NFR Design Answers Validated
+
+---
+
+## YAML Rule Engine PoC — U01 NFR Design Completion Prompt
+**Timestamp**: 2026-07-22T12:25:44.3840885+09:00
+**User Input**: "전부 A로 답변할게"
+**AI Response**: "U01 `nfr-design-patterns.md`와 `logical-components.md`를 생성하고 NFR requirement-pattern-component trace를 검증했다. DeterminismVerifier를 SingleRunCoordinator 외부에 배치하여 숨은 순환 의존을 제거했다. `u01-generalization-baseline-nfr-design-approval.md`에서 Option A 변경 요청, Option B 승인 및 implementation planning 계속, Option C 승인하되 중지 중 하나를 선택하도록 요청한다."
+**Context**: CONSTRUCTION - U01 NFR Design Complete Pending Approval
+
+---
+
+## YAML Rule Engine PoC — U01 NFR Design Approval
+**Timestamp**: 2026-07-22T12:28:51.1231714+09:00
+**User Input**: "승인"
+**AI Response**: "U01 NFR Design을 Option B로 승인 기록하고 implementation Deep Interview Gating으로 전환했다."
+**Context**: CONSTRUCTION - U01 Implementation Deep Interview Started
+
+---
+
+## YAML Rule Engine PoC — U01 Implementation Deep Interview Answers
+**Timestamp**: 2026-07-22T12:36:09.8245377+09:00
+**User Input**: "전부 A"
+**AI Response**: "5개 implementation decision을 모두 Option A로 확정했다. 기존 evaluation package additive 확장, checked-in 현실형 corpus 5개와 optional RealEstate, reviewed/generated artifact 분리, explicit timeout/heap profile, strict v1 reader와 migration contract를 영속 사양으로 기록하고 Consensus Planning으로 전환했다."
+**Context**: CONSTRUCTION - U01 Consensus Planning Started
+
+---
+
+## YAML Rule Engine PoC — U01 Final Implementation Plan Approval Prompt
+**Timestamp**: 2026-07-22T12:44:18.7604280+09:00
+**User Input**: "전부 A"
+**AI Response**: "U01 Consensus Planning을 완료했다. Critic 1차 REJECT에서 raw-path confinement bridge와 initial proposal/baseline 순환을 발견해 Planner를 수정했고, 2차 OKAY, Architect APPROVE, Intent Reconciliation 100% PASS를 받았다. `pending-approval.md`와 11-step code generation plan의 승인을 요청한다. 승인은 proposal 생성까지 허가하며 baseline label 확정은 별도 review gate다."
+**Context**: CONSTRUCTION - U01 Final Implementation Plan Awaiting Approval
+
+---
+
+## YAML Rule Engine PoC — U01 Final Implementation Plan Approval
+**Timestamp**: 2026-07-22T12:48:35.0725639+09:00
+**User Input**: "승인"
+**AI Response**: "U01 final implementation/code generation plan을 승인 기록했다. 승인된 Steps 1~9의 구현과 snapshot proposal 생성을 시작하며 initial baseline disposition/label 확정은 별도 review gate로 유지한다."
+**Context**: CONSTRUCTION - U01 Code Generation Started
+
+---
+
+## U01 Snapshot Proposal Generated
+**Timestamp**: 2026-07-22T13:30:00+09:00
+**User Input**: "승인"
+**AI Response**: "승인된 U01 Steps 1~9를 구현하고 전체 Gradle 회귀 및 opt-in evaluation을 통과했다. 5개 base corpus와 분리된 holdout의 36 endpoint graph를 분석해 25 candidate를 생성했으며, 자동 baseline 승인은 하지 않았다. label review 제안은 PRESERVE 11, REPLACE 14, UNSUPPORTED 0이다."
+**Context**: CONSTRUCTION - U01 Snapshot Proposal Awaiting Manual Label Review
+
+---
+
+## U01 Baseline Labels Approved and G01 Executed
+**Timestamp**: 2026-07-22T13:45:00+09:00
+**User Input**: "승인"
+**AI Response**: "승인된 PRESERVE 11 / REPLACE 14 / UNSUPPORTED 0을 baseline-manifest.json v1로 기록하고 G01_DETERMINISM을 3회 실행했다. canonical determinism은 통과했으며 현재 Java 관찰과 REPLACE 기대값의 semantic diff는 FAIL로 보고되었다."
+**Context**: CONSTRUCTION - U01 Step 10 Complete; U02 Generic Primitive Gap Handoff
+
+---
+
+## U03 Graph Rule Engine Approved
+**Timestamp**: 2026-07-22T14:00:00+09:00
+**User Input**: "ㄱㄱ"
+**AI Response**: "기존 U03 Graph Rule Engine 구현의 승인 게이트를 A로 기록했다. U03 evidence는 82 tests, failures/errors/skips 0이며 다음 단계는 U04 Core Semantic Recipes다."
+**Context**: CONSTRUCTION - U04 Core Semantic Recipes Start Gate
+
+---
+
+## YAML U02 Configuration & Schema Implemented
+**Timestamp**: 2026-07-22T14:30:00+09:00
+**User Input**: "YAML U02 Configuration & Schema를 진행하자"
+**AI Response**: "YAML U02를 이전 rule-based-static-analysis-u02 candidate domain과 분리해 analysis.domain.recipe / analysis.support.recipe에 구현했다. 세 YAML strict validation, typed immutable CompiledRecipePlan, deterministic digest와 evaluation-only bootstrap을 추가하고 전체 Gradle test를 통과했다."
+**Context**: CONSTRUCTION - YAML Rule Engine PoC U02 Complete; Review Gate
+
+---
+
+## YAML U03 Typed Primitive Runtime Implemented
+**Timestamp**: 2026-07-22T15:00:00+09:00
+**User Input**: "다음"
+**AI Response**: "U02 CompiledRecipePlan을 소비하는 typed primitive runtime을 구현했다. BindingEnvironment, registry, cycle/depth/edge budget, unresolved no-guess와 isolated evaluation context를 추가했고 전체 Gradle test가 성공했다."
+**Context**: CONSTRUCTION - YAML Rule Engine PoC U03 Complete; Review Gate
+
+---
+
+## YAML U04 Core Semantic Recipes Implemented
+**Timestamp**: 2026-07-22T16:00:00+09:00
+**User Input**: "ㄱㄱ"
+**AI Response**: "Spring MVC 범위에서 범용성을 검증할 4개 semantic classifier family를 YAML recipe로 구성하고, 두 개의 이름 변형 graph에 동일 recipe를 실행하는 U04 테스트를 추가했다. graph evidence가 없으면 UNRESOLVED로 남으며 정상 Java scan 경로는 변경하지 않았다."
+**Context**: CONSTRUCTION - YAML Rule Engine PoC U04 Complete; Review Gate
+
+---
+
+## YAML U05 Framework Pack Activation Implemented
+**Timestamp**: 2026-07-22T16:30:00+09:00
+**User Input**: "다음"
+**AI Response**: "optional framework pack은 owner/method identity, resolved type, graph path evidence가 모두 증명될 때만 활성화하도록 계약을 추가했다. unrelated same-name, type failure, delegated no-guess negative test를 통과시켰다."
+**Context**: CONSTRUCTION - YAML Rule Engine PoC U05 Complete; Review Gate
+
+---
+
+## YAML U06 Cross-Repository Evaluation Gate Implemented
+**Timestamp**: 2026-07-22T17:00:00+09:00
+**User Input**: "다음"
+**AI Response**: "YAML/Java parity, coverage gap, fallback, holdout evidence를 분리해 GO/PARTIAL/NO_GO를 산출하는 evaluation-only gate를 추가했다. Java authoritative 정상 scan은 그대로 유지한다."
+**Context**: CONSTRUCTION - YAML Rule Engine PoC U06 Complete; Final Review Gate
+
+---

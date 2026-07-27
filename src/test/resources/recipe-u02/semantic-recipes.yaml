@@ -1,0 +1,23 @@
+schema_version: 1
+pack_version: core-v1
+recipes:
+  - id: JAVA_BINARY_FAILURE_GUARD
+    family: binary_failure_guard
+    steps:
+      - op: match.failure_condition
+        out: failure
+      - op: match.binary_comparison
+        in: failure
+        out: comparison
+      - op: resolve.request_input_path
+        in: comparison
+        out: target
+      - op: bind.literal_operand
+        in: comparison
+        out: expected
+      - op: normalize.comparison_by_failure_polarity
+        in: [comparison, failure]
+        out: operator
+      - op: emit.normalized_constraint
+        in: [target, operator, expected]
+        out: constraint

@@ -217,19 +217,23 @@ public class TypeResolver {
             return Optional.empty();
         }
 
-        for (Path root : sourceRoots) {
-            Path candidate = root;
-            for (String pkg : packageSegments) {
-                candidate = candidate.resolve(pkg);
+        try {
+            for (Path root : sourceRoots) {
+                Path candidate = root;
+                for (String pkg : packageSegments) {
+                    candidate = candidate.resolve(pkg);
+                }
+                candidate = candidate.resolve(typeSegments.get(0) + ".java");
+                if (!Files.exists(candidate)) {
+                    continue;
+                }
+                Optional<TypeDeclaration<?>> resolved = resolveTypeDeclaration(candidate, typeSegments);
+                if (resolved.isPresent()) {
+                    return resolved;
+                }
             }
-            candidate = candidate.resolve(typeSegments.get(0) + ".java");
-            if (!Files.exists(candidate)) {
-                continue;
-            }
-            Optional<TypeDeclaration<?>> resolved = resolveTypeDeclaration(candidate, typeSegments);
-            if (resolved.isPresent()) {
-                return resolved;
-            }
+        } catch (java.nio.file.InvalidPathException ignored) {
+            return Optional.empty();
         }
         return Optional.empty();
     }

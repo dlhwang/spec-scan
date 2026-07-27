@@ -29,14 +29,25 @@ import io.atworks.specscan.analysis.domain.fact.*;
 import io.atworks.specscan.analysis.support.TypeResolver;
 import java.nio.file.Path;
 
+/**
+ * JavaParser AST(CallableDeclaration)를 분석하여 코드 팩트 그래프(FactCodeGraph)의 노드 및 관계 간선을 구축하는 방문자 클래스입니다.
+ */
 final class FactMethodVisitor {
     private final DeterministicFactNodeIdGenerator ids;
     private final FactExpressionVisitor expressions;
-    FactMethodVisitor(DeterministicFactNodeIdGenerator ids) { this.ids = ids; this.expressions = new FactExpressionVisitor(ids); }
+    FactMethodVisitor(DeterministicFactNodeIdGenerator ids) { this(ids, new FactExpressionVisitor(ids)); }
+    FactMethodVisitor(DeterministicFactNodeIdGenerator ids, FactExpressionVisitor expressions) { this.ids = ids; this.expressions = expressions; }
 
+    /**
+     * 메서드/생성자(CallableDeclaration) 구문을 분석하여 파라미터, 지역변수, 제어문(if, switch), 람다, 리턴 및 예외를 그래프 노드로 축적(Accumulate)합니다.
+     */
     void visit(CallableDeclaration<?> method, FactNode methodNode, String owner, Path workspace, FactGraphAccumulator acc, TypeResolver resolver) {
+        // 1. 인스턴스/DTO 필드 및 어노테이션 등록
         registerInstanceFields(method, owner, workspace, acc);
+        // 2. 메서드 자체의 어노테이션(@GetMapping, @Transactional 등) 등록
         registerMethodAnnotations(method, methodNode, owner, workspace, acc);
+
+        // 3. 메서드 파라미터 분석 (웹 바인딩 위치 Path/Query/Header/Body, 타입 및 어노테이션 추출)
         for (int i = 0; i < method.getParameters().size(); i++) {
             var p = method.getParameter(i); SourceRange r = FactExpressionVisitor.range(p, workspace);
             String bindingLocation = bindingLocation(p.getAnnotations());
@@ -65,6 +76,7 @@ final class FactMethodVisitor {
                     "PARAMETER_ANNOTATION", acc);
             }
         }
+        // 4. 지역 변수 선언(VariableDeclarator) 및 초기화식 분석
         for (VariableDeclarator variable : method.findAll(VariableDeclarator.class)) {
             SourceRange r = FactExpressionVisitor.range(variable, workspace);
             FactNode local = new FactNode(ids.generate(FactNodeType.LOCAL_VARIABLE, owner, r, "local:" + variable.getNameAsString()), FactNodeType.LOCAL_VARIABLE, r,
@@ -72,6 +84,7 @@ final class FactMethodVisitor {
             relation(methodNode, local, FactEdgeType.ORIGINATES_FROM, -1, "LOCAL_VARIABLE", acc);
             variable.getInitializer().ifPresent(initializer -> expressions.visitAssigned(initializer, local, owner, workspace, acc, call -> resolve(call, resolver)));
         }
+        // 5. 람다 표현식(LambdaExpr) 분석 (파라미터, 리턴, 예외 관계 형성)
         for (LambdaExpr lambda : method.findAll(LambdaExpr.class)) {
             FactNode lambdaNode = expressions.lambdaNode(lambda, owner, workspace);
             relation(methodNode, lambdaNode, FactEdgeType.EXECUTES, -1, "LAMBDA", acc);
@@ -104,11 +117,13 @@ final class FactMethodVisitor {
                 }
             }
         }
+        // 6. 메서드 호출(MethodCallExpr) 분석 (빌더 패턴, 응답 팩토리 ResponseEntity, 선언된 예외 추출)
         for (MethodCallExpr call : method.findAll(MethodCallExpr.class)) {
             expressions.relateBuilderField(call, owner, workspace, acc, nested -> resolve(nested, resolver));
             recordResponseFactory(call, methodNode, owner, workspace, acc);
             recordDeclaredExceptions(call, owner, workspace, acc, resolver);
         }
+        // 7. If 제어문(IfStmt) 분석 (조건식 노드 생성 및 THEN/ELSE분기 결과 연결)
         for (IfStmt statement : method.findAll(IfStmt.class)) {
             SourceRange r = FactExpressionVisitor.range(statement.getCondition(), workspace);
             FactNode condition = new FactNode(ids.generate(FactNodeType.CONDITION, owner, r, "if-condition"), FactNodeType.CONDITION, r, statement.getCondition().toString(), TypeResolution.notApplicable(), new FactNodePayload.ConditionPayload(statement.getCondition().getClass().getSimpleName(), operator(statement.getCondition())));
@@ -120,12 +135,14 @@ final class FactMethodVisitor {
                 trailingStatement(statement).ifPresent(next -> directOutcomes(next, condition,
                     FactEdgeType.ELSE_OUTCOME, owner, workspace, acc, resolver));
         }
+        // 8. Switch 문 및 Switch 표현식 분석
         for (SwitchStmt statement : method.findAll(SwitchStmt.class)) {
             switchEntries(statement.getSelector(), statement.getEntries(), methodNode, owner, workspace, acc, resolver, false);
         }
         for (SwitchExpr expression : method.findAll(SwitchExpr.class)) {
             switchEntries(expression.getSelector(), expression.getEntries(), methodNode, owner, workspace, acc, resolver, true);
         }
+        // 9. 리턴문(ReturnStmt) 및 예외 던짐(ThrowStmt) 노드 연결
         for (ReturnStmt statement : method.findAll(ReturnStmt.class)) {
             if (findExecutableScope(statement) == method) {
                 FactNode returned = getOrCreateReturnNode(statement, owner, workspace, acc, resolver);
@@ -155,6 +172,10 @@ final class FactMethodVisitor {
         }
     }
 
+    /**
+     * ResponseEntity.ok(), ResponseEntity.status(...) 등 HTTP 응답 팩토리 메서드 호출을 감지하여
+     * RESPONSE_FACTORY 및 HTTP_STATUS 노드를 생성하고 관계를 연결합니다.
+     */
     private void recordResponseFactory(MethodCallExpr call, FactNode methodNode, String owner,
         Path workspace, FactGraphAccumulator acc) {
         String factoryMethod = call.getNameAsString();
@@ -207,6 +228,10 @@ final class FactMethodVisitor {
         };
     }
 
+    /**
+     * 호출하는 메서드의 시그니처를 심볼 심층 분석(TypeResolver)하여
+     * 해당 메서드가 선언한 throws 예외 목록(DECLARED_EXCEPTION)을 추출하고 관계를 연결합니다.
+     */
     private void recordDeclaredExceptions(MethodCallExpr call, String owner, Path workspace,
         FactGraphAccumulator acc, TypeResolver resolver) {
         resolver.resolveMethodCall(call).ifPresent(resolved -> {

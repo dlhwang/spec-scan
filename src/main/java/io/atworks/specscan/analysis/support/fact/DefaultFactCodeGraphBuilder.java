@@ -19,6 +19,7 @@ import java.util.*;
 
 public final class DefaultFactCodeGraphBuilder {
     private final DeterministicFactNodeIdGenerator ids = new DeterministicFactNodeIdGenerator();
+    private final FactExpressionVisitor expressions = new FactExpressionVisitor(ids);
     private final DefaultMethodTraversalPolicy policy = new DefaultMethodTraversalPolicy();
     private final FactGraphIntegrityValidator validator = new FactGraphIntegrityValidator();
 
@@ -72,17 +73,17 @@ public final class DefaultFactCodeGraphBuilder {
         if (!path.add(owner)) return;
         if (!state.visited.add(owner)) { path.remove(owner); return; }
         state.maxDepth = Math.max(state.maxDepth, depth);
-        new FactMethodVisitor(ids).visit(method, methodNode, owner, workspace, acc, resolver);
+        new FactMethodVisitor(ids, expressions).visit(method, methodNode, owner, workspace, acc, resolver);
         for (MethodCallExpr call : method.findAll(MethodCallExpr.class)) {
             Optional<ResolvedMethodDeclaration> resolved = resolver.resolveMethodCall(call);
             TypeResolution resolution = resolved.map(r -> TypeResolution.resolvedSignature(r.getQualifiedSignature())).orElseGet(() -> TypeResolution.unresolved("TYPE_RESOLUTION_FAILED"));
-            FactNode callNode = new FactExpressionVisitor(ids).callNode(call, owner, workspace, resolution);
-            new FactExpressionVisitor(ids).visitCallArguments(call, callNode, owner, workspace, acc,
+            FactNode callNode = expressions.callNode(call, owner, workspace, resolution);
+            expressions.visitCallArguments(call, callNode, owner, workspace, acc,
                 nested -> resolver.resolveMethodCall(nested)
                     .map(value -> TypeResolution.resolvedSignature(value.getQualifiedSignature()))
                     .orElseGet(() -> TypeResolution.unresolved("TYPE_RESOLUTION_FAILED")));
             FactNode callOwner = call.findAncestor(LambdaExpr.class)
-                .map(lambda -> new FactExpressionVisitor(ids).lambdaNode(lambda, owner, workspace))
+                .map(lambda -> expressions.lambdaNode(lambda, owner, workspace))
                 .orElse(methodNode);
             relate(callOwner, callNode, FactEdgeType.CALLS, -1, "CALL", acc);
             if (resolved.isEmpty()) {
@@ -141,7 +142,7 @@ public final class DefaultFactCodeGraphBuilder {
             TypeResolution resolution = resolved.map(value ->
                 TypeResolution.resolvedSignature(value.getQualifiedSignature()))
                 .orElseGet(() -> TypeResolution.unresolved("TYPE_RESOLUTION_FAILED"));
-            FactNode referenceNode = new FactExpressionVisitor(ids)
+            FactNode referenceNode = expressions
                 .methodReferenceNode(reference, owner, workspace, resolution);
             relate(methodNode, referenceNode, FactEdgeType.REFERENCES, -1, "METHOD_REFERENCE", acc);
             if (resolved.isEmpty()) continue;
@@ -165,7 +166,7 @@ public final class DefaultFactCodeGraphBuilder {
                 FactNodeType.OBJECT_CREATION, creationRange, creation.toString(), TypeResolution.notApplicable(),
                 new FactNodePayload.ObjectCreationPayload(creation.getTypeAsString(), creation.getArguments().size()));
             relate(methodNode, creationNode, FactEdgeType.CREATES, -1, "OBJECT_CREATION", acc);
-            new FactExpressionVisitor(ids).visitObjectCreationArguments(creation, creationNode, owner,
+            expressions.visitObjectCreationArguments(creation, creationNode, owner,
                 workspace, acc, call -> resolver.resolveMethodCall(call)
                     .map(value -> TypeResolution.resolvedSignature(value.getQualifiedSignature()))
                     .orElseGet(() -> TypeResolution.unresolved("TYPE_RESOLUTION_FAILED")));

@@ -12,5 +12,5 @@ B) 변경 요청 — Unit 04로 이동하지 않고 `[Rationale]`의 수정 사�
 
 X) Other — 다른 진행 방식을 `[Rationale]`에 작성한다.
 
-[Answer]: 
-[Rationale]: 
+[Answer]: A
+[Rationale]: U03 Graph Rule Engine implementation and its 82-test evidence are approved; continue to U04 Core Semantic Recipes.

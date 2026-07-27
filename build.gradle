@@ -93,3 +93,16 @@ tasks.register('ruleEvaluation', Test) {
         includeTestsMatching 'io.atworks.specscan.analysis.evaluation.*'
     }
 }
+
+tasks.register('u01BaselineEvaluation', Test) {
+    group = 'verification'
+    description = 'Generates the U01 review-only generalization baseline proposal.'
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    systemProperty 'specscan.u01.report.root',
+        layout.buildDirectory.dir('reports/specscan/u01').get().asFile.absolutePath
+    filter {
+        includeTestsMatching 'io.atworks.specscan.analysis.evaluation.baseline.U01CorpusEvaluationTest'
+    }
+}

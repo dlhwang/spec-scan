@@ -1,0 +1,9 @@
+schema_version: 1
+pack_version: framework-v1
+catalog:
+  guards:
+    - id: JDK_REQUIRE_NON_NULL
+      owner_type: java.util.Objects
+      method: requireNonNull
+      argument_role: guarded_value
+      semantics: NOT_NULL

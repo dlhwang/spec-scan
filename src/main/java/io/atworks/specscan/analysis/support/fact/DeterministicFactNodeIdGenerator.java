@@ -8,9 +8,14 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
 public final class DeterministicFactNodeIdGenerator {
-    public String generate(FactNodeType type, String owner, SourceRange range, String role) {
+    /**
+     * Generates a deterministic node ID from the canonical tuple (type, owner, range, discriminator).
+     * The discriminator distinguishes structurally different nodes that share the same (type, owner, range).
+     * It must NOT be an edge-context value such as "LEFT", "RIGHT", or "RECEIVER" — those belong on the edge.
+     */
+    public String generate(FactNodeType type, String owner, SourceRange range, String discriminator) {
         String canonical = String.join("|", type.name(), range.relativePath(), value(owner),
-            range.startLine() + ":" + range.startColumn(), range.endLine() + ":" + range.endColumn(), value(role));
+            range.startLine() + ":" + range.startColumn(), range.endLine() + ":" + range.endColumn(), value(discriminator));
         return type.name() + ":" + hash(canonical).substring(0, 24);
     }
     public String edgeId(String source, String target, String type, int ordinal, String role) {

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SpecScan Dynamic Pipeline Viewer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+  <style>
+    :root{--bg:#081018;--panel:#101b27;--line:#26374a;--text:#dbeafe;--muted:#8ca3bc;--cyan:#22d3ee;--violet:#a78bfa;--red:#fb7185}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 15% 0,#122940 0,var(--bg) 38%);color:var(--text);font:14px/1.5 Inter,system-ui,sans-serif}
+    header{padding:28px 32px 20px;border-bottom:1px solid var(--line)}h1{margin:0;font-size:25px}header p{margin:5px 0 0;color:var(--muted)}
+    .toolbar{display:flex;gap:12px;align-items:center;padding:18px 32px}.toolbar select{flex:1;max-width:720px;background:var(--panel);color:var(--text);border:1px solid var(--line);padding:11px;border-radius:8px}
+    .meta{color:var(--muted)}.tabs{display:flex;gap:6px;padding:0 32px;border-bottom:1px solid var(--line);overflow:auto}.tabs button{border:0;background:transparent;color:var(--muted);padding:13px 15px;cursor:pointer;white-space:nowrap}.tabs button.active{color:var(--cyan);border-bottom:2px solid var(--cyan)}
+    main{padding:24px 32px 48px}.card{background:rgba(16,27,39,.93);border:1px solid var(--line);border-radius:11px;padding:17px;margin-bottom:13px}.title{font-weight:700;color:#fff}.muted{color:var(--muted)}
+    pre{margin:10px 0 0;background:#060b11;border:1px solid #1c2a38;border-radius:8px;padding:14px;overflow:auto;max-height:620px;font:12px/1.55 ui-monospace,monospace;white-space:pre-wrap}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.metric{font-size:25px;color:var(--cyan);font-weight:750}.pill{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin:3px;color:var(--muted)}
+    #graph{height:650px;border:1px solid var(--line);border-radius:10px;background:#060b11}.node text{fill:var(--text);font-size:10px}.node circle{stroke:#e5f5ff;stroke-width:.7}.link{stroke:#52657a;stroke-opacity:.65}.empty{padding:50px;text-align:center;color:var(--muted)}
+    .error{color:var(--red)}@media(max-width:700px){header,.toolbar,main{padding-left:16px;padding-right:16px}.tabs{padding-left:16px}}
+  </style>
+</head>
+<body>
+  <header><h1>SpecScan Pipeline Viewer</h1><p id="repoMeta">분석 산출물을 불러오는 중…</p></header>
+  <div class="toolbar"><select id="endpoint"></select><span class="meta" id="generatedAt"></span></div>
+  <nav class="tabs" id="tabs"></nav>
+  <main id="content"><div class="empty">JSON을 읽고 있습니다.</div></main>
+  <script>
+    const tabDefs=[['source','1. 코드'],['pipeline','2. 분석 과정'],['graph','3. 코드 그래프'],['candidates','4. 후보'],['rules','5. 규칙 결과'],['finalSpec','6. 최종 JSON']];
+    const state={manifest:null,data:{},operationKey:null,tab:'source'};
+    const $=id=>document.getElementById(id);
+    const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    async function boot(){
+      try{
+        state.manifest=await fetchJson('manifest.json');
+        const entries=Object.entries(state.manifest.tabs);
+        await Promise.all(entries.map(async([key,path])=>state.data[key]=await fetchJson(path)));
+        const r=state.manifest.repository; $('repoMeta').textContent=`${r.owner}/${r.name} · ${r.buildTool} · Java ${r.javaFiles} files`;
+        $('generatedAt').textContent=new Date(state.manifest.generatedAt).toLocaleString();
+        $('endpoint').innerHTML=state.manifest.endpoints.map(e=>`<option value="${esc(e.operationKey)}">${esc(e.method)} ${esc(e.path)} · ${esc(e.controllerClass)}</option>`).join('');
+        state.operationKey=state.manifest.endpoints[0]?.operationKey||null;
+        $('endpoint').onchange=e=>{state.operationKey=e.target.value;render()};
+        $('tabs').innerHTML=tabDefs.map(([id,label])=>`<button data-tab="${id}">${label}</button>`).join('');
+        $('tabs').onclick=e=>{if(e.target.dataset.tab){state.tab=e.target.dataset.tab;render()}};
+        render();
+      }catch(e){$('content').innerHTML=`<div class="card error">산출물을 읽지 못했습니다: ${esc(e.message)}<br><span class="muted">file:// 대신 이 폴더에서 정적 파일 서버를 실행하세요.</span></div>`}
+    }
+    async function fetchJson(path){const r=await fetch(path);if(!r.ok)throw new Error(`${path} (${r.status})`);return r.json()}
+    function render(){
+      document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===state.tab));
+      if(!state.operationKey){$('content').innerHTML='<div class="empty">발견된 엔드포인트가 없습니다.</div>';return}
+      ({source:renderSource,pipeline:renderPipeline,graph:renderGraph,candidates:renderCandidates,rules:renderRules,finalSpec:renderFinal})[state.tab]();
+    }
+    function endpointItem(items){return(items||[]).find(x=>x.operationKey===state.operationKey)}
+    function renderSource(){const item=endpointItem(state.data.source.endpoints);$('content').innerHTML=(item?.files||[]).map(f=>`<section class="card"><div class="title">${esc(f.path)}</div><div class="muted">${f.highlights.length} highlights${f.truncated?' · truncated':''}</div><pre>${esc(f.content)}</pre></section>`).join('')||'<div class="empty">관련 소스가 없습니다.</div>'}
+    function renderPipeline(){const p=state.data.pipeline,s=p.summary;$('content').innerHTML=`<div class="grid">${Object.entries(s).map(([k,v])=>`<div class="card"><div class="metric">${v}</div><div class="muted">${esc(k)}</div></div>`).join('')}</div>${p.steps.map(x=>`<div class="card"><div class="title">${esc(x.phase)}</div><span class="pill">${esc(x.component)}</span><span class="pill">${x.count}</span></div>`).join('')}<div class="card"><div class="title">Diagnostics</div><pre>${esc(JSON.stringify({warnings:p.warnings,graphDiagnostics:p.graphDiagnostics},null,2))}</pre></div>`}
+    function renderGraph(){const item=endpointItem(state.data.graph.endpoints),g=item?.graph||{nodes:[],edges:[]};$('content').innerHTML=`<div class="card"><div class="title">${g.nodes?.length||0} nodes · ${g.edges?.length||0} edges</div><div id="graph"></div></div>`;drawGraph(g)}
+    function drawGraph(g){if(!g.nodes?.length){$('graph').innerHTML='<div class="empty">그래프가 없습니다.</div>';return}const host=$('graph'),w=host.clientWidth,h=host.clientHeight;const svg=d3.select(host).append('svg').attr('width',w).attr('height',h);const root=svg.append('g');svg.call(d3.zoom().on('zoom',e=>root.attr('transform',e.transform)));const nodes=g.nodes.map(x=>({...x})),links=(g.edges||[]).map(e=>({source:e.sourceNodeId,target:e.targetNodeId,type:e.type}));const color=d3.scaleOrdinal(d3.schemeTableau10);const link=root.append('g').selectAll('line').data(links).join('line').attr('class','link');const node=root.append('g').selectAll('g').data(nodes).join('g').attr('class','node').call(d3.drag().on('start',(e,d)=>{if(!e.active)sim.alphaTarget(.3).restart();d.fx=d.x;d.fy=d.y}).on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y}).on('end',(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null}));node.append('circle').attr('r',7).attr('fill',d=>color(d.type));node.append('text').attr('x',10).attr('y',3).text(d=>`${d.type}: ${(d.snippet||d.id).slice(0,45)}`);node.append('title').text(d=>JSON.stringify(d,null,2));const sim=d3.forceSimulation(nodes).force('link',d3.forceLink(links).id(d=>d.id).distance(65)).force('charge',d3.forceManyBody().strength(-150)).force('center',d3.forceCenter(w/2,h/2)).on('tick',()=>{link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);node.attr('transform',d=>`translate(${d.x},${d.y})`)})}
+    function renderCandidates(){const d=state.data.candidates,list=d.validationCandidatesByOperation[state.operationKey]||[];$('content').innerHTML=`<div class="card"><div class="title">Validation Candidates (${list.length})</div><pre>${esc(JSON.stringify(list,null,2))}</pre></div><div class="card"><div class="title">Direct Conditions</div><pre>${esc(JSON.stringify(d.directConditions||[],null,2))}</pre></div>`}
+    function renderRules(){const out=state.data.rules.outputsByOperation[state.operationKey];$('content').innerHTML=`<div class="card"><div class="title">Endpoint Rule Output</div><pre>${esc(JSON.stringify(out||{},null,2))}</pre></div>`}
+    function renderFinal(){const d=state.data.finalSpec,op=(d.operations||[]).find(x=>`${x.method} ${x.path}`===state.operationKey)||d;$('content').innerHTML=`<div class="card"><div class="title">Final Execution Spec</div><pre>${esc(JSON.stringify(op,null,2))}</pre></div>`}
+    boot();
+  </script>
+</body>
+</html>

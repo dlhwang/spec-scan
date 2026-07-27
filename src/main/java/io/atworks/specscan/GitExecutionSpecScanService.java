@@ -65,7 +65,8 @@ public class GitExecutionSpecScanService {
 
             ScanAnalysisContext context = new ScanPreparationService().prepare(repositorySource);
 
-            Path outputPath = Path.of(repositorySource.workspaceContext().workspacePath(), "openapi.yaml");
+            Path outputPath = Path.of("build", "specscan-output", "latest", "openapi.yaml")
+                .toAbsolutePath().normalize();
             new OpenApiAssemblyService().assemble(context, outputPath);
 
             JsonNode executionModel = OBJECT_MAPPER.readTree(
@@ -80,6 +81,7 @@ public class GitExecutionSpecScanService {
                 executionModel.fields().forEachRemaining(entry -> response.put(entry.getKey(), entry.getValue()));
             }
             response.put("validationEvidenceGraph", evidenceGraph);
+            response.put("visualizationPath", outputPath.getParent().resolve("visualization").toString());
             return OBJECT_MAPPER.writeValueAsString(response);
         } finally {
             if (repositorySource != null) {

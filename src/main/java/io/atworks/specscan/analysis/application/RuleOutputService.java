@@ -52,12 +52,16 @@ public final class RuleOutputService {
 
         GraphRuleEngine engine = new DefaultGraphRuleEngine(new DefaultValidationCandidateDetector(List.of()),
             InitialRulePacks.all());
+
+        // [첫 번째 루프] FactCodeGraph 단위 루프:
+        // 그래프 탐색(BFS)으로 호출 스코프를 수집하고, GraphRuleEngine을 실행하여 비즈니스 규칙 후보(BusinessRuleCandidate)를 1차 도출합니다.
         for (FactCodeGraph graph : build.graphs()) {
             ApiEndpoint endpoint = endpointFor(scan.endpoints(), graph);
             if (endpoint == null) continue;
             Set<String> methodIds = new LinkedHashSet<>();
             methodIds.add(graph.apiMethodNodeId());
             
+            // 1-1. BFS 탐색을 통한 메서드/생성자 스코프(methodIds) 수집
             Deque<String> pending = new ArrayDeque<>();
             pending.add(graph.apiMethodNodeId());
             Set<String> visited = new HashSet<>();
@@ -89,18 +93,26 @@ public final class RuleOutputService {
                 }
             }
             
+            // 1-2. 수집된 스코프(MethodScope) 기반 룰 엔진 평가 및 1차 EndpointRuleOutput 생성
             GraphRuleEngineResult evaluated = engine.evaluate(graph, new MethodScope(graph.graphId(), methodIds));
             allCandidates.addAll(evaluated.candidates().businessRules());
             outputs.put(OperationKey.of(endpoint).externalKey(),
                 adapter.adapt(endpoint, evaluated.candidates().businessRules()));
         }
 
+        // [두 번째 루프] ApiEndpoint 단위 루프:
+        // 1차 룰 결과에 어노테이션 기반 검증 조건(ApiConditionDraft), 빌드 진단 정보, 응답 불변식 및 메타데이터를 결합(Augment)합니다.
         for (ApiEndpoint endpoint : scan.endpoints()) {
             String operationKey = OperationKey.of(endpoint).externalKey();
             EndpointRuleOutput output = outputs.getOrDefault(operationKey, EndpointRuleOutput.empty(endpoint.path()));
+
+            // 2-1. 어노테이션 기반 검증 조건(@NotNull, @Size 등 ApiConditionDraft) 결합
             output = requestBindingAdapter.augment(endpoint, output, annotationConditions);
+
+            // 2-2. 그래프 빌드 과정의 진단/경고 정보 결합
             output = withBuildDiagnostics(endpoint, output, build.diagnostics());
             
+            // 2-3. 해당 엔드포인트의 FactCodeGraph를 매핑하여 응답 불변식(Response Invariant) 결합
             final String currentKey = operationKey;
             FactCodeGraph graph = build.graphs().stream()
                 .filter(g -> {
@@ -112,6 +124,7 @@ public final class RuleOutputService {
                 output = responseInvariantAdapter.augment(endpoint, output, graph, allCandidates);
             }
 
+            // 2-4. 응답 메타데이터 결합 후 최종 결과 갱신
             outputs.put(operationKey, responseMetadataAdapter.augment(endpoint, output, graph));
         }
         return outputs;

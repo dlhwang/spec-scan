@@ -1,0 +1,5 @@
+{
+  "profileId": "u01-smoke",
+  "singleRunTimeoutMillis": 30000,
+  "suiteTimeoutMillis": 90000
+}

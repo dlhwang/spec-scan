@@ -1,0 +1,5 @@
+{
+  "profileId": "u01-g01",
+  "singleRunTimeoutMillis": 600000,
+  "suiteTimeoutMillis": 1800000
+}

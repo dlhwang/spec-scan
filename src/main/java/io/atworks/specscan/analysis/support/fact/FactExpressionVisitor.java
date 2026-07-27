@@ -175,46 +175,46 @@ final class FactExpressionVisitor {
             visitCallChildren(call, value, owner, workspace, acc, resolver);
     }
 
-    private FactNode expressionNode(Expression expression, String owner, Path workspace, String role, Function<MethodCallExpr, TypeResolution> resolver) {
+    FactNode expressionNode(Expression expression, String owner, Path workspace, String role, Function<MethodCallExpr, TypeResolution> resolver) {
         if (expression instanceof MethodCallExpr call) return callNode(call, owner, workspace, resolver.apply(call));
         SourceRange range = range(expression, workspace);
         if (expression instanceof BinaryExpr binary) return new FactNode(
-            ids.generate(FactNodeType.CONDITION, owner, range, "nested:" + role), FactNodeType.CONDITION,
+            ids.generate(FactNodeType.CONDITION, owner, range, "binary"), FactNodeType.CONDITION,
             range, binary.toString(), TypeResolution.notApplicable(),
             new FactNodePayload.ConditionPayload(BinaryExpr.class.getSimpleName(), binary.getOperator().asString()));
         if (expression instanceof ConditionalExpr conditional) return new FactNode(
-            ids.generate(FactNodeType.CONDITION, owner, range, "nested:" + role), FactNodeType.CONDITION,
+            ids.generate(FactNodeType.CONDITION, owner, range, "conditional"), FactNodeType.CONDITION,
             range, conditional.toString(), TypeResolution.notApplicable(),
             new FactNodePayload.ConditionPayload("ConditionalExpr", "?:"));
         if (expression instanceof InstanceOfExpr instanceOf) return new FactNode(
-            ids.generate(FactNodeType.CONDITION, owner, range, "nested:" + role), FactNodeType.CONDITION,
+            ids.generate(FactNodeType.CONDITION, owner, range, "instanceof"), FactNodeType.CONDITION,
             range, instanceOf.toString(), TypeResolution.notApplicable(),
             new FactNodePayload.ConditionPayload("InstanceOfExpr", "instanceof"));
         if (expression instanceof CastExpr cast) return expressionNode(cast.getExpression(), owner, workspace, role, resolver);
         if (expression instanceof FieldAccessExpr field) {
             try {
                 var declaration = field.resolve();
-                if (declaration.isEnumConstant()) return new FactNode(ids.generate(FactNodeType.ENUM_CONSTANT, owner, range, role), FactNodeType.ENUM_CONSTANT, range, field.toString(), TypeResolution.resolvedType(declaration.getType().describe()), new FactNodePayload.EnumConstantPayload(declaration.getType().describe(), field.getNameAsString()));
+                if (declaration.isEnumConstant()) return new FactNode(ids.generate(FactNodeType.ENUM_CONSTANT, owner, range, "enum-constant"), FactNodeType.ENUM_CONSTANT, range, field.toString(), TypeResolution.resolvedType(declaration.getType().describe()), new FactNodePayload.EnumConstantPayload(declaration.getType().describe(), field.getNameAsString()));
             } catch (RuntimeException ignored) { }
-            return new FactNode(ids.generate(FactNodeType.FIELD_ACCESS, owner, range, role), FactNodeType.FIELD_ACCESS, range, field.toString(), TypeResolution.notApplicable(), new FactNodePayload.FieldAccessPayload(field.getNameAsString(), field.getScope().getClass().getSimpleName()));
+            return new FactNode(ids.generate(FactNodeType.FIELD_ACCESS, owner, range, "field-access"), FactNodeType.FIELD_ACCESS, range, field.toString(), TypeResolution.notApplicable(), new FactNodePayload.FieldAccessPayload(field.getNameAsString(), field.getScope().getClass().getSimpleName()));
         }
         if (expression instanceof NameExpr name) {
             try {
                 var declaration = name.resolve();
                 if (declaration.isEnumConstant()) return new FactNode(
-                    ids.generate(FactNodeType.ENUM_CONSTANT, owner, range, role),
+                    ids.generate(FactNodeType.ENUM_CONSTANT, owner, range, "enum-constant"),
                     FactNodeType.ENUM_CONSTANT, range, name.toString(),
                     TypeResolution.resolvedType(declaration.getType().describe()),
                     new FactNodePayload.EnumConstantPayload(declaration.getType().describe(),
                         name.getNameAsString()));
             } catch (RuntimeException ignored) { }
-            return new FactNode(ids.generate(FactNodeType.FIELD_ACCESS, owner, range, role),
+            return new FactNode(ids.generate(FactNodeType.FIELD_ACCESS, owner, range, "field-access"),
                 FactNodeType.FIELD_ACCESS, range, name.toString(),
                 TypeResolution.unresolved("DECLARATION_NOT_RESOLVED"),
                 new FactNodePayload.FieldAccessPayload(name.getNameAsString(), "NameExpr"));
         }
-        if (expression instanceof NullLiteralExpr) return new FactNode(ids.generate(FactNodeType.NULL_LITERAL, owner, range, role), FactNodeType.NULL_LITERAL, range, expression.toString(), TypeResolution.notApplicable(), new FactNodePayload.NullLiteralPayload());
-        if (expression instanceof LiteralExpr literal) return new FactNode(ids.generate(FactNodeType.LITERAL, owner, range, role), FactNodeType.LITERAL, range, literal.toString(), TypeResolution.notApplicable(), new FactNodePayload.LiteralPayload(literal.toString(), literal.getClass().getSimpleName()));
+        if (expression instanceof NullLiteralExpr) return new FactNode(ids.generate(FactNodeType.NULL_LITERAL, owner, range, "null-literal"), FactNodeType.NULL_LITERAL, range, expression.toString(), TypeResolution.notApplicable(), new FactNodePayload.NullLiteralPayload());
+        if (expression instanceof LiteralExpr literal) return new FactNode(ids.generate(FactNodeType.LITERAL, owner, range, "literal"), FactNodeType.LITERAL, range, literal.toString(), TypeResolution.notApplicable(), new FactNodePayload.LiteralPayload(literal.toString(), literal.getClass().getSimpleName()));
         return null;
     }
 
